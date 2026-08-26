@@ -3,6 +3,7 @@ FROM php:8.2-apache
 
 # Ativa as extensões do MySQL/MariaDB
 RUN docker-php-ext-install mysqli pdo pdo_mysql
+RUN echo "DirectoryIndex Principal.php index.php index.html" >> /etc/apache2/apache2.conf
 
 # Copia os arquivos do site para o servidor
 COPY . /var/www/html/
