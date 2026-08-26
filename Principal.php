@@ -1031,7 +1031,263 @@ if (isset($mysqli) && !$mysqli->connect_error) {
 
 
 
-       
+        <!-- =========================================================================
+     📍 FILTRO GEOGRÁFICO NACIONAL AUTOMÁTICO (UNIFICADO LOJAS E SALÕES)
+     ========================================================================= -->
+<div style="margin: 30px auto 10px auto; text-align: center; font-family: 'Segoe UI', Arial, sans-serif; max-width: 1350px; padding: 0 15px;">
+<span style="color: #94a3b8; font-size: 11px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 12px; letter-spacing: 0.5px;">📍 Filtrar Rede por Província Ativa:</span>
+<div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+    
+    <!-- Botão Mestre Inicial -->
+    <button class="btn-filtro-prov-nacional" onclick="executarFiltragemGeograficaCarrossel('todos', this)" style="background: #38bdf8; color: #0f172a; border: none; padding: 10px 22px; font-size: 12px; font-weight: bold; border-radius: 20px; cursor: pointer; text-transform: uppercase; transition: 0.2s; outline: none; letter-spacing: 0.5px;">🇦🇴 Mostrar Todas</button>
+    
+    <?php
+    // Lista oficial regulamentar de Angola para indexação estrita na rede SaaS
+    $todas_prov_angola = ['Bengo', 'Benguela', 'Bié', 'Cabinda', 'Cuando-Cubango', 'Cuanza-Norte', 'Cuanza-Sul', 'Cunene', 'Huambo', 'Huíla', 'Luanda', 'Lunda-Norte', 'Lunda-Sul', 'Malanje', 'Moxico', 'Namibe', 'Uíge', 'Zaire'];
+    
+    $prov_com_parceiros = [];
+    
+   // Abre conexão única reutilizável ou reaproveita a global existente de forma híbrida
+   if (isset($conexao_link) && $conexao_link instanceof mysqli) {
+    $mysqli_prov = $conexao_link;
+} else {
+    $db_host = getenv('DB_HOST') ?: "127.0.0.1";
+    $db_user = getenv('DB_USER') ?: "root";
+    $db_pass = getenv('DB_PASSWORD') ?: "";
+    $db_name = getenv('DB_NAME') ?: "aurelius_salao";
+    $mysqli_prov = @new mysqli($db_host, $db_user, $db_pass, $db_name);
+}
+
+if ($mysqli_prov && !$mysqli_prov->connect_error) {
+    $mysqli_prov->set_charset("utf8mb4");
+      // 🟢 CORREÇÃO MESTRE: Alinhado com as colunas reais da sua tabela 'usuario'
+     // 🟢 CONSULTA MULTI-TENANT: Varre os parceiros hospedados ativos (Ignora os suspensos)
+     $consultas_enderecos = [
+        "SELECT `codigo`, `endereco` FROM `usuario` WHERE `visivel_no_site` = 1 AND `nivel` = 'parceiro_hospedado'"
+    ];
+    
+    foreach ($consultas_enderecos as $sql_query) {
+        $query_botoes = $mysqli_prov->query($sql_query);
+        if ($query_botoes && $query_botoes->num_rows > 0) {
+            while ($p_row = $query_botoes->fetch_assoc()) {
+                if (empty($p_row['endereco'])) continue;
+                
+                // Normalização para caixa baixa para evitar distinção entre maiúsculas/minúsculas
+                $endereco_limpo = mb_strtolower(trim($p_row['endereco']), 'UTF-8');
+                
+                foreach ($todas_prov_angola as $prov_nome) {
+                    $prov_lower = mb_strtolower($prov_nome, 'UTF-8');
+                    
+                    // Normaliza acentos e hifens comuns (Ex: huila, lunda sul, bengo)
+                    $prov_sem_acento = str_replace(['í', 'é', 'á'], ['i', 'e', 'a'], $prov_lower);
+                    $prov_sem_hifen = str_replace('-', ' ', $prov_lower);
+                    
+                    if (str_contains($endereco_limpo, $prov_lower) || 
+                        str_contains($endereco_limpo, $prov_sem_acento) || 
+                        str_contains($endereco_limpo, $prov_sem_hifen)) {
+                        
+                        if (!in_array($prov_nome, $prov_com_parceiros)) {
+                            $prov_com_parceiros[] = $prov_nome;
+                        }
+                    }
+                }
+            }
+        }
+    }
+        $mysqli_prov->close();
+    }
+    
+    // Desenha reativamente apenas os botões das províncias que possuem salões ou lojas registados
+    foreach ($prov_com_parceiros as $nome_p):
+        // Normaliza o nome para o evento javascript (Ex: Huíla vira huila para evitar conflitos de url)
+        $slug_prov = str_replace(['í', 'é'], ['i', 'e'], mb_strtolower($nome_p, 'UTF-8'));
+    ?>
+        <button class="btn-filtro-prov-nacional" onclick="executarFiltragemGeograficaCarrossel('<?= $slug_prov ?>', this)" style="background: #1e293b; color: #f8fafc; border: 1px solid #334155; padding: 10px 22px; font-size: 12px; font-weight: bold; border-radius: 20px; cursor: pointer; text-transform: uppercase; transition: 0.2s; outline: none; letter-spacing: 0.5px;"><?= $nome_p ?></button>
+    <?php endforeach; ?>
+</div>
+</div>
+        
+
+
+
+        
+        <!-- =========================================================================
+             🟩 SCRIPT JAVASCRIPT: MOTOR DE FILTRAGEM REATIVA DE CARROSSEL
+             ========================================================================= -->
+             <script>
+function executarFiltragemGeograficaCarrossel(provinciaAlvo, botaoElemento) {
+    // 1. Reseta os estados visuais da botonera
+    const botoes = document.querySelectorAll('.btn-filtro-prov-nacional');
+    botoes.forEach(btn => {
+        btn.style.background = '#1e293b';
+        btn.style.color = '#f8fafc';
+        btn.style.border = '1px solid #334155';
+    });
+    botaoElemento.style.background = '#38bdf8';
+    botaoElemento.style.color = '#0f172a';
+    botaoElemento.style.border = 'none';
+
+    // 2. Captura os cards do carrossel para aplicação da máscara
+    const cardsCarrossel = document.querySelectorAll('#trilho_carrossel_salao .sub-grid');
+    
+    // Normalização completa de acentuação e hifens para busca flexível
+    let provLimpa = provinciaAlvo.toLowerCase().trim()
+        .replace(/[íìî]/g, 'i')
+        .replace(/[éèê]/g, 'e')
+        .replace(/[áàâã]/g, 'a')
+        .replace(/-/g, ' ');
+    
+    posicaoDeslocamentoAtual = 0;
+    const trilho = document.getElementById('trilho_carrossel_salao');
+    if (trilho) trilho.style.transform = `translateX(0px)`;
+
+    cardsCarrossel.forEach(card => {
+        let textoCardCompleto = card.innerText.toLowerCase()
+            .replace(/[íìî]/g, 'i')
+            .replace(/[éèê]/g, 'e')
+            .replace(/[áàâã]/g, 'a')
+            .replace(/-/g, ' ');
+        
+        if (provinciaAlvo === 'todos') {
+            card.style.setProperty('display', 'flex', 'important');
+        } else if (textoCardCompleto.includes(provLimpa)) {
+            card.style.setProperty('setProperty', 'display', 'flex', 'important');
+            card.style.display = 'flex';
+        } else {
+            card.style.setProperty('display', 'none', 'important');
+        }
+    });
+}
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- =================================================================
+     🔮 CONTEÚDO INTEGRAL DA GRAD DINÂMICA UNIVERSAL COESORA COM MOVIMENTO
+     ================================================================= -->
+     <div class="grad" style="width: 100%; max-width: 1350px; margin: 30px auto; padding: 0 15px; position: relative; box-sizing: border-box; overflow: hidden; clear: both !important;">
+
+     <!-- Botões Direcionais de Navegação Manual Estilo Premium -->
+     <button type="button" onclick="moverCarrosselSalores('esquerda')" style="position: absolute; left: 20px; top: 50%; transform: translateY(-50%); background: rgba(15,23,42,0.8); border: 2px solid #38bdf8; color: #fff; width: 45px; height: 45px; border-radius: 50%; font-size: 20px; cursor: pointer; z-index: 100; box-shadow: 0 4px 10px rgba(0,0,0,0.5); font-weight: bold; outline: none;">‹</button>
+     <button type="button" onclick="moverCarrosselSalores('direita')" style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); background: rgba(15,23,42,0.8); border: 2px solid #38bdf8; color: #fff; width: 45px; height: 45px; border-radius: 50%; font-size: 20px; cursor: pointer; z-index: 100; box-shadow: 0 4px 10px rgba(0,0,0,0.5); font-weight: bold; outline: none;">›</button>
+ 
+     <!-- Contentor de Máscara de Recorte -->
+     <div id="mascara_carrossel_salao" style="width: 100%; overflow: hidden; padding: 15px 0; box-sizing: border-box;">
+         
+         <!-- LISTAGEM EM LINHA FLUIDA DA GRID REATIVA (FLEX CARROSSEL) -->
+         <div class="grid" id="trilho_carrossel_salao" style="display: flex !important; gap: 20px !important; width: max-content !important; transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1); box-sizing: border-box !important; padding: 0 10px;">
+ 
+             <?php
+             // 🔑 CONEXÃO DIRETA À BASE DE DADOS MESTRE
+             $mysqli = new mysqli("127.0.0.1", "root", "", "aurelius_salao");
+             if ($mysqli->connect_error) {
+                 die("<p style='color:red;'>Erro na ligação: " . $mysqli->connect_error . "</p>");
+             }
+             $mysqli->set_charset("utf8mb4");
+ 
+             if (isset($mysqli)) {
+                 
+                 // Motor de filtragem do portal público
+                 $pesquisa_filtro = "";
+                 if (isset($_POST['disparar_busca']) && !empty($_POST['termo_cliente'])) {
+                     $busca = $mysqli->escape_string(trim($_POST['termo_cliente']));
+                     $pesquisa_filtro = " AND (`nome` LIKE '%$busca%' OR `endereco` LIKE '%$busca%' OR `tipos_de_servico` LIKE '%$busca%') ";
+                 }
+ 
+                 // 🟢 FILTRAGEM EXECUTIVA ATIVADA: Agora apenas barbearias com status 'Confirmado' aparecem no ecrã público
+                 $query_publica = $mysqli->query("
+                    SELECT * FROM `usuario` 
+                    WHERE `visivel_no_site` = 1 
+                      AND `nivel` = 'parceiro_hospedado'
+                      AND `transacao_status` = 'Confirmado' " . $pesquisa_filtro . " 
+                    ORDER BY `codigo` DESC
+                 ");
+                 
+                 if ($query_publica && $query_publica->num_rows > 0) {
+                     while ($row = $query_publica->fetch_assoc()) {
+                         
+                         $id_foto = (int)$row['codigo'];
+                         
+                         // 🟢 CARREGAMENTO SEGURO DE IMAGEM
+                         $arquivo_logo = trim($row['logo_empresa'] ?? '');
+                         
+                         if (!empty($arquivo_logo) && file_exists("uploads/" . $arquivo_logo)) {
+                             $foto_src = "uploads/" . $arquivo_logo;
+                         } elseif (!empty($arquivo_logo) && file_exists($arquivo_logo)) {
+                             $foto_src = $arquivo_logo;
+                         } else {
+                             $foto_src = "OIP (6).webp"; 
+                         }
+ 
+                         // Roteador dinâmico reativo por slug
+                         $slug_banco = !empty($row['slug']) ? trim($row['slug']) : 'Login';
+                         $link_destino = $slug_banco . ".php";
+                         
+                         $endereco_real = !empty($row['endereco']) ? trim($row['endereco']) : "Huambo";
+                         $servico_real = !empty($row['tipos_de_servico']) ? trim($row['tipos_de_servico']) : "Geral";
+                         
+                         // Extração automática do ano de registo
+                         $ano_cadastro = "Membro";
+                         $data_bruta = $row['data'] ?? '';
+                         if (!empty($data_bruta) && $data_bruta !== '0000-00-00') {
+                             $ano_cadastro = "Desde " . date('Y', strtotime($data_bruta));
+                         } else {
+                             if ($id_foto === 237) $ano_cadastro = "Desde 2026";
+                             elseif ($id_foto === 238) $ano_cadastro = "Desde 2025";
+                             else $ano_cadastro = "Desde 2024";
+                         }
+                         ?>
+                          
+                         <!-- 💎 DESIGN PREMIUM: Cartão Pílula Azul Escura Vertical Arredondada -->
+                         <div class="sub-grid" style="width: 175px !important; height: 320px !important; flex-shrink: 0 !important; background: #0b1a30 !important; border: 2px solid #1e293b !important; border-radius: 40px !important; padding: 18px 12px !important; text-align: center !important; box-sizing: border-box !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; box-shadow: 0 8px 16px rgba(0,0,0,0.4) !important;">
+                             
+                             <!-- Nome Fantasia do Salão / Loja -->
+                             <h2 class="h2-sub-grid" style="font-size: 13px !important; font-weight: bold !important; color: #ffffff !important; margin: 0 0 10px 0 !important; font-family: sans-serif !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; text-transform: uppercase !important;" title="<?php echo htmlspecialchars($row['nome']); ?>">
+                                 <?php echo htmlspecialchars($row['nome']); ?>
+                             </h2>
+                             
+                             <!-- Contentor do Logótipo -->
+                             <div class="img-container" style="width: 110px !important; height: 110px !important; border-radius: 16px !important; overflow: hidden !important; margin: 0 auto !important; background: #ffffff !important; display: flex !important; align-items: center !important; justify-content: center !important; border: 1px solid #1e293b !important; box-sizing: border-box;">
+                                 <img class="img-Comidas" src="<?php echo $foto_src; ?>" alt="Logo" style="width: 100% !important; height: 100% !important; object-fit: cover !important;">
+                              </div>
+                              
+                             <!-- Botão ENTRAR Vermelho Original -->
+                             <a href="<?php echo htmlspecialchars($link_destino); ?>" target="_blank" style="text-decoration: none !important; display: block !important; margin-top: 12px !important; width: 100%;">
+                                 <button class="botao-acção" style="width: 100% !important; background: #d32f2f !important; color: #ffffff !important; border: none !important; padding: 7px 0 !important; font-size: 12px !important; font-weight: bold !important; text-transform: uppercase !important; border-radius: 6px !important; cursor: pointer !important; letter-spacing: 0.5px !important; box-shadow: 0 4px 8px rgba(211,47,47,0.2) !important; outline: none;">ENTRAR</button>
+                             </a>
+                              
+                             <!-- Seletor Azul de Informações do Balcão (Fechamento Corrigido) -->
+                             <select style="width: 100% !important; background: #1e293b !important; color: #38bdf8 !important; border: 1px solid #334155 !important; padding: 4px; font-size: 11px; border-radius: 4px; outline: none; cursor: pointer; margin-top: 5px;">
+                                 <option><?php echo $ano_cadastro; ?></option>
+                                 <option>📍 <?php echo $endereco_real; ?></option>
+                                 <option>⚡ <?php echo $servico_real; ?></option>
+                             </select>
+                         </div>
+                     <?php 
+                     } // Fecha o while
+                 } else {
+                     echo "<p style='color: #64748b; padding: 20px; font-style: italic; width:100%; text-align:center;'>Nenhuma barbearia ativa encontrada.</p>";
+                 }
+                 $mysqli->close(); // Fecha a conexão de forma limpa
+             } 
+             ?>
+          </div> <!-- Fecha trilho_carrossel_salao -->
+      </div> <!-- Fecha mascara_carrossel_salao -->
+ </div> <!-- Fecha a div grad principal -->
 
 <!-- =========================================================================
      🟩 ENGINE JAVASCRIPT: MOTOR COMPACTO DE MOVIMENTAÇÃO DO TRILHO MULTI-TENANT
