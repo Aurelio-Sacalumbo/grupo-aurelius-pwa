@@ -1,4 +1,7 @@
-<?php
+<<?php
+// ==========================================
+// CONFIGURAÇÃO DE SESSÃO E CONEXÃO
+// ==========================================
 if (session_status() === PHP_SESSION_NONE) { 
     session_start(); 
 }
@@ -68,8 +71,6 @@ if ($conexao_link) {
     $novosSinos = $total_vids + $total_ped;
 }
 ?>
-
-
 <?php
 // 🛡️ MOTOR DE FILTRAGEM: Puxa apenas parceiros legítimos e confirmados pela gerência
 if (isset($conexao_link)) {
