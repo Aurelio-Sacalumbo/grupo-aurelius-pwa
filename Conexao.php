@@ -4,7 +4,6 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // 1. Configuração para o RENDER (Produção)
-// Se existirem variáveis de ambiente no Render, ele usa-as.
 if (getenv('DB_HOST')) {
     $db_host = getenv('DB_HOST');
     $db_user = getenv('DB_USER');
@@ -17,11 +16,8 @@ if (getenv('DB_HOST')) {
     $db_pass = "";
     $db_name = "aurelius_salao";
 }
-// Força a ligação a ignorar restrições rígidas de data no servidor de produção
-mysqli_query($conexao_aurelius, "SET sql_mode=''");
 
-
-// Cria a conexão que o Principal.php espera
+// PRIMEIRO: Cria a conexão que o Principal.php espera
 $conexao_aurelius = @mysqli_connect($db_host, $db_user, $db_pass, $db_name);
 
 // Fallback caso o XAMPP rejeite o IP 127.0.0.1
@@ -34,6 +30,6 @@ if (!$conexao_aurelius) {
     die("🚨 Falha na ligação ao banco de dados: " . mysqli_connect_error());
 }
 
+// AGORA SIM: Com a conexão criada com sucesso, aplicamos as configurações
 mysqli_set_charset($conexao_aurelius, "utf8mb4");
-
-mysqli_query($conexao_aurelius, "SET sql_mode=''");
+mysqli_query($conexao_aurelius, "SET SESSION sql_mode=''");
