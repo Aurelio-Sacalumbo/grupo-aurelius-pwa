@@ -1,0 +1,36 @@
+ 
+  body { 
+    background-image: url("177669285158.jpg");
+    background-repeat: no-repeat !important; /* O !important força o navegador a não repetir */
+    background-position: center center;   
+    background-attachment: fixed;
+    background-size: 80% auto; /* Define a largura para 80% e ajusta a altura automaticamente */
+    min-height: 100vh;
+    margin: 0; 
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;  
+}
+
+h1{font-size: 60px;text-align: center; border:4px soid red; background: rgb(228, 225, 225); border-radius: 30px; }
+h3{ font-weight: bold; font-size: 20px; font-family: sans-serif; color: rgba(199, 4, 20, 0.993); margin-top: 400px;   }
+
+/* páginas */
+.page { 
+    display: none; width: 100%;
+  text-align: center; 
+    justify-content: center; 
+  font-size: 20px; color: rgb(3, 1, 131);
+}
+#p1{ height: 700px;}
+
+#p2{height: 700px;  }
+
+#p3{height: 700px; }
+
+
+.active {
+    display: flex;
+}
+button { height: 40px; border-radius: 30px;}
+button a{text-decoration: none;font-weight: bold }
+
+
