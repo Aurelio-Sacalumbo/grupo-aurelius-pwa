@@ -1,4 +1,82 @@
 
+
+
+
+<?php
+// =========================================================================
+// 🔮 ECOSSISTEMA MESTRE REATIVO - RAIZ PRINCIPAL.PHP (AURÉLIUS SAAS)
+// =========================================================================
+if (session_status() === PHP_SESSION_NONE) { 
+    session_start(); 
+}
+
+// 🟢 INJEÇÃO DE CONTINGÊNCIA: Inicializa a variável vazia para matar o Warning da linha 1297
+$cupao_desconto = isset($_SESSION['cupao_ativo']) ? $_SESSION['cupao_ativo'] : "";
+
+include_once("Conexao.php");
+$conexao_link = $conexao_aurelius ?? $conexao ?? $link ?? $conn ?? $pdo ?? null;
+
+// Configuração do Banco de Dados para o Render (Lê variáveis de ambiente se existirem)
+if (!$conexao_link || !($conexao_link instanceof mysqli)) {
+    $db_host = getenv('DB_HOST') ?: "127.0.0.1";
+    $db_user = getenv('DB_USER') ?: "root";
+    $db_pass = getenv('DB_PASSWORD') ?: "";
+    $db_name = getenv('DB_NAME') ?: "aurelius_salao";
+    
+    $conexao_link = @mysqli_connect($db_host, $db_user, $db_pass, $db_name);
+}
+
+$agora = date('Y-m-d H:i:s');
+if (!isset($_SESSION['visto_vagas']))      { $_SESSION['visto_vagas'] = $agora; }
+if (!isset($_SESSION['visto_lojas']))      { $_SESSION['visto_lojas'] = $agora; }
+if (!isset($_SESSION['visto_barbearias'])) { $_SESSION['visto_barbearias'] = $agora; }
+if (!isset($_SESSION['visto_sino']))       { $_SESSION['visto_sino'] = $agora; }
+
+if (isset($_GET['marcar_lido'])) {
+    $seccao = trim($_GET['marcar_lido']);
+    $_SESSION['visto_' . $seccao] = date('Y-m-d H:i:s');
+    $rotas = ['vagas'=>'Vagas.php', 'lojas'=>'Lojas.php', 'barbearias'=>'Principal.php', 'sino'=>'Admin_Venda.php'];
+    if(isset($rotas[$seccao])) { header("Location: ".$rotas[$seccao]); exit(); }
+}
+
+$novasVagas = 0; $novasLojas = 0; $novosProdutos = 0; $novosSinos = 0;
+
+if ($conexao_link) {
+    mysqli_set_charset($conexao_link, "utf8mb4");
+
+    // 📊 VAGAS
+    $ref_vagas = $_SESSION['visto_vagas'];
+    $q_vagas = mysqli_query($conexao_link, "SELECT COUNT(*) as total FROM `vagas_trabalho` WHERE `data_criacao` > '$ref_vagas'");
+    $novasVagas = (int)(mysqli_fetch_assoc($q_vagas)['total'] ?? 0);
+
+    // 📊 LOJAS
+    $ref_lojas = $_SESSION['visto_lojas'];
+    $q_lojas = mysqli_query($conexao_link, "SELECT COUNT(*) as total FROM `lojas` WHERE `data_cadastro` > '$ref_lojas'");
+    $novasLojas = (int)(mysqli_fetch_assoc($q_lojas)['total'] ?? 0);
+
+    // 📊 PRODUTOS (CORREÇÃO DO ERRO 'ID')
+    $q_prod = @mysqli_query($conexao_link, "SELECT COUNT(*) as total FROM `produto_parceiros` WHERE 1=1");
+    if (!$q_prod) {
+        $novosProdutos = 0;
+    } else {
+        $total_p = (int)(mysqli_fetch_assoc($q_prod)['total'] ?? 0);
+        if(!isset($_SESSION['total_prod_base'])) { $_SESSION['total_prod_base'] = $total_p; }
+        $novosProdutos = $total_p - $_SESSION['total_prod_base'];
+        if ($novosProdutos < 0) $novosProdutos = 0;
+    }
+
+    // 🔔 SINO
+    $ref_sino = $_SESSION['visto_sino'];
+    $q_vids = mysqli_query($conexao_link, "SELECT COUNT(*) as total FROM `anuncios` WHERE `tipo_media` = 'video' AND `data_publicacao` > '$ref_sino'");
+    $total_vids = (int)(mysqli_fetch_assoc($q_vids)['total'] ?? 0);
+    $q_ped = mysqli_query($conexao_link, "SELECT COUNT(*) as total FROM `pedidos_emprego` WHERE `data_envio` > '$ref_sino'");
+    $total_ped = (int)(mysqli_fetch_assoc($q_ped)['total'] ?? 0);
+
+    $novosSinos = $total_vids + $total_ped;
+}
+?>
+
+
 <?php
 // 🛡️ MOTOR DE FILTRAGEM: Puxa apenas parceiros legítimos e confirmados pela gerência
 if (isset($conexao_link)) {
@@ -39,76 +117,7 @@ if (isset($conexao_link)) {
     }
 }
 ?>
-<?php
-// =========================================================================
-// 🔮 ECOSSISTEMA MESTRE REATIVO - RAIZ PRINCIPAL.PHP (AURÉLIUS SAAS)
-// =========================================================================
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
-// 🟢 INJEÇÃO DE CONTINGÊNCIA: Inicializa a variável vazia para matar o Warning da linha 1297
-$cupao_desconto = isset($_SESSION['cupao_ativo']) ? $_SESSION['cupao_ativo'] : "";
-// =========================================================================
-// 🚀 MOTOR DE NOTIFICAÇÕES - VERSÃO BLINDADA CONTRA ERROS DE COLUNA
-// =========================================================================
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
-
-include_once("Conexao.php");
-$conexao_link = $conexao_aurelius ?? $conexao ?? $link ?? $conn ?? $pdo ?? null;
-if (!$conexao_link || !($conexao_link instanceof mysqli)) {
-    $conexao_link = @mysqli_connect("127.0.0.1", "root", "", "aurelius_salao");
-}
-
-$agora = date('Y-m-d H:i:s');
-if (!isset($_SESSION['visto_vagas']))      { $_SESSION['visto_vagas'] = $agora; }
-if (!isset($_SESSION['visto_lojas']))      { $_SESSION['visto_lojas'] = $agora; }
-if (!isset($_SESSION['visto_barbearias'])) { $_SESSION['visto_barbearias'] = $agora; }
-if (!isset($_SESSION['visto_sino']))       { $_SESSION['visto_sino'] = $agora; }
-
-if (isset($_GET['marcar_lido'])) {
-    $seccao = trim($_GET['marcar_lido']);
-    $_SESSION['visto_' . $seccao] = date('Y-m-d H:i:s');
-    $rotas = ['vagas'=>'Vagas.php', 'lojas'=>'Lojas.php', 'barbearias'=>'Principal.php', 'sino'=>'Admin_Venda.php'];
-    if(isset($rotas[$seccao])) { header("Location: ".$rotas[$seccao]); exit(); }
-}
-
-$novasVagas = 0; $novasLojas = 0; $novosProdutos = 0; $novosSinos = 0;
-
-if ($conexao_link) {
-    mysqli_set_charset($conexao_link, "utf8mb4");
-
-    // 📊 VAGAS
-    $ref_vagas = $_SESSION['visto_vagas'];
-    $q_vagas = mysqli_query($conexao_link, "SELECT COUNT(*) as total FROM `vagas_trabalho` WHERE `data_criacao` > '$ref_vagas'");
-    $novasVagas = (int)(mysqli_fetch_assoc($q_vagas)['total'] ?? 0);
-
-    // 📊 LOJAS
-    $ref_lojas = $_SESSION['visto_lojas'];
-    $q_lojas = mysqli_query($conexao_link, "SELECT COUNT(*) as total FROM `lojas` WHERE `data_cadastro` > '$ref_lojas'");
-    $novasLojas = (int)(mysqli_fetch_assoc($q_lojas)['total'] ?? 0);
-
-    // 📊 PRODUTOS (CORREÇÃO DO ERRO 'ID')
-    // Usamos @ para silenciar e um fallback caso a coluna 'id' não exista
-    $q_prod = @mysqli_query($conexao_link, "SELECT COUNT(*) as total FROM `produto_parceiros` WHERE 1=1");
-    if (!$q_prod) {
-        $novosProdutos = 0;
-    } else {
-        // Se a contagem total for maior que o que a sessão registou inicialmente
-        $total_p = (int)(mysqli_fetch_assoc($q_prod)['total'] ?? 0);
-        if(!isset($_SESSION['total_prod_base'])) { $_SESSION['total_prod_base'] = $total_p; }
-        $novosProdutos = $total_p - $_SESSION['total_prod_base'];
-        if ($novosProdutos < 0) $novosProdutos = 0;
-    }
-
-    // 🔔 SINO
-    $ref_sino = $_SESSION['visto_sino'];
-    $q_vids = mysqli_query($conexao_link, "SELECT COUNT(*) as total FROM `anuncios` WHERE `tipo_media` = 'video' AND `data_publicacao` > '$ref_sino'");
-    $total_vids = (int)(mysqli_fetch_assoc($q_vids)['total'] ?? 0);
-    $q_ped = mysqli_query($conexao_link, "SELECT COUNT(*) as total FROM `pedidos_emprego` WHERE `data_envio` > '$ref_sino'");
-    $total_ped = (int)(mysqli_fetch_assoc($q_ped)['total'] ?? 0);
-
-    $novosSinos = $total_vids + $total_ped;
-}
-?>
 
 
 
