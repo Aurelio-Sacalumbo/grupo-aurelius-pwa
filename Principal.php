@@ -1,15 +1,13 @@
-<<?php
-// ==========================================
-// CONFIGURAÇÃO DE SESSÃO E CONEXÃO
-// ==========================================
+<?php
 if (session_status() === PHP_SESSION_NONE) { 
     session_start(); 
 }
 
-// 🟢 INJEÇÃO DE CONTINGÊNCIA: Inicializa a variável vazia para matar o Warning da linha 1297
+// Inicializa a variável para evitar o Warning da linha 1297
 $cupao_desconto = isset($_SESSION['cupao_ativo']) ? $_SESSION['cupao_ativo'] : "";
 
-include_once("Conexao.php");
+// Inclusão dinâmica e correta do ficheiro
+include_once(__DIR__ . "/Conexao.php");
 $conexao_link = $conexao_aurelius ?? $conexao ?? $link ?? $conn ?? $pdo ?? null;
 
 // Configuração do Banco de Dados para o Render (Lê variáveis de ambiente se existirem)
