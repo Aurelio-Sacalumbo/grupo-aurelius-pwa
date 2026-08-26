@@ -1,7 +1,10 @@
 FROM php:8.2-apache
 
-# Instala as extensões nativas do MySQL para PDO
-RUN docker-php-ext-install pdo pdo_mysql && docker-php-ext-enable pdo pdo_mysql
+# Instala as dependências necessárias e as extensões MySQLi e PDO
+RUN apt-get update && apt-get install -y \
+    libmariadb-dev \
+    && docker-php-ext-install mysqli pdo pdo_mysql \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Ativa o módulo de reescrita do Apache para ler o .htaccess
 RUN a2enmod rewrite
