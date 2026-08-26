@@ -17,6 +17,9 @@ if (getenv('DB_HOST')) {
     $db_pass = "";
     $db_name = "aurelius_salao";
 }
+// Força a ligação a ignorar restrições rígidas de data no servidor de produção
+mysqli_query($conexao_aurelius, "SET sql_mode=''");
+
 
 // Cria a conexão que o Principal.php espera
 $conexao_aurelius = @mysqli_connect($db_host, $db_user, $db_pass, $db_name);
@@ -32,3 +35,5 @@ if (!$conexao_aurelius) {
 }
 
 mysqli_set_charset($conexao_aurelius, "utf8mb4");
+
+mysqli_query($conexao_aurelius, "SET sql_mode=''");
