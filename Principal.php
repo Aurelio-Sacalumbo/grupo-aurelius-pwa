@@ -2176,24 +2176,22 @@ $img_post     = !empty($imagem_validada) ? $imagem_validada : 'uploads/prod_6a5b
 <!-- Scroller interno de mensagens -->
 <div id="caixa_mensagens_fb_<?php echo $id_post; ?>" style="max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; padding-right: 4px;">
     <?php
-    // Conexão e filtragem de mensagens reais do banco de dados
-    if (isset($conexao_link)) {
-        $query_mensagens_reais = mysqli_query($conexao_link, "SELECT * FROM `comentarios_reels` WHERE `id_anuncio` = $id_post ORDER BY id_comentario ASC");
-        if ($query_mensagens_reais && mysqli_num_rows($query_mensagens_reais) > 0):
-            while($coment = mysqli_fetch_assoc($query_mensagens_reais)):
-        ?>
-            <div style="text-align: left; background: #f0f2f5; padding: 8px 12px; border-radius: 18px; width: fit-content; max-width: 85%;">
-                <b style="color: #050505; font-size: 13px; display: block; margin-bottom: 2px;"><?php echo htmlspecialchars($coment['autor_nome']); ?></b>
-                <span style="color: #050505; font-size: 13px; word-break: break-word;"><?php echo htmlspecialchars($coment['mensagem']); ?></span>
-            </div>
-        <?php 
-            endwhile;
-        else:
-        ?>
-            <p id="sem_comentarios_aviso_<?php echo $id_post; ?>" style="color: #65676b; font-size: 12px; font-style: italic; text-align: center; padding: 10px 0;">Nenhum comentário por aqui. Seja o primeiro a comentar!</p>
-        <?php 
-        endif;
+    // Reutiliza diretamente a conexão global do topo para evitar abrir novas portas
+    if (isset($conexao_link) && $conexao_link instanceof mysqli) {
+        $mysqli_prov = $conexao_link;
     } else {
+        $db_host = getenv('DB_HOST') ?: "127.0.0.1";
+        $db_user = getenv('DB_USER') ?: "root";
+        $db_pass = getenv('DB_PASSWORD') ?: "";
+        $db_name = getenv('DB_NAME') ?: "aurelius_salao";
+        $mysqli_prov = @new mysqli($db_host, $db_user, $db_pass, $db_name);
+    }
+
+    if ($mysqli_prov && !$mysqli_prov->connect_error) {
+        $mysqli_prov->set_charset("utf8mb4");
+        
+        
+    }else {
         // FALLBACK LOCAL INTERATIVO CASO A CONEXÃO NÃO ESTEJA DECLARADA NESTE LOOP
         ?>
         <p style="color: #65676b; font-size: 12px; font-style: italic; text-align: center; padding: 5px 0;">Modo de Discussão Instantâneo Ativo</p>
