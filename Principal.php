@@ -1,15 +1,13 @@
 <?php
-// =========================================================================
-// 🚀 TOPO ABSOLUTO: APENAS UMA SESSÃO E DEFINIÇÃO DE FUSO HORÁRIO
-// =========================================================================
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 date_default_timezone_set('Africa/Luanda');
 
-// =========================================================================
-// 🔌 CONEXÃO INTELIGENTE BLINDADA (LOCAL + RAILWAY / RENDER)
-// =========================================================================
+// Inicialização de segurança contra o Warning da linha 1430
+$cupao_desconto = isset($_SESSION['cupao_ativo']) ? $_SESSION['cupao_ativo'] : "";
+$total_barbearias_real = 0;
+
 include_once(__DIR__ . "/Conexao.php");
 
 // Se o arquivo Conexao.php já criou a variável, nós reaproveitamos.
@@ -137,13 +135,14 @@ $novosSinos = $total_vids + $total_ped;
 
 
 <?php
-// =========================================================================
-// 🚀 TOPO ABSOLUTO DO FICHEIRO PRINCIPAL.PHP - CONFIGURAÇÃO GLOBAL PDO
-// =========================================================================
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 date_default_timezone_set('Africa/Luanda');
+
+// Inicialização de segurança contra o Warning da linha 1430
+$cupao_desconto = isset($_SESSION['cupao_ativo']) ? $_SESSION['cupao_ativo'] : "";
+$total_barbearias_real = 0;
 
 // Inicialização preventiva das variáveis do ecossistema do PWA
 $depoimentos_reais   = [];
@@ -2217,38 +2216,44 @@ $img_post     = !empty($imagem_validada) ? $imagem_validada : 'uploads/prod_6a5b
 
 
              <!-- 📂 GAVETA DE DISCUSSÃO DINÂMICA (ESTILO FACEBOOK - INICIA FECHADA) -->
-<div id="gaveta_comentarios_<?php echo $id_post; ?>" style="display: none; background: #ffffff; padding: 12px; border-radius: 8px; margin-top: 10px; border: 1px solid #e4e6eb; font-family: Segoe UI, Helvetica, Arial, sans-serif;">
-    
-<!-- Scroller interno de mensagens -->
-<div id="caixa_mensagens_fb_<?php echo $id_post; ?>" style="max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; padding-right: 4px;">
-    <?php
-    // Conexão e filtragem de mensagens reais do banco de dados
-    if (isset($conexao_link)) {
-        $query_mensagens_reais = mysqli_query($conexao_link, "SELECT * FROM `comentarios_reels` WHERE `id_anuncio` = $id_post ORDER BY id_comentario ASC");
-        if ($query_mensagens_reais && mysqli_num_rows($query_mensagens_reais) > 0):
-            while($coment = mysqli_fetch_assoc($query_mensagens_reais)):
-        ?>
-            <div style="text-align: left; background: #f0f2f5; padding: 8px 12px; border-radius: 18px; width: fit-content; max-width: 85%;">
-                <b style="color: #050505; font-size: 13px; display: block; margin-bottom: 2px;"><?php echo htmlspecialchars($coment['autor_nome']); ?></b>
-                <span style="color: #050505; font-size: 13px; word-break: break-word;"><?php echo htmlspecialchars($coment['mensagem']); ?></span>
-            </div>
-        <?php 
-            endwhile;
-        else:
-        ?>
-            <p id="sem_comentarios_aviso_<?php echo $id_post; ?>" style="color: #65676b; font-size: 12px; font-style: italic; text-align: center; padding: 10px 0;">Nenhum comentário por aqui. Seja o primeiro a comentar!</p>
-        <?php 
-        endif;
-    } else {
-        // FALLBACK LOCAL INTERATIVO CASO A CONEXÃO NÃO ESTEJA DECLARADA NESTE LOOP
-        ?>
-        <p style="color: #65676b; font-size: 12px; font-style: italic; text-align: center; padding: 5px 0;">Modo de Discussão Instantâneo Ativo</p>
-        <div style="text-align: left; background: #f0f2f5; padding: 8px 12px; border-radius: 18px; width: fit-content;">
-            <b style="color: #1877f2; font-size: 13px; display: block;">Grupo Aurélius:</b>
-            <span style="color: #050505; font-size: 13px;">Olá! Deixe a sua dúvida ou responda sobre este produto abaixo.</span>
-        </div>
-    <?php } ?>
-</div> <!-- 🟢 FECHA APENAS A CAIXA_MENSAGENS_FB -->
+<!-- =========================================================================
+     📍 BLOCO GEOGRÁFICO: FILTRAR REDE POR PROVÍNCIA ATIVA (100% DINÂMICO)
+     ========================================================================= -->
+     <div class="bloco-provincias" style="text-align: center; margin: 20px 0;">
+     <p style="font-weight: bold; color: #555;">📍 FILTRAR REDE POR PROVÍNCIA ATIVA:</p>
+     
+     <div class="botoes-provincias" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; padding: 10px;">
+         <a href="Principal.php" class="btn-provincia azul">🇦🇴 MOSTRAR TODAS</a>
+ 
+         <?php
+         // Usa estritamente a conexão estabelecida no topo do arquivo Principal.php
+         if (isset($conexao_link) && $conexao_link instanceof mysqli) {
+             
+             // Query Dinâmica: Puxa apenas as províncias que possuem Barbearias ou Lojas Ativas e Confirmadas
+             $query_provincias_ativas = mysqli_query($conexao_link, "
+                 SELECT DISTINCT SUBSTRING_INDEX(`endereco`, ' - ', 1) AS provincia_nome 
+                 FROM `usuario` 
+                 WHERE `nivel` = 'parceiro_hospedado' 
+                 AND `transacao_status` = 'Confirmado'
+                 ORDER BY provincia_nome ASC
+             ");
+ 
+             if ($query_provincias_ativas && mysqli_num_rows($query_provincias_ativas) > 0) {
+                 while ($prov = mysqli_fetch_assoc($query_provincias_ativas)) {
+                     $nome_filtrado = trim($prov['provincia_nome']);
+                     if (!empty($nome_filtrado)) {
+                         // Renderiza dinamicamente as províncias reais da sua base de dados
+                         echo '<a href="Principal.php?filtrar_provincia=' . urlencode($nome_filtrado) . '" class="btn-provincia preto" style="text-transform: uppercase; text-decoration: none; padding: 8px 16px; background: #1a1a1a; color: #fff; border-radius: 20px; font-size: 12px; font-weight: bold;">' . htmlspecialchars(mb_strtoupper($nome_filtrado, 'UTF-8')) . '</a>';
+                     }
+                 }
+             }
+         } else {
+             // Em caso de falha estrita na conexão, exibe um alerta discreto, mas NÃO trava o resto do HTML abaixo
+             echo '<span style="color: #ef4444; font-size: 12px; font-style: italic;">🚨 Base de dados temporariamente inacessível para leitura de províncias.</span>';
+         }
+         ?>
+     </div>
+ </div>
 
 <!-- FORMULÁRIO DE ENVIO ASSÍNCRONO: AJAX Ativo para salvar e injetar no card correto -->
 <form onsubmit="processarComentarioFB(event, <?php echo $id_post; ?>)" style="display: flex; gap: 8px; margin-top: 10px; background: transparent; align-items: center; border-top: 1px solid #e4e6eb; padding-top: 10px;">
