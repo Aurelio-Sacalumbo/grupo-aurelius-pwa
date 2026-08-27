@@ -1047,19 +1047,20 @@ if (isset($mysqli) && !$mysqli->connect_error) {
     
     $prov_com_parceiros = [];
     
-   // Reaproveita a conexão existente ou cria uma dinâmica para o Render
-   if (isset($conexao_link) && $conexao_link instanceof mysqli) {
-    $mysqli_barbearias = $conexao_link;
+ // Linha 1051 - Conexão das Províncias
+ if (isset($conexao_link) && $conexao_link instanceof mysqli) {
+    $mysqli_prov = $conexao_link;
 } else {
     $db_host = getenv('DB_HOST') ?: "127.0.0.1";
     $db_user = getenv('DB_USER') ?: "root";
     $db_pass = getenv('DB_PASSWORD') ?: "";
     $db_name = getenv('DB_NAME') ?: "aurelius_salao";
-    $mysqli_barbearias = @new mysqli($db_host, $db_user, $db_pass, $db_name);
+    $mysqli_prov = @new mysqli($db_host, $db_user, $db_pass, $db_name);
 }
+if ($mysqli_prov && !$mysqli_prov->connect_error) {
+    $mysqli_prov->set_charset("utf8mb4");
 
-if ($mysqli_barbearias && !$mysqli_barbearias->connect_error) {
-    $mysqli_barbearias->set_charset("utf8mb4");
+
       // 🟢 CORREÇÃO MESTRE: Alinhado com as colunas reais da sua tabela 'usuario'
      // 🟢 CONSULTA MULTI-TENANT: Varre os parceiros hospedados ativos (Ignora os suspensos)
      $consultas_enderecos = [
@@ -1193,11 +1194,18 @@ function executarFiltragemGeograficaCarrossel(provinciaAlvo, botaoElemento) {
  
              <?php
              // 🔑 CONEXÃO DIRETA À BASE DE DADOS MESTRE
-             $mysqli = new mysqli("127.0.0.1", "root", "", "aurelius_salao");
-             if ($mysqli->connect_error) {
-                 die("<p style='color:red;'>Erro na ligação: " . $mysqli->connect_error . "</p>");
-             }
-             $mysqli->set_charset("utf8mb4");
+          // Linha 1196 - Conexão das Barbearias
+    if (isset($conexao_link) && $conexao_link instanceof mysqli) {
+        $mysqli_barbearias = $conexao_link;
+    } else {
+        $db_host = getenv('DB_HOST') ?: "127.0.0.1";
+        $db_user = getenv('DB_USER') ?: "root";
+        $db_pass = getenv('DB_PASSWORD') ?: "";
+        $db_name = getenv('DB_NAME') ?: "aurelius_salao";
+        $mysqli_barbearias = @new mysqli($db_host, $db_user, $db_pass, $db_name);
+    }
+    if ($mysqli_barbearias && !$mysqli_barbearias->connect_error) {
+        $mysqli_barbearias->set_charset("utf8mb4");
  
              if (isset($mysqli)) {
                  
