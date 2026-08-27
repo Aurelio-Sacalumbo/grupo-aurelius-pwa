@@ -1,13 +1,13 @@
 <?php
-// =========================================================================
-// 🌍 CENTRAL DE COMPRAS & MARKETPLACE MULTI-LOJAS SAAS - GRUPO AURÉLIUS (LOJAS.PHP)
-// =========================================================================
+include_once(__DIR__ . "/Conexao.php");
+$mysqli_lojas = $conexao_link ?? $conexao_aurelius;
+
 if (!isset($_SESSION)) { 
     session_start(); 
 }
 date_default_timezone_set('Africa/Luanda');
 
-$mysqli = new mysqli("127.0.0.1", "root", "", "aurelius_salao");
+$mysqli = new mysqli("$conexao_link", "root", "", "aurelius_salao");
 if ($mysqli->connect_error) { 
     die("Falha na ligação técnica do ecossistema: " . $mysqli->connect_error); 
 }

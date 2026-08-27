@@ -1,14 +1,14 @@
 <?php
-// =========================================================================
-// 🛒 ENGINE SAAS B2B/B2C - CRIAÇÃO DE LOJAS AUTOMÁTICAS E LOGÍSTICA - AURÉLIUS
-// =========================================================================
+include_once(__DIR__ . "/Conexao.php");
+$mysqli_reg_vendas = $conexao_link ?? $conexao_aurelius;
+
 if (!isset($_SESSION)) { 
     session_start(); 
 }
 date_default_timezone_set('Africa/Luanda');
 
 // Conexão Central com o Banco de Dados
-$mysqli = new mysqli("127.0.0.1", "root", "", "aurelius_salao");
+$mysqli = new mysqli("$conexao_link", "root", "", "aurelius_salao");
 if ($mysqli->connect_error) { 
     die("Falha na ligação técnica do ecossistema: " . $mysqli->connect_error); 
 }

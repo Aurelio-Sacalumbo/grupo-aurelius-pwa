@@ -55,7 +55,7 @@ if (session_status() === PHP_SESSION_NONE) { session_start(); }
 include_once("Conexao.php");
 $conexao_link = $conexao_aurelius ?? $conexao ?? $link ?? $conn ?? $pdo ?? null;
 if (!$conexao_link || !($conexao_link instanceof mysqli)) {
-    $conexao_link = @mysqli_connect("127.0.0.1", "root", "", "aurelius_salao");
+    $conexao_link = @mysqli_connect("$conexao_link", "root", "", "aurelius_salao");
 }
 
 $agora = date('Y-m-d H:i:s');
@@ -407,9 +407,7 @@ if ('serviceWorker' in navigator) {
 
 <body>
 <?php
-// =========================================================================
-// 🎌 CENTRAL DE AUDITORIA: DETEÇÃO DO LÍDER DE MERCADO (TOPO ABSOLUTO)
-// =========================================================================
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -1055,7 +1053,7 @@ if (isset($mysqli) && !$mysqli->connect_error) {
     $prov_com_parceiros = [];
     
     // Abre conexão única reutilizável para varrer todas as frentes comerciais ativas
-    $mysqli_prov = new mysqli("127.0.0.1", "root", "", "aurelius_salao");
+    $mysqli_prov = $conexao_link ?? $conexao_aurelius;
     if (!$mysqli_prov->connect_error) {
         $mysqli_prov->set_charset("utf8mb4");
         
@@ -1192,7 +1190,7 @@ function executarFiltragemGeograficaCarrossel(provinciaAlvo, botaoElemento) {
  
              <?php
              // 🔑 CONEXÃO DIRETA À BASE DE DADOS MESTRE
-             $mysqli = new mysqli("127.0.0.1", "root", "", "aurelius_salao");
+             $mysqli = new mysqli("$conexao_link", "root", "", "aurelius_salao");
              if ($mysqli->connect_error) {
                  die("<p style='color:red;'>Erro na ligação: " . $mysqli->connect_error . "</p>");
              }
@@ -2180,7 +2178,7 @@ $img_post     = !empty($imagem_validada) ? $imagem_validada : 'uploads/prod_6a5b
     if (isset($conexao_link) && $conexao_link instanceof mysqli) {
         $mysqli_prov = $conexao_link;
     } else {
-        $db_host = getenv('DB_HOST') ?: "127.0.0.1";
+        $db_host = getenv('DB_HOST') ?: "$conexao_link";
         $db_user = getenv('DB_USER') ?: "root";
         $db_pass = getenv('DB_PASSWORD') ?: "";
         $db_name = getenv('DB_NAME') ?: "aurelius_salao";
@@ -3691,7 +3689,7 @@ function processarEnvioMensagemAlana(origemTela) {
     <div style="display: grid !important; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important; gap: 20px !important; width: 100% !important; box-sizing: border-box !important;">
         <?php
         // Conexão direta e estável ao MariaDB local do XAMPP
-        $mysqli_produtos = @new mysqli("127.0.0.1", "root", "", "aurelius_salao");
+        $mysqli_produtos = @new mysqli("$conexao_link", "root", "", "aurelius_salao");
         if (!$mysqli_produtos->connect_error) {
             $mysqli_produtos->set_charset("utf8mb4");
 

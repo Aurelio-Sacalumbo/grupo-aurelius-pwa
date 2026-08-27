@@ -2,6 +2,8 @@
 
 
 <?php
+include_once(__DIR__ . "/Conexao.php");
+$mysqli_hospedagem = $conexao_link ?? $conexao_aurelius;
 // Ative a sessão se necessário
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
