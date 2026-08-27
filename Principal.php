@@ -1,117 +1,133 @@
-
-<?php
-// 🛡️ MOTOR DE FILTRAGEM: Puxa apenas parceiros legítimos e confirmados pela gerência
-if (isset($conexao_link)) {
-    // Adicionado AND transacao_status = 'Confirmado' para apagar os suspensos da lista pública
-    $query_barbearias = mysqli_query($conexao_link, "
-        SELECT * FROM `usuario` 
-        WHERE `nivel` = 'parceiro_hospedado' 
-        AND `transacao_status` = 'Confirmado' 
-        ORDER BY codigo DESC
-    ");
-    
-    $listaReels = []; // Se carregar dados daqui
-    $lista_parceiros_ativos = [];
-    
-    if ($query_barbearias) {
-        while ($barbearia = mysqli_fetch_assoc($query_barbearias)) {
-            $lista_parceiros_ativos[] = $barbearia;
-        }
-    }
-}
-?>
-<?php
-// 📊 CONTADOR REAL DE ATIVOS: Conta apenas parceiros com status "Confirmado"
-$total_barbearias_real = 0;
-
-if (isset($conexao_link)) {
-    // Adicionado o filtro transacao_status = 'Confirmado' para igualar aos ativos reais
-    $q_contagem = mysqli_query($conexao_link, "
-        SELECT COUNT(*) as total 
-        FROM `usuario` 
-        WHERE `nivel` = 'parceiro_hospedado' 
-        AND `transacao_status` = 'Confirmado'
-    ");
-    
-    if ($q_contagem) {
-        $dados_cont = mysqli_fetch_assoc($q_contagem);
-        $total_barbearias_real = intval($dados_cont['total']); // Isto vai dar exatamente 5 no ecrã
-    }
-}
-?>
 <?php
 // =========================================================================
-// 🔮 ECOSSISTEMA MESTRE REATIVO - RAIZ PRINCIPAL.PHP (AURÉLIUS SAAS)
+// 🚀 INICIALIZAÇÃO DO ECOSSISTEMA E CONTINGÊNCIAS (TOPO ABSOLUTO)
 // =========================================================================
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
+if (session_status() === PHP_SESSION_NONE) { 
+    session_start(); 
+}
 
-// 🟢 INJEÇÃO DE CONTINGÊNCIA: Inicializa a variável vazia para matar o Warning da linha 1297
+// 🟢 INJEÇÃO DE CONTINGÊNCIA: Inicializa a variável vazia para matar o Warning da linha antiga 1297
 $cupao_desconto = isset($_SESSION['cupao_ativo']) ? $_SESSION['cupao_ativo'] : "";
-// =========================================================================
-// 🚀 MOTOR DE NOTIFICAÇÕES - VERSÃO BLINDADA CONTRA ERROS DE COLUNA
-// =========================================================================
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
+// =========================================================================
+// 🔌 INFRAESTRUTURA DE CONEXÃO COM A BASE DE DADOS (MYSQLI)
+// =========================================================================
 include_once("Conexao.php");
+
+// Tenta reaproveitar alguma conexão global existente
 $conexao_link = $conexao_aurelius ?? $conexao ?? $link ?? $conn ?? $pdo ?? null;
+
+// Se não encontrar nenhuma conexão aberta, força a ligação segura
 if (!$conexao_link || !($conexao_link instanceof mysqli)) {
-    $conexao_link = @mysqli_connect("$conexao_link", "root", "", "aurelius_salao");
+    $conexao_link = @mysqli_connect("127.0.0.1", "root", "", "aurelius_salao");
 }
 
+// Interrompe a execução caso a ligação falhe para evitar Fatal Errors em cascata
+if (!$conexao_link) {
+    die("<div style='padding:20px; background:#ffdddd; color:#aa0000; font-family:sans-serif;'>
+            <strong>Erro do Sistema:</strong> Falha crítica na conexão com o banco de dados principal.
+         </div>");
+}
+
+// Configura o charset correto para evitar problemas de acentuação no PWA
+mysqli_set_charset($conexao_link, "utf8mb4");
+
+// =========================================================================
+// 🛡️ MOTOR DE FILTRAGEM & CONTADOR DE PARCEIROS ATIVOS
+// =========================================================================
+$lista_parceiros_ativos = [];
+$listaReels             = []; // Inicializado para segurança caso carregue dados daqui futuramente
+$total_barbearias_real  = 0;
+
+// Puxa apenas parceiros legítimos e confirmados pela gerência (remove suspensos automaticamente)
+$query_barbearias = mysqli_query($conexao_link, "
+    SELECT * FROM `usuario` 
+    WHERE `nivel` = 'parceiro_hospedado' 
+    AND `transacao_status` = 'Confirmado' 
+    ORDER BY codigo DESC
+");
+
+if ($query_barbearias) {
+    while ($barbearia = mysqli_fetch_assoc($query_barbearias)) {
+        $lista_parceiros_ativos[] = $barbearia;
+    }
+}
+
+// Conta apenas parceiros com status "Confirmado" para bater exatamente com os dados visuais
+$q_contagem = mysqli_query($conexao_link, "
+    SELECT COUNT(*) as total 
+    FROM `usuario` 
+    WHERE `nivel` = 'parceiro_hospedado' 
+    AND `transacao_status` = 'Confirmado'
+");
+
+if ($q_contagem) {
+    $dados_cont = mysqli_fetch_assoc($q_contagem);
+    $total_barbearias_real = intval($dados_cont['total']); // Exibe exatamente o total correto no ecrã
+}
+
+// =========================================================================
+// 🚀 MOTOR DE NOTIFICAÇÕES (VERSÃO BLINDADA CONTRA ERROS DE COLUNA)
+// =========================================================================
 $agora = date('Y-m-d H:i:s');
 if (!isset($_SESSION['visto_vagas']))      { $_SESSION['visto_vagas'] = $agora; }
 if (!isset($_SESSION['visto_lojas']))      { $_SESSION['visto_lojas'] = $agora; }
 if (!isset($_SESSION['visto_barbearias'])) { $_SESSION['visto_barbearias'] = $agora; }
 if (!isset($_SESSION['visto_sino']))       { $_SESSION['visto_sino'] = $agora; }
 
+// Processamento e limpeza de redirecionamento HTTP
 if (isset($_GET['marcar_lido'])) {
     $seccao = trim($_GET['marcar_lido']);
     $_SESSION['visto_' . $seccao] = date('Y-m-d H:i:s');
-    $rotas = ['vagas'=>'Vagas.php', 'lojas'=>'Lojas.php', 'barbearias'=>'Principal.php', 'sino'=>'Admin_Venda.php'];
-    if(isset($rotas[$seccao])) { header("Location: ".$rotas[$seccao]); exit(); }
-}
-
-$novasVagas = 0; $novasLojas = 0; $novosProdutos = 0; $novosSinos = 0;
-
-if ($conexao_link) {
-    mysqli_set_charset($conexao_link, "utf8mb4");
-
-    // 📊 VAGAS
-    $ref_vagas = $_SESSION['visto_vagas'];
-    $q_vagas = mysqli_query($conexao_link, "SELECT COUNT(*) as total FROM `vagas_trabalho` WHERE `data_criacao` > '$ref_vagas'");
-    $novasVagas = (int)(mysqli_fetch_assoc($q_vagas)['total'] ?? 0);
-
-    // 📊 LOJAS
-    $ref_lojas = $_SESSION['visto_lojas'];
-    $q_lojas = mysqli_query($conexao_link, "SELECT COUNT(*) as total FROM `lojas` WHERE `data_cadastro` > '$ref_lojas'");
-    $novasLojas = (int)(mysqli_fetch_assoc($q_lojas)['total'] ?? 0);
-
-    // 📊 PRODUTOS (CORREÇÃO DO ERRO 'ID')
-    // Usamos @ para silenciar e um fallback caso a coluna 'id' não exista
-    $q_prod = @mysqli_query($conexao_link, "SELECT COUNT(*) as total FROM `produto_parceiros` WHERE 1=1");
-    if (!$q_prod) {
-        $novosProdutos = 0;
-    } else {
-        // Se a contagem total for maior que o que a sessão registou inicialmente
-        $total_p = (int)(mysqli_fetch_assoc($q_prod)['total'] ?? 0);
-        if(!isset($_SESSION['total_prod_base'])) { $_SESSION['total_prod_base'] = $total_p; }
-        $novosProdutos = $total_p - $_SESSION['total_prod_base'];
-        if ($novosProdutos < 0) $novosProdutos = 0;
+    $rotas = [
+        'vagas'       => 'Vagas.php', 
+        'lojas'       => 'Lojas.php', 
+        'barbearias'  => 'Principal.php', 
+        'sino'        => 'Admin_Venda.php'
+    ];
+    if (isset($rotas[$seccao])) { 
+        header("Location: " . $rotas[$seccao]); 
+        exit(); 
     }
-
-    // 🔔 SINO
-    $ref_sino = $_SESSION['visto_sino'];
-    $q_vids = mysqli_query($conexao_link, "SELECT COUNT(*) as total FROM `anuncios` WHERE `tipo_media` = 'video' AND `data_publicacao` > '$ref_sino'");
-    $total_vids = (int)(mysqli_fetch_assoc($q_vids)['total'] ?? 0);
-    $q_ped = mysqli_query($conexao_link, "SELECT COUNT(*) as total FROM `pedidos_emprego` WHERE `data_envio` > '$ref_sino'");
-    $total_ped = (int)(mysqli_fetch_assoc($q_ped)['total'] ?? 0);
-
-    $novosSinos = $total_vids + $total_ped;
 }
+
+// Inicializadores dos contadores de novos registos
+$novasVagas     = 0; 
+$novasLojas     = 0; 
+$novosProdutos  = 0; 
+$novosSinos     = 0;
+
+// 📊 Contagem - Vagas de Trabalho
+$ref_vagas = $_SESSION['visto_vagas'];
+$q_vagas = mysqli_query($conexao_link, "SELECT COUNT(*) as total FROM `vagas_trabalho` WHERE `data_criacao` > '$ref_vagas'");
+$novasVagas = (int)(mysqli_fetch_assoc($q_vagas)['total'] ?? 0);
+
+// 📊 Contagem - Lojas Cadastradas
+$ref_lojas = $_SESSION['visto_lojas'];
+$q_lojas = mysqli_query($conexao_link, "SELECT COUNT(*) as total FROM `lojas` WHERE `data_cadastro` > '$ref_lojas'");
+$novasLojas = (int)(mysqli_fetch_assoc($q_lojas)['total'] ?? 0);
+
+// 📊 Contagem - Produtos (Proteção contra ausência de colunas)
+$q_prod = @mysqli_query($conexao_link, "SELECT COUNT(*) as total FROM `produto_parceiros` WHERE 1=1");
+if ($q_prod) {
+    $total_p = (int)(mysqli_fetch_assoc($q_prod)['total'] ?? 0);
+    if (!isset($_SESSION['total_prod_base'])) { 
+        $_SESSION['total_prod_base'] = $total_p; 
+    }
+    $novosProdutos = $total_p - $_SESSION['total_prod_base'];
+    if ($novosProdutos < 0) $novosProdutos = 0;
+}
+
+// 🔔 Contagem - Sistema do Sino (Vídeos de anúncios + Candidaturas de Emprego)
+$ref_sino = $_SESSION['visto_sino'];
+$q_vids = mysqli_query($conexao_link, "SELECT COUNT(*) as total FROM `anuncios` WHERE `tipo_media` = 'video' AND `data_publicacao` > '$ref_sino'");
+$total_vids = (int)(mysqli_fetch_assoc($q_vids)['total'] ?? 0);
+
+$q_ped = mysqli_query($conexao_link, "SELECT COUNT(*) as total FROM `pedidos_emprego` WHERE `data_envio` > '$ref_sino'");
+$total_ped = (int)(mysqli_fetch_assoc($q_ped)['total'] ?? 0);
+
+$novosSinos = $total_vids + $total_ped;
 ?>
-
-
-
 
 
 
@@ -119,49 +135,74 @@ if ($conexao_link) {
 
 <?php
 // =========================================================================
-// 🚀 TOPO ABSOLUTO DO FICHEIRO PRINCIPAL.PHP - CONFIGURAÇÃO LOCAL E REAL
+// 🚀 TOPO ABSOLUTO DO FICHEIRO PRINCIPAL.PHP - CONFIGURAÇÃO GLOBAL PDO
 // =========================================================================
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 date_default_timezone_set('Africa/Luanda');
 
-// Importa corretamente o arquivo de conexão local
+// Inicialização preventiva das variáveis do ecossistema do PWA
+$depoimentos_reais   = [];
+$notif_videos        = 0;
+$notif_empregos      = 0;
+$total_notificacoes  = 0;
+
+// Importa o ficheiro de conexão estruturada em PDO
 require_once __DIR__ . "/config/Banco.php";
-// 1. Carrega os 5 depoimentos mais recentes criados nas últimas 48 horas
-// 1. Carrega os 5 depoimentos mais recentes criados nas últimas 72 horas
+
+// Validação preventiva: Interrompe o script de forma limpa caso o PDO não exista
+if (!isset($pdo) || !($pdo instanceof PDO)) {
+    die("<div style='padding:20px; background:#ffdddd; color:#aa0000; font-family:sans-serif;'>
+            <strong>Erro do Ecossistema:</strong> A conexão PDO no arquivo 'config/Banco.php' não foi encontrada ou é inválida.
+         </div>");
+}
+
 try {
+    // =========================================================================
+    // 1. CARREGAMENTO DE CONTEÚDO (DEPOIMENTOS DOS ÚLTIMOS 7 DIAS)
+    // =========================================================================
     $queryDepCapa = $pdo->query("
         SELECT * FROM `depoimentos` 
         WHERE `data_criacao` >= NOW() - INTERVAL 7 DAY 
         ORDER BY id DESC 
         LIMIT 5
     ");
-    $depoimentos_reais = $queryDepCapa->fetchAll();
-} catch (PDOException $e) {
-    $depoimentos_reais = [];
-}
+    
+    if ($queryDepCapa) {
+        $depoimentos_reais = $queryDepCapa->fetchAll(PDO::FETCH_ASSOC);
+    }
 
-// 2. Central de Notificações Local Dinâmica
-$notif_videos = 0;
-$notif_empregos = 0;
-
-try {
-    if (isset($pdo) && $pdo instanceof PDO) {
-        // Conta anúncios em vídeo ativos
-        $stmtVid = $pdo->query("SELECT COUNT(*) FROM `anuncios` WHERE (`imagem` LIKE '%.mp4' OR `imagem` LIKE '%.mov' OR `tipo_media` = 'video') AND `ativo` = 1");
+    // =========================================================================
+    // 2. CENTRAL DE NOTIFICAÇÕES LOCAL DINÂMICA (SINO REATIVO 🔔)
+    // =========================================================================
+    // 📊 Contagem de anúncios em vídeo ativos para o PWA
+    $stmtVid = $pdo->query("
+        SELECT COUNT(*) FROM `anuncios` 
+        WHERE (`imagem` LIKE '%.mp4' OR `imagem` LIKE '%.mov' OR `tipo_media` = 'video') 
+        AND `ativo` = 1
+    ");
+    if ($stmtVid) {
         $notif_videos = intval($stmtVid->fetchColumn());
+    }
 
-        // Conta candidaturas de emprego para a barbearia ID 20
-        $stmtEmp = $pdo->query("SELECT COUNT(*) FROM `pedidos_emprego` WHERE `id_barbearia` = 20");
+    // 📊 Contagem de candidaturas de emprego específicas para a barbearia ID 20
+    $stmtEmp = $pdo->query("
+        SELECT COUNT(*) FROM `pedidos_emprego` 
+        WHERE `id_barbearia` = 20
+    ");
+    if ($stmtEmp) {
         $notif_empregos = intval($stmtEmp->fetchColumn());
     }
-} catch (Exception $e) {
-    $notif_videos = 0;
-    $notif_empregos = 0;
+
+} catch (PDOException $e) {
+    // Mantém os fallbacks zerados de forma segura contra falhas nas tabelas
+    $depoimentos_reais   = [];
+    $notif_videos        = 0;
+    $notif_empregos      = 0;
 }
 
-// Soma unificada para alimentar a bolha vermelha do sino 🔔
+// Soma unificada pronta para alimentar o badge vermelho do sino (🔔) no HTML
 $total_notificacoes = $notif_videos + $notif_empregos;
 ?>
 <!DOCTYPE html>
@@ -407,7 +448,9 @@ if ('serviceWorker' in navigator) {
 
 <body>
 <?php
-
+// =========================================================================
+// 🎌 CENTRAL DE AUDITORIA: DETEÇÃO DO LÍDER DE MERCADO (TOPO ABSOLUTO)
+// =========================================================================
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -1053,7 +1096,7 @@ if (isset($mysqli) && !$mysqli->connect_error) {
     $prov_com_parceiros = [];
     
     // Abre conexão única reutilizável para varrer todas as frentes comerciais ativas
-    $mysqli_prov = $conexao_link ?? $conexao_aurelius;
+    $mysqli_prov = new mysqli("127.0.0.1", "root", "", "aurelius_salao");
     if (!$mysqli_prov->connect_error) {
         $mysqli_prov->set_charset("utf8mb4");
         
@@ -1190,7 +1233,7 @@ function executarFiltragemGeograficaCarrossel(provinciaAlvo, botaoElemento) {
  
              <?php
              // 🔑 CONEXÃO DIRETA À BASE DE DADOS MESTRE
-             $mysqli = new mysqli("$conexao_link", "root", "", "aurelius_salao");
+             $mysqli = new mysqli("127.0.0.1", "root", "", "aurelius_salao");
              if ($mysqli->connect_error) {
                  die("<p style='color:red;'>Erro na ligação: " . $mysqli->connect_error . "</p>");
              }
@@ -2174,22 +2217,24 @@ $img_post     = !empty($imagem_validada) ? $imagem_validada : 'uploads/prod_6a5b
 <!-- Scroller interno de mensagens -->
 <div id="caixa_mensagens_fb_<?php echo $id_post; ?>" style="max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; padding-right: 4px;">
     <?php
-    // Reutiliza diretamente a conexão global do topo para evitar abrir novas portas
-    if (isset($conexao_link) && $conexao_link instanceof mysqli) {
-        $mysqli_prov = $conexao_link;
+    // Conexão e filtragem de mensagens reais do banco de dados
+    if (isset($conexao_link)) {
+        $query_mensagens_reais = mysqli_query($conexao_link, "SELECT * FROM `comentarios_reels` WHERE `id_anuncio` = $id_post ORDER BY id_comentario ASC");
+        if ($query_mensagens_reais && mysqli_num_rows($query_mensagens_reais) > 0):
+            while($coment = mysqli_fetch_assoc($query_mensagens_reais)):
+        ?>
+            <div style="text-align: left; background: #f0f2f5; padding: 8px 12px; border-radius: 18px; width: fit-content; max-width: 85%;">
+                <b style="color: #050505; font-size: 13px; display: block; margin-bottom: 2px;"><?php echo htmlspecialchars($coment['autor_nome']); ?></b>
+                <span style="color: #050505; font-size: 13px; word-break: break-word;"><?php echo htmlspecialchars($coment['mensagem']); ?></span>
+            </div>
+        <?php 
+            endwhile;
+        else:
+        ?>
+            <p id="sem_comentarios_aviso_<?php echo $id_post; ?>" style="color: #65676b; font-size: 12px; font-style: italic; text-align: center; padding: 10px 0;">Nenhum comentário por aqui. Seja o primeiro a comentar!</p>
+        <?php 
+        endif;
     } else {
-        $db_host = getenv('DB_HOST') ?: "$conexao_link";
-        $db_user = getenv('DB_USER') ?: "root";
-        $db_pass = getenv('DB_PASSWORD') ?: "";
-        $db_name = getenv('DB_NAME') ?: "aurelius_salao";
-        $mysqli_prov = @new mysqli($db_host, $db_user, $db_pass, $db_name);
-    }
-
-    if ($mysqli_prov && !$mysqli_prov->connect_error) {
-        $mysqli_prov->set_charset("utf8mb4");
-        
-        
-    }else {
         // FALLBACK LOCAL INTERATIVO CASO A CONEXÃO NÃO ESTEJA DECLARADA NESTE LOOP
         ?>
         <p style="color: #65676b; font-size: 12px; font-style: italic; text-align: center; padding: 5px 0;">Modo de Discussão Instantâneo Ativo</p>
@@ -3689,7 +3734,7 @@ function processarEnvioMensagemAlana(origemTela) {
     <div style="display: grid !important; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important; gap: 20px !important; width: 100% !important; box-sizing: border-box !important;">
         <?php
         // Conexão direta e estável ao MariaDB local do XAMPP
-        $mysqli_produtos = @new mysqli("$conexao_link", "root", "", "aurelius_salao");
+        $mysqli_produtos = @new mysqli("127.0.0.1", "root", "", "aurelius_salao");
         if (!$mysqli_produtos->connect_error) {
             $mysqli_produtos->set_charset("utf8mb4");
 
