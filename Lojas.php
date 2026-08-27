@@ -1,27 +1,62 @@
 <?php
-// Evita conflitos de sessões duplicadas
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+// =========================================================================
+// 🌍 CENTRAL DE COMPRAS & MARKETPLACE MULTI-LOJAS SAAS - GRUPO AURÉLIUS (LOJAS.PHP)
+// =========================================================================
+if (session_status() === PHP_SESSION_NONE) { 
+    session_start(); 
+}
+date_default_timezone_set('Africa/Luanda');
+
+// Inicialização de SEGURANÇA ABSOLUTA - Garante que o foreach nunca dê erro
+$lojas_parceiras = []; 
+$id_usuario_comprador = isset($_SESSION['codigo_usuario']) ? intval($_SESSION['codigo_usuario']) : 1;
+if (getenv('DB_HOST')) {
+    // Se estiver no Render, usa as variáveis de ambiente automáticas
+    $db_host = getenv('DB_HOST');
+    $db_user = getenv('DB_USER');
+    $db_pass = getenv('DB_PASSWORD') ?: "";
+    $db_name = getenv('DB_NAME');
+} else {
+    // Se falhar o getenv, injeta as credenciais públicas do Railway para garantir o acesso online
+    $db_host = "altaria.proxy.rlwy.net:52030";
+    $db_user = "root";
+    $db_pass = "tPzDwXGkyczyyYdcyvLmHLSMmfZmnMIZ";
+    $db_name = "railway";
 }
 
-// 🟢 INCLUSÃO OBRIGATÓRIA: Carrega as configurações dinâmicas locais e de nuvem
-include_once(__DIR__ . "/Conexao.php");
+// Efetua a ligação à base de dados
+$mysqli = @new mysqli($db_host, $db_user, $db_pass, $db_name);
 
-// Reaproveita a ligação global do ficheiro centralizado
-$mysqli_lojas = $conexao_link ?? $conexao_aurelius;
-
-// Caso não encontre a variável (blindagem extra contra valores vazios)
-if (!$mysqli_lojas || !($mysqli_lojas instanceof mysqli)) {
-    $db_host = getenv('DB_HOST') ?: "altaria.proxy.rlwy.net:52030";
-    $db_user = getenv('DB_USER') ?: "root";
-    $db_pass = getenv('DB_PASSWORD') ?: "tPzDwXGkyczyyYdcyvLmHLSMmfZmnMIZ";
-    $db_name = getenv('DB_NAME') ?: "railway";
-    $mysqli_lojas = @new mysqli($db_host, $db_user, $db_pass, $db_name);
+// Fallback extra: se falhar tudo na nuvem, assume que estamos a rodar no XAMPP local
+if (!$mysqli || $mysqli->connect_error) {
+    $mysqli = @new mysqli("127.0.0.1", "root", "", "aurelius_salao");
 }
 
-// ⚠️ Se o seu código abaixo usar outra variável (ex: $conn ou $conexao) em vez de $mysqli_lojas, 
-// adicione a linha correspondente abaixo:
-// $conn = $mysqli_lojas;
+// Configurações de tolerância de dados
+if ($mysqli && !$mysqli->connect_error) {
+    $mysqli->set_charset("utf8mb4");
+    $mysqli->query("SET SESSION sql_mode=''");
+}
+
+if ($mysqli->connect_error) {
+    // Alerta visual discreto sem quebrar a execução do resto do PWA
+    $banco_erro_conexao = true;
+} else {
+    $mysqli->set_charset("utf8mb4");
+
+    // Carrega as abas superiores lendo a tabela exclusiva de lojas
+    $query_lojas = $mysqli->query("
+        SELECT id AS codigo, nome_loja AS nome, endereco_armazem AS endereco, especificacoes_json 
+        FROM lojas 
+        WHERE visivel_no_site = 1 
+        ORDER BY id DESC
+    ");
+
+    if (!isset($lojas_parceiras) || !is_array($lojas_parceiras)) {
+        $lojas_parceiras = [];
+    
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="pt-PT">

@@ -1,94 +1,28 @@
 <?php
-include_once(__DIR__ . "/Conexao.php");
-$mysqli_reg_vendas = $conexao_link ?? $conexao_aurelius;
-
-if (!isset($_SESSION)) { 
+if (session_status() === PHP_SESSION_NONE) { 
     session_start(); 
 }
 date_default_timezone_set('Africa/Luanda');
 
-// Conexão Central com o Banco de Dados
-$mysqli = new mysqli("$conexao_link", "root", "", "aurelius_salao");
-if ($mysqli->connect_error) { 
-    die("Falha na ligação técnica do ecossistema: " . $mysqli->connect_error); 
+// Inclui o ficheiro de ligação global primeiro
+include_once(__DIR__ . "/Conexao.php");
+
+$mysqli_reg_vendas = $conexao_link ?? $conexao_aurelius;
+
+if (!$mysqli_reg_vendas || !($mysqli_reg_vendas instanceof mysqli)) {
+    $db_host = getenv('DB_HOST') ?: "altaria.proxy.rlwy.net:52030";
+    $db_user = getenv('DB_USER') ?: "root";
+    $db_pass = getenv('DB_PASSWORD') ?: "tPzDwXGkyczyyYdcyvLmHLSMmfZmnMIZ";
+    $db_name = getenv('DB_NAME') ?: "railway";
+    $mysqli_reg_vendas = @new mysqli($db_host, $db_user, $db_pass, $db_name);
 }
-$mysqli->set_charset("utf8");
 
-$mensagem_sucesso = "";
-$mensagem_erro = "";
-
-// 🟢 CONTROLADOR 1: DETEÇÃO E PROCESSAMENTO DO FORMULÁRIO DE 4 PASSOS DE CRIAÇÃO DA LOJA
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['disparar_registro_loja_aurélys'])) {
-    
-    $nome_loja        = $mysqli->escape_string(trim($_POST['nome_loja']));
-    $provincia_sede   = $mysqli->escape_string($_POST['provincia']);
-    $municipio_sede   = $mysqli->escape_string($_POST['municipio']);
-    $endereco_exacto  = $mysqli->escape_string(trim($_POST['endereco']));
-    $email_loja       = $mysqli->escape_string(trim($_POST['email']));
-    $iban_bancario    = isset($_POST['iban_bancario']) ? $mysqli->escape_string(trim($_POST['iban_bancario'])) : ''; 
-    $telefone_loja    = $mysqli->escape_string(trim($_POST['telefone']));
-    $pin_cadastro     = $mysqli->escape_string(trim($_POST['pin_cadastro'])); 
-    
-    // Captura Avançada de Requisitos de E-Commerce & Logística (Abas 3 e 4)
-    $escala_catalogo     = isset($_POST['escala_catalogo']) ? $mysqli->escape_string($_POST['escala_catalogo']) : 'pequeno';
-    $controlo_stock      = isset($_POST['controlo_stock_ecommerce']) ? $mysqli->escape_string($_POST['controlo_stock_ecommerce']) : 'estrito';
-    $calculo_frete       = isset($_POST['calculo_frete']) ? $mysqli->escape_string($_POST['calculo_frete']) : 'fixo_municipio';
-    $metodos_entrega     = isset($_POST['metodos_entrega']) ? $_POST['metodos_entrega'] : [];
-    $pagamentos_loja     = isset($_POST['pagamentos_loja']) ? $_POST['pagamentos_loja'] : [];
-    $design_layout       = isset($_POST['design_layout']) ? $mysqli->escape_string($_POST['design_layout']) : 'moderno_dark';
-    $cor_primaria_custom = isset($_POST['cor_primaria_custom']) ? $mysqli->escape_string($_POST['cor_primaria_custom']) : '#1e3a8a';
-    $cor_destaque_custom = isset($_POST['cor_destaque_custom']) ? $mysqli->escape_string($_POST['cor_destaque_custom']) : '#eab308';
-
-    // Montagem estruturada do JSON para gravação isolada na tabela lojas
-    $requisitos_loja = array(
-        'escala_catalogo'   => $escala_catalogo,
-        'controlo_stock'    => $controlo_stock,
-        'calculo_frete'     => $calculo_frete,
-        'metodos_entrega'   => $metodos_entrega,
-        'pagamentos_loja'   => $pagamentos_loja,
-        'design_layout'     => $design_layout,
-        'cor_primaria'      => $cor_primaria_custom,
-        'cor_destaque'      => $cor_destaque_custom,
-        'modulo_produtos'   => 'Sim',
-        'comissao_retida'   => 10.00, 
-        'data_criacao'      => date('Y-m-d H:i:s')
-    );
-    $especificacoes_json = $mysqli->escape_string(json_encode($requisitos_loja, JSON_UNESCAPED_UNICODE));
-
-    // Validação estrita de credenciais duplicadas na tabela lojas
-    $check_email = $mysqli->query("SELECT id FROM lojas WHERE email_mercantil = '$email_loja' LIMIT 1");
-    if ($check_email && $check_email->num_rows > 0) {
-        $mensagem_erro = "🚨 Conflito Comercial: Este e-mail mercantil já se encontra registado noutra distribuidora.";
-    }
-
-    if (empty($mensagem_erro)) {
-        $slug_loja = str_replace(' ', '', ucwords(preg_replace('/[^a-zA-Z0-9 ]/', '', $nome_loja)));
-        $data_atual = date('Y-m-d');
-
-        // 1. GERAÇÃO AUTOMÁTICA DO ID DO PARCEIRO
-        $id_publico_loja = "AUR-" . rand(1000, 9999);
-
-        // 2. INSERÇÃO NA TABELA LOJAS
-        $sql_loja_nova = "INSERT INTO lojas (id_publico, pin_acesso, nome_loja, email_mercantil, telefone_corporativo, endereco_armazem, slug_loja, transacao_status, visivel_no_site, especificacoes_json, data_cadastro, iban_bancario) 
-                          VALUES ('$id_publico_loja', '$pin_cadastro', '$nome_loja', '$email_loja', '$telefone_loja', '$endereco_exacto ($municipio_sede, $provincia_sede)', '$slug_loja', 'Confirmado', 1, '$especificacoes_json', '$data_atual', '$iban_bancario')";
-
-       // DENTRO DO IF DE SUCESSO DO INSERT DE LOJAS:
-if ($mysqli->query($sql_loja_nova)) {
-    $id_nova_loja = $mysqli->insert_id;
-
-    // 🔒 UNIFORMIZAÇÃO EXATA: Força as chaves corretas para o login_parceiros e admin_venda lerem
-    $_SESSION['loja_id']        = $id_nova_loja; 
-    $_SESSION['empresa_codigo'] = null; // Limpa para não misturar com barbearias
-    $_SESSION['nome_loja']      = $nome_loja;
-
-    echo "<script>
-            alert('🎉 Parabéns! A sua Loja foi criada com sucesso! ID: " . $id_publico_loja . "');
-            window.location.href = 'Admin_Venda.php';
-          </script>";
-    exit;
+if (!$conexao_link || mysqli_connect_errno()) {
+    die("<div style='padding:20px; background:#ffdddd; color:#aa0000; font-family:sans-serif;'>
+            <strong>Erro de Parceria:</strong> Banco de dados inacessível para registo de vendas.
+         </div>");
 }
-    }
-}
+mysqli_set_charset($conexao_link, "utf8mb4");
 ?>
 <!DOCTYPE html>
 <html lang="pt-PT">

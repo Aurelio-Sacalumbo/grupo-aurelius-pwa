@@ -7,8 +7,8 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 date_default_timezone_set('Africa/Luanda');
 
-// Liga à base de dados centralizada do Grupo Aurélius
-include("conect.php");
+/include_once(__DIR__ . "/Conexao.php");
+$conexao_link = $conexao_aurelius;
 
 $erro = array(); 
 
