@@ -1060,7 +1060,7 @@ if (isset($mysqli) && !$mysqli->connect_error) {
 if ($mysqli_prov && !$mysqli_prov->connect_error) {
     $mysqli_prov->set_charset("utf8mb4");
 
-
+    
       // 🟢 CORREÇÃO MESTRE: Alinhado com as colunas reais da sua tabela 'usuario'
      // 🟢 CONSULTA MULTI-TENANT: Varre os parceiros hospedados ativos (Ignora os suspensos)
      $consultas_enderecos = [
@@ -1194,7 +1194,7 @@ function executarFiltragemGeograficaCarrossel(provinciaAlvo, botaoElemento) {
  
              <?php
              // 🔑 CONEXÃO DIRETA À BASE DE DADOS MESTRE
-          // Linha 1196 - Conexão das Barbearias
+           // Linha 1196 - Conexão das Barbearias Corrigida
     if (isset($conexao_link) && $conexao_link instanceof mysqli) {
         $mysqli_barbearias = $conexao_link;
     } else {
@@ -1204,8 +1204,10 @@ function executarFiltragemGeograficaCarrossel(provinciaAlvo, botaoElemento) {
         $db_name = getenv('DB_NAME') ?: "aurelius_salao";
         $mysqli_barbearias = @new mysqli($db_host, $db_user, $db_pass, $db_name);
     }
+
     if ($mysqli_barbearias && !$mysqli_barbearias->connect_error) {
         $mysqli_barbearias->set_charset("utf8mb4");
+    } // <- Garanta que esta chaveta fecha o IF corretamente na linha 1207
  
              if (isset($mysqli)) {
                  
