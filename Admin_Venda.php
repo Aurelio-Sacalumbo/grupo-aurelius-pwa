@@ -1,27 +1,36 @@
 
 
 <?php
-if (session_status() === PHP_SESSION_NONE) { 
-    session_start(); 
+// =========================================================================
+// 🚀 TOPO ABSOLUTO DO FICHEIRO ADMIN_VENDA.PHP - CONTROLO DE ACESSO E SESSÃO
+// =========================================================================
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
+date_default_timezone_set('Africa/Luanda');
 
-// 🛡️ CADEADO DE SEGURANÇA MULTI-TENANT PARA BARBEARIAS (USUARIOS)
-if (isset($_GET['empresa'])) {
-    $id_url = intval($_GET['empresa']);
-    $id_sessao = isset($_SESSION['empresa_codigo']) ? intval($_SESSION['empresa_codigo']) : 0;
-
-    if ($id_url !== $id_sessao) {
-        echo "<div style='background:#7f1d1d; color:#f87171; font-family:sans-serif; padding:30px; text-align:center; border-radius:12px; margin:50px auto; max-width:500px; border:2px solid #ef4444;'>
-                <h2>🚨 Quebra de Protocolo de Segurança</h2>
-                <p>O Grupo Aurélius SaaS detetou uma tentativa de acesso não autorizada a dados comerciais de terceiros.</p>
-                <a href='login_parceiros.php' style='color:#fff; font-weight:bold;'>Voltar ao Login Seguro</a>
-              </div>";
-        exit(); // Trava o ficheiro imediatamente
+// IMPORTANTE: Se o seu redirecionamento da linha 69 for uma validação de Login, 
+// ele DEVE ser processado aqui em cima, antes de carregar qualquer HTML ou Banco.php!
+if (isset($_GET['marcar_lido'])) {
+    $seccao = trim($_GET['marcar_lido']);
+    $_SESSION['visto_' . $seccao] = date('Y-m-d H:i:s');
+    
+    $rotas = [
+        'vagas'       => 'Vagas.php', 
+        'lojas'       => 'Lojas.php', 
+        'barbearias'  => 'Principal.php', 
+        'sino'        => 'Admin_Venda.php'
+    ];
+    
+    if (isset($rotas[$seccao])) { 
+        header("Location: " . $rotas[$seccao]); 
+        exit(); 
     }
 }
-// O restante código do seu Dashboard.php continua aqui para baixo...
-?>
 
+// Agora sim, importa o banco com segurança
+require_once __DIR__ . "/config/Banco.php";
+?>
 <?php
 if (session_status() === PHP_SESSION_NONE) { 
     session_start(); 

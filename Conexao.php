@@ -33,3 +33,7 @@ if (!$conexao_aurelius) {
 // AGORA SIM: Com a conexão criada com sucesso, aplicamos as configurações
 mysqli_set_charset($conexao_aurelius, "utf8mb4");
 mysqli_query($conexao_aurelius, "SET SESSION sql_mode=''");
+
+
+
+

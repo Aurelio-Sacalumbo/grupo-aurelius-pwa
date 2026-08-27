@@ -1,63 +1,23 @@
 <?php
-// =========================================================================
-// 🚀 PAINEL DE INVENTÁRIO COM SELEÇÃO DE DESTINO EXCLUSIVO - GRUPO AURÉLIUS
-// =========================================================================
-if (!isset($_SESSION)) { 
+if (session_status() === PHP_SESSION_NONE) { 
     session_start(); 
 }
 date_default_timezone_set('Africa/Luanda');
 
-$mysqli = new mysqli("127.0.0.1", "root", "", "aurelius_salao");
+// Conexão Dinâmica Híbrida (Local + Nuvem)
+$db_host = getenv('DB_HOST') ?: "127.0.0.1";
+$db_user = getenv('DB_USER') ?: "root";
+$db_pass = getenv('DB_PASSWORD') ?: "";
+$db_name = getenv('DB_NAME') ?: "aurelius_salao";
+
+$mysqli = @new mysqli($db_host, $db_user, $db_pass, $db_name);
+
 if ($mysqli->connect_error) { 
-    die("Falha na ligação técnica: " . $mysqli->connect_error); 
+    die("<div style='padding:20px; background:#ffdddd; color:#aa0000; font-family:sans-serif;'>
+            <strong>Erro de Infraestrutura:</strong> Ligação ao banco de dados recusada no Render.
+         </div>"); 
 }
-$mysqli->set_charset("utf8");
-
-// Puxa todas as lojas parceiras para alimentar o seletor do formulário
-$query_seletor_lojas = $mysqli->query("SELECT id, nome_loja FROM lojas WHERE visivel_no_site = 1 ORDER BY nome_loja ASC");
-
-$mensagem_feedback = "";
-
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Captura o ID da loja selecionada no menu dropdown (Garante o isolamento absoluto)
-    $id_loja_alvo = intval($_POST['loja_destino_id']);
-    
-    $nome  = $mysqli->escape_string(trim($_POST['nome_produto']));
-    $preco = (float)$_POST['preco'];
-    $stock = (int)$_POST['stock_atual'];
-    $nome_imagem = 'default_cosmetico.jpg'; 
-
-    // Processamento seguro de upload da fotografia
-    if (isset($_FILES['foto_produto']) && $_FILES['foto_produto']['error'] == 0) {
-        $diretorio_destino = 'uploads/';
-        if (!is_dir($diretorio_destino)) { 
-            mkdir($diretorio_destino, 0777, true); 
-        }
-        
-        $extensao = strtolower(pathinfo($_FILES['foto_produto']['name'], PATHINFO_EXTENSION));
-        $extesoes_permitidas = array('jpg', 'jpeg', 'png', 'webp');
-        
-        if (in_array($extensao, $extesoes_permitidas)) {
-            $nome_imagem = 'prod_' . uniqid() . '.' . $extensao;
-            move_uploaded_file($_FILES['foto_produto']['tmp_name'], $diretorio_destino . $nome_imagem);
-        }
-    }
-
-    if ($id_loja_alvo > 0 && !empty($nome) && $preco > 0) {
-        // Insere na tabela 'produtos_cosmeticos' amarrando o produto ao ID da loja escolhida
-        $stmt = $mysqli->prepare("INSERT INTO produtos_cosmeticos (empresa_id, nome_produto, preco, stock_atual, imagem) VALUES (?, ?, ?, ?, ?)");
-        $stmt->bind_param("isdis", $id_loja_alvo, $nome, $preco, $stock, $nome_imagem);
-        
-        if ($stmt->execute()) {
-            echo "<script>alert('🎉 Produto vinculado com sucesso à loja selecionada!'); window.location.href='Lojas.php';</script>";
-            exit;
-        } else {
-            $mensagem_feedback = "🚨 Erro ao gravar dados no MySQL: " . $mysqli->error;
-        }
-    } else {
-        $mensagem_feedback = "🚨 Erro: Selecione uma loja de destino válida.";
-    }
-}
+$mysqli->set_charset("utf8mb4");
 ?>
 <!DOCTYPE html>
 <html lang="pt-PT">

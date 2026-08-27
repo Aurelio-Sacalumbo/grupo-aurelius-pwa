@@ -14,20 +14,20 @@ $password = getenv('DB_PASSWORD') ?: "";
 $port     = getenv('DB_PORT')     ?: "3306";
 
 try {
-    // Liga o PDO para as consultas modernas
+    // 1. Cria a ligação PDO primeiro (com a sintaxe correta e fechada)
     $pdo = new PDO("mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4", $user, $password);
+    
+    // 2. Configura os atributos do PDO
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
     
-    // Liga o MySQLi para compatibilidade com códigos antigos
-    $mysqli = new mysqli($host, $user, $password, $dbname, $port);
-    $mysqli->set_charset("utf8mb4");
-    
-} catch (Exception $e) {
-    // Se falhar no Render, mostra o erro técnico real para debug rápido
-    if (getenv('DB_HOST')) {
-        die("🚨 <b>Erro de Conexão na Nuvem:</b> " . $e->getMessage());
-    }
+    // 3. AGORA SIM: Executa o comando para desativar o modo rígido (Resolve a linha 1957)
+    $pdo->exec("SET SESSION sql_mode=''");
+
+} catch (PDOException $e) {
+    // Caso use tratamento de erro, o catch continua aqui abaixo
+    die("Erro na ligação PDO: " . $e->getMessage());
+}
     
     die("<div style='background:#7f1d1d; color:#fff; padding:20px; font-family:sans-serif; text-align:center; border-radius:8px; margin:50px auto; max-width:500px;'>
             🚨 <b>Erro do Banco de Dados Local:</b> Não foi possível ligar ao MySQL do XAMPP.<br>
