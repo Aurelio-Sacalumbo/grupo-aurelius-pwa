@@ -1,35 +1,38 @@
 <?php
 // =========================================================================
-// 🚀 INICIALIZAÇÃO DO ECOSSISTEMA E CONTINGÊNCIAS (TOPO ABSOLUTO)
+// 🚀 TOPO ABSOLUTO: APENAS UMA SESSÃO E DEFINIÇÃO DE FUSO HORÁRIO
 // =========================================================================
-if (session_status() === PHP_SESSION_NONE) { 
-    session_start(); 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
-
-// 🟢 INJEÇÃO DE CONTINGÊNCIA: Inicializa a variável vazia para matar o Warning da linha antiga 1297
-$cupao_desconto = isset($_SESSION['cupao_ativo']) ? $_SESSION['cupao_ativo'] : "";
+date_default_timezone_set('Africa/Luanda');
 
 // =========================================================================
-// 🔌 INFRAESTRUTURA DE CONEXÃO COM A BASE DE DADOS (MYSQLI)
+// 🔌 CONEXÃO INTELIGENTE BLINDADA (LOCAL + RAILWAY / RENDER)
 // =========================================================================
-include_once("Conexao.php");
+include_once(__DIR__ . "/Conexao.php");
 
-// Tenta reaproveitar alguma conexão global existente
-$conexao_link = $conexao_aurelius ?? $conexao ?? $link ?? $conn ?? $pdo ?? null;
+// Se o arquivo Conexao.php já criou a variável, nós reaproveitamos.
+// Se não criou, puxamos as variáveis de ambiente do Railway/Render ou o local.
+$conexao_link = $conexao_link ?? $conexao_aurelius ?? $conexao ?? null;
 
-// Se não encontrar nenhuma conexão aberta, força a ligação segura
 if (!$conexao_link || !($conexao_link instanceof mysqli)) {
-    $conexao_link = @mysqli_connect("127.0.0.1", "root", "", "aurelius_salao");
+    $db_host = getenv('DB_HOST') ?: "127.0.0.1";
+    $db_user = getenv('DB_USER') ?: "root";
+    $db_pass = getenv('DB_PASSWORD') ?: "";
+    $db_name = getenv('DB_NAME') ?: "aurelius_salao";
+
+    // CORREÇÃO CRÍTICA: Passamos as variáveis limpas, sem aspas na conexão
+    $conexao_link = @mysqli_connect($db_host, $db_user, $db_pass, $db_name);
 }
 
-// Interrompe a execução caso a ligação falhe para evitar Fatal Errors em cascata
-if (!$conexao_link) {
+// Se mesmo assim falhar, para o código antes de gerar erros no HTML
+if (!$conexao_link || mysqli_connect_errno()) {
     die("<div style='padding:20px; background:#ffdddd; color:#aa0000; font-family:sans-serif;'>
-            <strong>Erro do Sistema:</strong> Falha crítica na conexão com o banco de dados principal.
+            <strong>Erro de Infraestrutura:</strong> Não foi possível conectar à base de dados.
          </div>");
 }
 
-// Configura o charset correto para evitar problemas de acentuação no PWA
 mysqli_set_charset($conexao_link, "utf8mb4");
 
 // =========================================================================
@@ -714,53 +717,55 @@ try {
          <div class="img"></div>
      </main>
  
-    <!-- =========================================================================
-     📊 BARRA DE INDICADORES PÚBLICOS UNIFICADA (SEM REPETIÇÕES)
-     ========================================================================= -->
-<ul class="menu-horizontal" style="list-style: none; display: flex; gap: 20px; padding: 10px 0; align-items: center; justify-content: center;">
+     <ul class="menu-horizontal" style="list-style: none; display: flex; gap: 20px; padding: 10px 0; align-items: center; justify-content: center;">
     
-<!-- 1. Aba Apoios -->
-<li><a href="Patrocinadores.php">Apoios</a></li>
-
-<!-- 2. Aba Lojas -->
-<li style="position: relative;">
-    <a href="Lojas.php">Lojas</a>
-    <span class="badge-contador" style="background: #3b82f6; position: absolute; top: -6px; right: -4px; z-index: 10; width: 18px; height: 18px; font-size: 9.5px; line-height: 18px; box-sizing: border-box; text-align: center; color: white; border-radius: 50%; display: inline-block; font-weight: bold;">6</span>
-</li>
-
-<!-- 3. Aba Barbearias Reativa (Lê os dados reais da tabela usuario) -->
-<!-- 3. Aba Barbearias Reativa (Mostra apenas o número de ativos confirmados) -->
-<li style="position: relative;">
-<a href="Principal.php?limpar_bolha_barbearia=1" style="text-decoration: none; color: inherit;">Barbearias</a>
-
-<!-- A bolha agora só exibe a quantidade real ativa (5) -->
-<?php if($total_barbearias_real > 0): ?>
-    <span class="badge-contador" style="position: absolute; top: -6px; right: -12px; z-index: 10; width: 18px; height: 18px; font-size: 9.5px; line-height: 18px; box-sizing: border-box; text-align: center; color: white; background: #ef4444; border-radius: 50%; display: inline-block; font-weight: bold;">
-        <?= $total_barbearias_real ?>
-    </span>
-<?php endif; ?>
-</li>
-<!-- 4. Aba Vagas -->
-<li style="position: relative;">
-    <a href="Vagas.php">Vagas</a>
-    <span class="badge-contador" style="background: #10b981; position: absolute; top: -6px; right: -4px; z-index: 10; width: 18px; height: 18px; font-size: 9.5px; line-height: 18px; box-sizing: border-box; text-align: center; color: white; border-radius: 50%; display: inline-block; font-weight: bold;">7</span>
-</li>
-
-<!-- 5. Elemento do Sino Incorporado na Barra com o Dropdown -->
-<li style="position: relative;">
-    <div class="notif-wrapper">
-        <button class="sino-btn" onclick="toggleMenuNotificacoes()" title="Notificações" style="background: none; border: none; font-size: 16px; cursor: pointer; position: relative;">
-            🔔
-            <?php if(isset($total_notificacoes) && $total_notificacoes > 0): ?>
-                <span class="badge-contador" id="contador-sininho-real" style="position: absolute; top: -4px; right: -4px; width: 16px; height: 16px; font-size: 9px; line-height: 14px; color: white; background: #ef4444; border-radius: 50%; display: inline-block; font-weight: bold;">
-                    <?= $total_notificacoes ?>
-                </span>
-            <?php else: ?>
-                <!-- Mantém a bolha padrão original de 19 se o painel geral não estiver carregado -->
-                <span class="badge-contador" id="contador-sininho-real" style="position: absolute; top: -4px; right: -4px; width: 16px; height: 16px; font-size: 9px; line-height: 14px; color: white; background: #ef4444; border-radius: 50%; display: inline-block; font-weight: bold;">19</span>
-            <?php endif; ?>
-        </button>
-
+     <!-- 1. Aba Apoios -->
+     <li><a href="Patrocinadores.php">Apoios</a></li>
+ 
+     <!-- 2. Aba Lojas Dinâmica -->
+     <li style="position: relative;">
+         <a href="Lojas.php">Lojas</a>
+         <?php if (isset($novasLojas) && $novasLojas > 0): ?>
+             <span class="badge-contador" style="background: #3b82f6; position: absolute; top: -6px; right: -12px; z-index: 10; width: 18px; height: 18px; font-size: 9.5px; line-height: 18px; box-sizing: border-box; text-align: center; color: white; border-radius: 50%; display: inline-block; font-weight: bold;">
+                 <?= $novasLojas ?>
+             </span>
+         <?php endif; ?>
+     </li>
+ 
+     <!-- 3. Aba Barbearias Reativa -->
+     <li style="position: relative;">
+         <a href="Principal.php?limpar_bolha_barbearia=1" style="text-decoration: none; color: inherit;">Barbearias</a>
+         <?php if (isset($total_barbearias_real) && $total_barbearias_real > 0): ?>
+             <span class="badge-contador" style="position: absolute; top: -6px; right: -12px; z-index: 10; width: 18px; height: 18px; font-size: 9.5px; line-height: 18px; box-sizing: border-box; text-align: center; color: white; background: #ef4444; border-radius: 50%; display: inline-block; font-weight: bold;">
+                 <?= $total_barbearias_real ?>
+             </span>
+         <?php endif; ?>
+     </li>
+ 
+     <!-- 4. Aba Vagas Dinâmica -->
+     <li style="position: relative;">
+         <a href="Vagas.php">Vagas</a>
+         <?php if (isset($novasVagas) && $novasVagas > 0): ?>
+             <span class="badge-contador" style="background: #10b981; position: absolute; top: -6px; right: -12px; z-index: 10; width: 18px; height: 18px; font-size: 9.5px; line-height: 18px; box-sizing: border-box; text-align: center; color: white; border-radius: 50%; display: inline-block; font-weight: bold;">
+                 <?= $novasVagas ?>
+             </span>
+         <?php endif; ?>
+     </li>
+ 
+     <!-- 5. Elemento do Sino Incorporado com Contador Unificado -->
+     <li style="position: relative;">
+         <div class="notif-wrapper">
+             <button class="sino-btn" onclick="toggleMenuNotificacoes()" title="Notificações" style="background: none; border: none; font-size: 16px; cursor: pointer; position: relative;">
+                 🔔
+                 <?php if (isset($total_notificacoes) && $total_notificacoes > 0): ?>
+                     <span class="badge-contador" id="contador-sininho-real" style="position: absolute; top: -4px; right: -4px; width: 16px; height: 16px; font-size: 9px; line-height: 16px; text-align: center; color: white; background: #ef4444; border-radius: 50%; display: inline-block; font-weight: bold;">
+                         <?= $total_notificacoes ?>
+                     </span>
+                 <?php endif; ?>
+             </button>
+         </div>
+     </li>
+ </ul>
         <!-- Dropdown das Mensagens Recentes -->
         <div class="notif-dropdown" id="dropdownNotif" style="display: none; position: absolute; right: 0; top: 100%; background: #0f1423; border: 1px solid #334155; border-radius: 8px; width: 280px; z-index: 500; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
             <div class="notif-header" style="display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #334155; font-size: 12px; font-weight: bold;">
