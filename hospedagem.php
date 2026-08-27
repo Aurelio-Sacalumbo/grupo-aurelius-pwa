@@ -1,45 +1,3 @@
-
-
-
-<?php
-include_once(__DIR__ . "/Conexao.php");
-$mysqli_hospedagem = $conexao_link ?? $conexao_aurelius;
-// Ative a sessão se necessário
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// LIGAÇÃO AO BANCO DE DADOS (Certifique-se de que a sua conexão $pdo está aqui)
-
-// 🛡️ MOTOR DE SEGURANÇA CONTRA DUPLICAÇÕES
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cadastrar_parceiro'])) {
-    
-    $email = trim($_POST['email']);
-    $telefone = trim($_POST['telefone']);
-    $nome_empresa = trim($_POST['nome']);
-    
-    // 🔍 1. Valida se o E-mail ou Telefone já existem na base de dados
-    $stmt_checar = $pdo->prepare("SELECT codigo FROM `usuario` WHERE email = ? OR telefone = ? LIMIT 1");
-    $stmt_checar->execute([$email, $telefone]);
-    
-    if ($stmt_checar->rowCount() > 0) {
-        // ❌ Bloqueia se encontrar duplicado
-        echo "<script>
-                alert('⚠️ Erro de Registo: Este e-mail ou número de telefone já está registado!');
-                window.history.back();
-              </script>";
-        exit();
-    } else {
-        
-        // 🟢 2. SE NÃO EXISTIR, CONTINUA O SEU CÓDIGO ORIGINAL DE INSERÇÃO DAQUI PARA BAIXO:
-        $senha_hash = md5($_POST['senha']); 
-        $data_atual = date('Y-m-d');
-        
-        // O seu código original de salvar a imagem e fazer o INSERT continua aqui...
-        
-    }
-}
-?>
 <?php
 // =========================================================================
 // 🌍 MOTOR DE HOSPEDAGEM AUTOMÁTICA SAAS - GRUPO AURÉLIUS (HOSPEDAGEM.PHP)
@@ -49,55 +7,100 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 date_default_timezone_set('Africa/Luanda');
 
-// 🟢 1. Ativar exibição de erros no ecrã para sabermos exatamente o que falhou
+// 🟢 1. Controle de Erros em Produção/Desenvolvimento
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// 🟢 2. Ligação Segura à Base de Dados Mestre
-$host     = "127.0.0.1"; 
-$dbname   = "aurelius_salao";
-$user     = "root";
-$password = ""; 
-
-$mysqli = new mysqli($host, $user, $password, $dbname);
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Carrega as configurações dinâmicas locais e de nuvem
+// 🟢 2. Ligação Segura à Base de Dados Mestre (Adaptada para Nuvem e Local)
 include_once(__DIR__ . "/Conexao.php");
 
-// Reaproveita a ligação global (Corrige a linha 61)
-$mysqli_hospedagem = $conexao_link ?? $conexao_aurelius;
+// Reaproveita conexões globais existentes se houver
+$mysqli_hospedagem = $conexao_link ?? $conexao_aurelius ?? null;
 
 if (!$mysqli_hospedagem || !($mysqli_hospedagem instanceof mysqli)) {
-    $db_host = getenv('DB_HOST') ?: "altaria.proxy.rlwy.net:52030";
+    // Busca as credenciais das Variáveis de Ambiente (Render/Railway/Deploys)
+    $db_host = getenv('DB_HOST') ?: "127.0.0.1";
     $db_user = getenv('DB_USER') ?: "root";
-    $db_pass = getenv('DB_PASSWORD') ?: "tPzDwXGkyczyyYdcyvLmHLSMmfZmnMIZ";
-    $db_name = getenv('DB_NAME') ?: "railway";
+    $db_pass = getenv('DB_PASSWORD') ?: "";
+    $db_name = getenv('DB_NAME') ?: "aurelius_salao";
+    
     $mysqli_hospedagem = @new mysqli($db_host, $db_user, $db_pass, $db_name);
 }
 
-// ⚠️ Se o seu código abaixo usar outra variável (ex: $mysqli_prov ou $conexao) em vez de $mysqli_hospedagem,
-// adicione a linha correspondente abaixo:
-// $mysqli_prov = $mysqli_hospedagem;
+// Interrompe imediatamente se a infraestrutura estiver inacessível
+if ($mysqli_hospedagem->connect_error) {
+    die("<div style='background:#7f1d1d; color:#fff; padding:20px; font-family:sans-serif;'>
+            <h3>🚨 Falha de Ligação</h3>
+            <p>O ecossistema não conseguiu ligar ao servidor de dados: " . $mysqli_hospedagem->connect_error . "</p>
+         </div>");
+}
+
+$mysqli_hospedagem->set_charset("utf8mb4");
+
+// Alias de segurança para compatibilidade com o resto do script
+$mysqli = $mysqli_hospedagem;
+
+// =========================================================================
+// 🛡️ MOTOR DE PROCESSAMENTO DO FORMULÁRIO DE CADASTRO
+// =========================================================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cadastrar_parceiro'])) {
     
-    // Concatena endereço
+    // Captura e Higienização Básica de dados do POST
+    $email        = trim($_POST['email']);
+    $telefone     = trim($_POST['telefone']);
+    $nome_gerente = trim($_POST['nome']);
+    
+    // 🔍 1. MOTOR DE SEGURANÇA CONTRA DUPLICAÇÕES (Convertido de PDO para MySQLi)
+    $stmt_checar = $mysqli->prepare("SELECT codigo FROM `usuario` WHERE email = ? OR telefone = ? LIMIT 1");
+    $stmt_checar->bind_param("ss", $email, $telefone);
+    $stmt_checar->execute();
+    $stmt_checar->store_result();
+    
+    if ($stmt_checar->num_rows > 0) {
+        $stmt_checar->close();
+        echo "<script>
+                alert('⚠️ Erro de Registo: Este e-mail ou número de telefone já está registado!');
+                window.history.back();
+              </script>";
+        exit();
+    }
+    $stmt_checar->close();
+
+    // 🟢 2. CAPTURA DOS DADOS ESPECÍFICOS DO FORMULÁRIO
+    $nome_salao      = isset($_POST['nome_salao']) ? trim($_POST['nome_salao']) : $nome_gerente;
+    $provincia       = isset($_POST['provincia']) ? trim($_POST['provincia']) : 'Luanda';
+    $endereco_detalhe= isset($_POST['endereco']) ? trim($_POST['endereco']) : '';
+    $tipo_servico    = isset($_POST['tipo_servico']) ? trim($_POST['tipo_servico']) : 'Barbearia';
+    $qtd_cadeiras    = isset($_POST['cadeiras_operacionais']) ? intval($_POST['cadeiras_operacionais']) : 1;
+    $preco_contrato  = isset($_POST['preco']) ? floatval($_POST['preco']) : 0.00;
+    $iban_padrao     = isset($_POST['iban_bancario']) ? trim($_POST['iban_bancario']) : '';
+    
+    $senha_encriptada = md5($_POST['senha']); // Alinhado com o seu padrão de autenticação atual
+    $data_atual       = date('Y-m-d');
+    $status_inicial   = "Pendente"; // Aguarda ativação pelo painel administrativo
+    $nivel_padrao     = "parceiro_hospedado";
+    
+    // Gera o slug único de navegação
+    $slug_padrao = str_replace(' ', '', ucwords(preg_replace('/[^a-zA-Z0-9 ]/', '', $nome_salao)));
+
+    // Concatenação inteligente de endereço
     $endereco_completo = $provincia . " - " . $endereco_detalhe;
     
-    // Captura os sub-serviços selecionados e transforma em string ou JSON
+    // Captura os sub-serviços selecionados e transforma em String/JSON estruturado
     $servicos_selecionados = $_POST['servicos_lista'] ?? [];
-    $string_servicos = !empty($servicos_selecionados) ? implode(", ", $servicos_selecionados) : $tipo_servico;
-    $json_specs = json_encode(["cadeiras_operacionais" => $qtd_cadeiras, "servicos" => $servicos_selecionados]);
+    $string_servicos       = !empty($servicos_selecionados) ? implode(", ", $servicos_selecionados) : $tipo_servico;
+    $json_specs            = json_encode(["cadeiras_operacionais" => $qtd_cadeiras, "servicos" => $servicos_selecionados], JSON_UNESCAPED_UNICODE);
 
-    // 🟢 4. Processamento Físico de Imagens (Uploads)
+    // =========================================================================
+    // 🟢 3. PROCESSAMENTO FÍSICO DE IMAGENS (UPLOADS)
+    // =========================================================================
     $pasta_destino = "uploads/";
     if (!file_exists($pasta_destino)) {
-        mkdir($pasta_destino, 0777, true);
+        @mkdir($pasta_destino, 0777, true);
     }
 
-    $nome_logo        = "OIP (6).webp"; 
+    $nome_logo        = "OIP (6).webp"; // Fallback padrão
     $nome_foto_frente = "";
     $nome_foto_verso  = "";
 
@@ -114,7 +117,9 @@ if (!$mysqli_hospedagem || !($mysqli_hospedagem instanceof mysqli)) {
         move_uploaded_file($_FILES['bi_verso']['tmp_name'], $pasta_destino . $nome_foto_verso);
     }
 
-    // 🟢 5. Execução do Comando INSERT Adaptado à Tabela "usuario"
+    // =========================================================================
+    // 🟢 4. SALVAMENTO E ESCAPE DE VARIÁVEIS NA TABELA USUARIO
+    // =========================================================================
     if (!empty($nome_gerente) && !empty($nome_salao)) {
         
         $gerente_safe  = $mysqli->real_escape_string($nome_gerente);
@@ -125,8 +130,9 @@ if (!$mysqli_hospedagem || !($mysqli_hospedagem instanceof mysqli)) {
         $servico_safe  = $mysqli->real_escape_string($string_servicos);
         $json_safe     = $mysqli->real_escape_string($json_specs);
         $slug_safe     = $mysqli->real_escape_string($slug_padrao);
+        $iban_safe     = $mysqli->real_escape_string($iban_padrao);
 
-        // SQL mapeado exatamente com os 19 campos da foto do seu banco de dados
+        // Inserção direta mapeada com a tabela global
         $sql_insert = "INSERT INTO `usuario` (
             `nome`, `nome_funcionario`, `email`, `telefone`, `endereco`, 
             `tipos_de_servico`, `preco`, `transacao_status`, `visivel_no_site`, 
@@ -136,18 +142,16 @@ if (!$mysqli_hospedagem || !($mysqli_hospedagem instanceof mysqli)) {
             '$gerente_safe', '$salao_safe', '$email_safe', '$tel_safe', '$end_safe', 
             '$servico_safe', $preco_contrato, '$status_inicial', 1, 
             '$nivel_padrao', '$slug_safe', '$nome_foto_frente', '$nome_foto_verso', '$nome_logo', 
-            '$senha_encriptada', '$data_atual', '$json_safe', '$iban_padrao'
+            '$senha_encriptada', '$data_atual', '$json_safe', '$iban_safe'
         )";
 
         if ($mysqli->query($sql_insert) === TRUE) {
-            // Sucesso Total! Emite o alerta e limpa o POST redirecionando
             echo "<script>
                     alert('🚀 SUCESSO: Barbearia registada! Aguarde a ativação no Admin corporativo.');
                     window.location.href='hospedagem.php';
                   </script>";
             exit();
         } else {
-            // Se o banco rejeitar por qualquer motivo, vai mostrar o erro exato na tela em vez de travar
             die("<div style='background:#7f1d1d; color:#fff; padding:20px; font-family:sans-serif; margin:20px; border-radius:8px;'>
                     <h3>🚨 Erro de Gravação na Base de Dados</h3>
                     <p><b>Mensagem do MySQL:</b> " . $mysqli->error . "</p>
@@ -156,7 +160,7 @@ if (!$mysqli_hospedagem || !($mysqli_hospedagem instanceof mysqli)) {
         }
     }
 }
-?>
+?>>
 <!DOCTYPE html>
 <html lang="pt-PT">
 <head>
