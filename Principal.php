@@ -1047,19 +1047,19 @@ if (isset($mysqli) && !$mysqli->connect_error) {
     
     $prov_com_parceiros = [];
     
-   // Abre conexão única reutilizável ou reaproveita a global existente de forma híbrida
+   // Reaproveita a conexão existente ou cria uma dinâmica para o Render
    if (isset($conexao_link) && $conexao_link instanceof mysqli) {
-    $mysqli_prov = $conexao_link;
+    $mysqli_barbearias = $conexao_link;
 } else {
     $db_host = getenv('DB_HOST') ?: "127.0.0.1";
     $db_user = getenv('DB_USER') ?: "root";
     $db_pass = getenv('DB_PASSWORD') ?: "";
     $db_name = getenv('DB_NAME') ?: "aurelius_salao";
-    $mysqli_prov = @new mysqli($db_host, $db_user, $db_pass, $db_name);
+    $mysqli_barbearias = @new mysqli($db_host, $db_user, $db_pass, $db_name);
 }
 
-if ($mysqli_prov && !$mysqli_prov->connect_error) {
-    $mysqli_prov->set_charset("utf8mb4");
+if ($mysqli_barbearias && !$mysqli_barbearias->connect_error) {
+    $mysqli_barbearias->set_charset("utf8mb4");
       // 🟢 CORREÇÃO MESTRE: Alinhado com as colunas reais da sua tabela 'usuario'
      // 🟢 CONSULTA MULTI-TENANT: Varre os parceiros hospedados ativos (Ignora os suspensos)
      $consultas_enderecos = [
@@ -1094,7 +1094,7 @@ if ($mysqli_prov && !$mysqli_prov->connect_error) {
             }
         }
     }
-        $mysqli_prov->close();
+    $mysqli_barbearias = new mysqli("127.0.0.1", "root", "", "aurelius_salao");
     }
     
     // Desenha reativamente apenas os botões das províncias que possuem salões ou lojas registados
