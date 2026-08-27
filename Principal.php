@@ -15,15 +15,21 @@ include_once(__DIR__ . "/Conexao.php");
 $conexao_link = $conexao_link ?? $conexao_aurelius ?? $conexao ?? null;
 
 if (!$conexao_link || !($conexao_link instanceof mysqli)) {
-    $db_host = getenv('DB_HOST') ?: "127.0.0.1";
+    // Tenta ler o Render, se não existir, usa os dados públicos ativos do Railway
+    $db_host = getenv('DB_HOST') ?: "altaria.proxy.rlwy.net:52030";
     $db_user = getenv('DB_USER') ?: "root";
-    $db_pass = getenv('DB_PASSWORD') ?: "";
-    $db_name = getenv('DB_NAME') ?: "aurelius_salao";
-
-    // CORREÇÃO CRÍTICA: Passamos as variáveis limpas, sem aspas na conexão
-    $conexao_link = @mysqli_connect($db_host, $db_user, $db_pass, $db_name);
+    $db_pass = getenv('DB_PASSWORD') ?: "tPzDwXGkyczyyYdcyvLmHLSMmfZmnMIZ";
+    $db_name = getenv('DB_NAME') ?: "railway";
+    
+    // Efetua a ligação dinâmica com o supressor de avisos @
+    $conexao_link = @new mysqli($db_host, $db_user, $db_pass, $db_name);
 }
 
+// Garante o charset correto se a ligação foi estabelecida
+if ($conexao_link && !$conexao_link->connect_error) {
+    $conexao_link->set_charset("utf8mb4");
+    $conexao_link->query("SET SESSION sql_mode=''");
+}
 // Se mesmo assim falhar, para o código antes de gerar erros no HTML
 if (!$conexao_link || mysqli_connect_errno()) {
     die("<div style='padding:20px; background:#ffdddd; color:#aa0000; font-family:sans-serif;'>
@@ -1041,38 +1047,35 @@ if (isset($mysqli) && !$mysqli->connect_error) {
 
 
 
-
-<div style="width: 100%; max-width: 800px; margin: 30px auto 10px auto; padding: 0 20px; box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif;">
-    <div style="background: #111827; padding: 20px 25px; border-radius: 12px; border: 2px solid #38bdf8; box-shadow: 0 0 15px rgba(56, 189, 248, 0.25); display: flex; align-items: center; justify-content: space-between; gap: 15px; flex-wrap: wrap; animation: pulsarOuroPrincipal 4s infinite alternate;">
-        
-        <form action="principal.php" method="POST" style="display: flex; width: 100%; gap: 12px; flex-wrap: wrap;">
+<div style="width: 100%; max-width: 450px; margin: 10px auto; padding: 0 10px; box-sizing: border-box; font-family: system-ui,-apple-system,sans-serif;">
+    <div style="background: #111827; padding: 10px; border-radius: 25px; border: 1px solid #38bdf8; box-shadow: 0 0 10px rgba(56, 189, 248, 0.2); animation: pulse 3s infinite alternate;">
+        <form action="principal.php" method="POST" style="display: flex; gap: 6px; width: 100%; align-items: center;">
             
-            <!-- Campo de Entrada Fluido -->
-            <input type="text" name="termo_cliente" style="flex: 1; min-width: 160px; padding: 14px 20px; border: 1px solid #374151; border-radius: 8px; font-size: 15px; background: #0b0f19; color: #ffffff; outline: none; transition: 0.3s;" 
-                   placeholder="Procure pela sua barbearia de preferência ou bairro" 
+            <!-- Campo ultra-compacto -->
+            <input type="text" name="termo_cliente" style="flex: 1; min-width: 0; padding: 10px 14px; border: none; border-radius: 20px; font-size: 14px; background: #0b0f19; color: #fff; outline: none;" 
+                   placeholder="Barbearia ou bairro..." 
                    value="<?php echo isset($_POST['termo_cliente']) ? htmlspecialchars($_POST['termo_cliente']) : ''; ?>">
             
-            <!-- Botão de Disparo -->
-            <button type="submit" name="disparar_busca" style="padding: 14px 28px; background: linear-gradient(135deg, #38bdf8, #0284c7); color: #0f172a; border: none; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: 0.2s;">
-                🔍 Encontrar Barbearia
+            <!-- Botão de ícone mini -->
+            <button type="submit" name="disparar_busca" style="padding: 10px 14px; background: #38bdf8; color: #0f172a; border: none; border-radius: 20px; font-weight: bold; font-size: 13px; cursor: pointer; white-space: nowrap;">
+                🔍
             </button>
             
-            <!-- Botão de Limpeza Dinâmica -->
+            <!-- Botão X mini -->
             <?php if (isset($_POST['disparar_busca']) && !empty($_POST['termo_cliente'])): ?>
-                <a href="principal.php" style="padding: 14px 20px; background: #1f2937; color: #94a3b8; border: 1px solid #374151; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; text-decoration: none; text-transform: uppercase; line-height: 1.2; display: flex; align-items: center; transition: 0.2s;">✕ Ver Todas</a>
+                <a href="principal.php" style="padding: 10px 12px; background: #1f2937; color: #94a3b8; border-radius: 20px; font-size: 13px; text-decoration: none; font-weight: bold;">✕</a>
             <?php endif; ?>
             
-            </form>
-            </div>
-        </div>
-        
-        <style>
-            @keyframes pulsarOuroPrincipal {
-                0% { box-shadow: 0 0 12px rgba(56, 189, 248, 0.2); border-color: #0369a1; }
-                100% { box-shadow: 0 0 22px rgba(56, 189, 248, 0.5); border-color: #38bdf8; }
-            }
-        </style>
-        
+        </form>
+    </div>
+</div>
+
+<style>
+    @keyframes pulse {
+        0% { box-shadow: 0 0 5px rgba(56,189,248,0.2); border-color: #0369a1; }
+        100% { box-shadow: 0 0 12px rgba(56,189,248,0.4); border-color: #38bdf8; }
+    }
+</style>
 
 
 
@@ -1100,7 +1103,7 @@ if (isset($mysqli) && !$mysqli->connect_error) {
     $prov_com_parceiros = [];
     
     // Abre conexão única reutilizável para varrer todas as frentes comerciais ativas
-    $mysqli_prov = new mysqli("127.0.0.1", "root", "", "aurelius_salao");
+    $mysqli_prov = $conexao_link ?? $conexao_aurelius;
     if (!$mysqli_prov->connect_error) {
         $mysqli_prov->set_charset("utf8mb4");
         
@@ -1237,7 +1240,7 @@ function executarFiltragemGeograficaCarrossel(provinciaAlvo, botaoElemento) {
  
              <?php
              // 🔑 CONEXÃO DIRETA À BASE DE DADOS MESTRE
-             $mysqli = new mysqli("127.0.0.1", "root", "", "aurelius_salao");
+             $mysqli_prov = $conexao_link ?? $conexao_aurelius;
              if ($mysqli->connect_error) {
                  die("<p style='color:red;'>Erro na ligação: " . $mysqli->connect_error . "</p>");
              }
@@ -3744,7 +3747,7 @@ function processarEnvioMensagemAlana(origemTela) {
     <div style="display: grid !important; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important; gap: 20px !important; width: 100% !important; box-sizing: border-box !important;">
         <?php
         // Conexão direta e estável ao MariaDB local do XAMPP
-        $mysqli_produtos = @new mysqli("127.0.0.1", "root", "", "aurelius_salao");
+        $mysqli_prov = $conexao_link ?? $conexao_aurelius;
         if (!$mysqli_produtos->connect_error) {
             $mysqli_produtos->set_charset("utf8mb4");
 
