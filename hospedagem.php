@@ -61,35 +61,27 @@ $user     = "root";
 $password = ""; 
 
 $mysqli = new mysqli($host, $user, $password, $dbname);
-if ($mysqli->connect_error) {
-    die("<div style='background:red;color:white;padding:15px;'>⚠️ Erro de Infraestrutura MySQL: " . $mysqli->connect_error . "</div>");
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
-$mysqli->set_charset("utf8mb4");
 
-// 🟢 3. Interceção e Captura do Envio do Formulário (Etapa 3)
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    
-    // Captura segura de todas as variáveis enviadas pelas 3 etapas
-    $nome_salao       = trim($_POST['nome_salao'] ?? '');
-    $nome_gerente     = trim($_POST['nome_gerente'] ?? '');
-    $email            = trim($_POST['email'] ?? '');
-    $telefone         = trim($_POST['telefone'] ?? '');
-    $provincia        = trim($_POST['provincia'] ?? 'Huambo');
-    $endereco_detalhe = trim($_POST['endereco'] ?? '');
-    $tipo_servico     = trim($_POST['tipo_servico'] ?? 'Geral');
-    $preco_contrato   = (float)($_POST['preco_contrato'] ?? 10000.00);
-    $qtd_cadeiras     = (int)($_POST['qtd_cadeiras'] ?? 2);
-    
-    // Configurações padrão obrigatórias do phpMyAdmin do Grupo Aurélius
-    $data_atual       = date('Y-m-d');
-    $status_inicial   = 'Aguardando Validação'; // Fica oculto até aprovar no Admin
-    $nivel_padrao     = 'parceiro_hospedado';
-    $slug_padrao      = preg_replace('/[^A-Za-z0-9]/', '', $nome_salao);
-    if(empty($slug_padrao)) { $slug_padrao = "Login"; }
-    
-    $senha_bruta      = $_POST['senha_login'] ?? '123456';
-    $senha_encriptada = password_hash($senha_bruta, PASSWORD_DEFAULT); 
-    $iban_padrao      = "AO06.0000.0000.0000.0000.0";
+// Carrega as configurações dinâmicas locais e de nuvem
+include_once(__DIR__ . "/Conexao.php");
+
+// Reaproveita a ligação global (Corrige a linha 61)
+$mysqli_hospedagem = $conexao_link ?? $conexao_aurelius;
+
+if (!$mysqli_hospedagem || !($mysqli_hospedagem instanceof mysqli)) {
+    $db_host = getenv('DB_HOST') ?: "altaria.proxy.rlwy.net:52030";
+    $db_user = getenv('DB_USER') ?: "root";
+    $db_pass = getenv('DB_PASSWORD') ?: "tPzDwXGkyczyyYdcyvLmHLSMmfZmnMIZ";
+    $db_name = getenv('DB_NAME') ?: "railway";
+    $mysqli_hospedagem = @new mysqli($db_host, $db_user, $db_pass, $db_name);
+}
+
+// ⚠️ Se o seu código abaixo usar outra variável (ex: $mysqli_prov ou $conexao) em vez de $mysqli_hospedagem,
+// adicione a linha correspondente abaixo:
+// $mysqli_prov = $mysqli_hospedagem;
     
     // Concatena endereço
     $endereco_completo = $provincia . " - " . $endereco_detalhe;

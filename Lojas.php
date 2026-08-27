@@ -1,29 +1,27 @@
 <?php
+// Evita conflitos de sessões duplicadas
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// 🟢 INCLUSÃO OBRIGATÓRIA: Carrega as configurações dinâmicas locais e de nuvem
 include_once(__DIR__ . "/Conexao.php");
+
+// Reaproveita a ligação global do ficheiro centralizado
 $mysqli_lojas = $conexao_link ?? $conexao_aurelius;
 
-if (!isset($_SESSION)) { 
-    session_start(); 
+// Caso não encontre a variável (blindagem extra contra valores vazios)
+if (!$mysqli_lojas || !($mysqli_lojas instanceof mysqli)) {
+    $db_host = getenv('DB_HOST') ?: "altaria.proxy.rlwy.net:52030";
+    $db_user = getenv('DB_USER') ?: "root";
+    $db_pass = getenv('DB_PASSWORD') ?: "tPzDwXGkyczyyYdcyvLmHLSMmfZmnMIZ";
+    $db_name = getenv('DB_NAME') ?: "railway";
+    $mysqli_lojas = @new mysqli($db_host, $db_user, $db_pass, $db_name);
 }
-date_default_timezone_set('Africa/Luanda');
 
-$mysqli = new mysqli("$conexao_link", "root", "", "aurelius_salao");
-if ($mysqli->connect_error) { 
-    die("Falha na ligação técnica do ecossistema: " . $mysqli->connect_error); 
-}
-$mysqli->set_charset("utf8");
-
-$id_usuario_comprador = isset($_SESSION['codigo_usuario']) ? intval($_SESSION['codigo_usuario']) : 1;
-
-// Carrega as abas superiores lendo a tabela exclusiva de lojas
-$query_lojas = $mysqli->query("SELECT id AS codigo, nome_loja AS nome, endereco_armazem AS endereco, especificacoes_json FROM lojas WHERE visivel_no_site = 1 ORDER BY id DESC");
-
-$lojas_parceiras = [];
-if ($query_lojas) {
-    while ($row = $query_lojas->fetch_assoc()) {
-        $lojas_parceiras[] = $row;
-    }
-}
+// ⚠️ Se o seu código abaixo usar outra variável (ex: $conn ou $conexao) em vez de $mysqli_lojas, 
+// adicione a linha correspondente abaixo:
+// $conn = $mysqli_lojas;
 ?>
 <!DOCTYPE html>
 <html lang="pt-PT">
