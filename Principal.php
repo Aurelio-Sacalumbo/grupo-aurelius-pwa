@@ -722,16 +722,16 @@ try {
          <div class="img"></div>
      </main>
  
-     <ul class="menu-horizontal" style="list-style: none; display: flex; gap: 20px; padding: 10px 0; align-items: center; justify-content: center;">
+     <ul class="menu-horizontal" style="list-style: none; display: flex; gap: 8px; padding: 6px 0; align-items: center; justify-content: center; width: 100%; max-width: 480px; margin: 0 auto; box-sizing: border-box;">
     
      <!-- 1. Aba Apoios -->
-     <li><a href="Patrocinadores.php">Apoios</a></li>
+     <li><a href="Patrocinadores.php" style="font-size: 11px; font-weight: 500; text-decoration: none; color: inherit; padding: 4px 6px;">Apoios</a></li>
  
      <!-- 2. Aba Lojas Dinâmica -->
      <li style="position: relative;">
-         <a href="Lojas.php">Lojas</a>
+         <a href="Lojas.php" style="font-size: 11px; font-weight: 500; text-decoration: none; color: inherit; padding: 4px 6px;">Lojas</a>
          <?php if (isset($novasLojas) && $novasLojas > 0): ?>
-             <span class="badge-contador" style="background: #3b82f6; position: absolute; top: -6px; right: -12px; z-index: 10; width: 18px; height: 18px; font-size: 9.5px; line-height: 18px; box-sizing: border-box; text-align: center; color: white; border-radius: 50%; display: inline-block; font-weight: bold;">
+             <span class="badge-contador" style="background: #3b82f6; position: absolute; top: -3px; right: -6px; z-index: 10; width: 14px; height: 14px; font-size: 8px; line-height: 14px; box-sizing: border-box; text-align: center; color: white; border-radius: 50%; display: inline-block; font-weight: 700;">
                  <?= $novasLojas ?>
              </span>
          <?php endif; ?>
@@ -739,9 +739,9 @@ try {
  
      <!-- 3. Aba Barbearias Reativa -->
      <li style="position: relative;">
-         <a href="Principal.php?limpar_bolha_barbearia=1" style="text-decoration: none; color: inherit;">Barbearias</a>
+         <a href="Principal.php?limpar_bolha_barbearia=1" style="font-size: 11px; font-weight: 600; text-decoration: none; color: inherit; padding: 4px 6px;">Barbearias</a>
          <?php if (isset($total_barbearias_real) && $total_barbearias_real > 0): ?>
-             <span class="badge-contador" style="position: absolute; top: -6px; right: -12px; z-index: 10; width: 18px; height: 18px; font-size: 9.5px; line-height: 18px; box-sizing: border-box; text-align: center; color: white; background: #ef4444; border-radius: 50%; display: inline-block; font-weight: bold;">
+             <span class="badge-contador" style="position: absolute; top: -3px; right: -6px; z-index: 10; width: 14px; height: 14px; font-size: 8px; line-height: 14px; box-sizing: border-box; text-align: center; color: white; background: #ef4444; border-radius: 50%; display: inline-block; font-weight: 700;">
                  <?= $total_barbearias_real ?>
              </span>
          <?php endif; ?>
@@ -749,9 +749,9 @@ try {
  
      <!-- 4. Aba Vagas Dinâmica -->
      <li style="position: relative;">
-         <a href="Vagas.php">Vagas</a>
+         <a href="Vagas.php" style="font-size: 11px; font-weight: 500; text-decoration: none; color: inherit; padding: 4px 6px;">Vagas</a>
          <?php if (isset($novasVagas) && $novasVagas > 0): ?>
-             <span class="badge-contador" style="background: #10b981; position: absolute; top: -6px; right: -12px; z-index: 10; width: 18px; height: 18px; font-size: 9.5px; line-height: 18px; box-sizing: border-box; text-align: center; color: white; border-radius: 50%; display: inline-block; font-weight: bold;">
+             <span class="badge-contador" style="background: #10b981; position: absolute; top: -3px; right: -6px; z-index: 10; width: 14px; height: 14px; font-size: 8px; line-height: 14px; box-sizing: border-box; text-align: center; color: white; border-radius: 50%; display: inline-block; font-weight: 700;">
                  <?= $novasVagas ?>
              </span>
          <?php endif; ?>
@@ -760,78 +760,75 @@ try {
      <!-- 5. Elemento do Sino Incorporado com Contador Unificado -->
      <li style="position: relative;">
          <div class="notif-wrapper">
-             <button class="sino-btn" onclick="toggleMenuNotificacoes()" title="Notificações" style="background: none; border: none; font-size: 16px; cursor: pointer; position: relative;">
+             <button class="sino-btn" onclick="toggleMenuNotificacoes()" title="Notificações" style="background: none; border: none; font-size: 13px; cursor: pointer; position: relative; padding: 4px;">
                  🔔
                  <?php if (isset($total_notificacoes) && $total_notificacoes > 0): ?>
-                     <span class="badge-contador" id="contador-sininho-real" style="position: absolute; top: -4px; right: -4px; width: 16px; height: 16px; font-size: 9px; line-height: 16px; text-align: center; color: white; background: #ef4444; border-radius: 50%; display: inline-block; font-weight: bold;">
+                     <span class="badge-contador" id="contador-sininho-real" style="position: absolute; top: -1px; right: -1px; width: 13px; height: 13px; font-size: 8px; line-height: 13px; text-align: center; color: white; background: #ef4444; border-radius: 50%; display: inline-block; font-weight: 700;">
                          <?= $total_notificacoes ?>
                      </span>
                  <?php endif; ?>
              </button>
          </div>
+         
+         <!-- Dropdown das Mensagens Recentes (Ajustado para Mobile) -->
+         <div class="notif-dropdown" id="dropdownNotif" style="display: none; position: absolute; right: 0; top: 100%; background: #0f1423; border: 1px solid #334155; border-radius: 6px; width: 240px; z-index: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+             <div class="notif-header" style="display: flex; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid #334155; font-size: 11px; font-weight: bold;">
+                 <span>Notificações Recentes</span>
+                 <span style="color: #38bdf8; cursor: pointer;" onclick="limparNotificacoesLocal()">Limpar</span>
+             </div>
+             
+             <?php if(isset($notif_videos) && $notif_videos > 0): ?>
+                 <a href="Video.php" class="notif-item" style="text-decoration: none; display: flex; gap: 8px; padding: 10px 12px; border-bottom: 1px solid #1e293b; color: #fff;">
+                     <span style="font-size: 14px; margin-top: 1px;">🎬</span>
+                     <div>
+                         <strong style="font-size: 11px; display: block; color: #00d2ff;">Nova Tendência!</strong>
+                         <p style="font-size: 10px; color: #94a3b8; margin: 1px 0 0 0;">Temos +<?= $notif_videos ?> Reels publicados.</p>
+                     </div>
+                 </a>
+             <?php endif; ?>
+
+             <?php if(!isset($total_notificacoes) || $total_notificacoes == 0): ?>
+                 <div id="painel_vazio_sino" style="padding: 15px; text-align: center; color: #64748b; font-size: 10px; font-style: italic;">
+                     Não tens novas notificações por agora.
+                 </div>
+             <?php endif; ?>
+         </div>
      </li>
  </ul>
-        <!-- Dropdown das Mensagens Recentes -->
-        <div class="notif-dropdown" id="dropdownNotif" style="display: none; position: absolute; right: 0; top: 100%; background: #0f1423; border: 1px solid #334155; border-radius: 8px; width: 280px; z-index: 500; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
-            <div class="notif-header" style="display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #334155; font-size: 12px; font-weight: bold;">
-                <span>Notificações Recentes</span>
-                <span style="color: #38bdf8; cursor: pointer;" onclick="limparNotificacoesLocal()">Limpar</span>
-            </div>
-            
-            <?php if(isset($notif_videos) && $notif_videos > 0): ?>
-                <a href="Video.php" class="notif-item" style="text-decoration: none; display: flex; gap: 10px; padding: 12px 15px; border-bottom: 1px solid #1e293b; color: #fff;">
-                    <span style="font-size: 18px; margin-top: 2px;">🎬</span>
-                    <div>
-                        <strong style="font-size: 12px; display: block; color: #00d2ff;">Nova Tendência em Vídeo!</strong>
-                        <p style="font-size: 11px; color: #94a3b8; margin: 2px 0 0 0;">Temos +<?= $notif_videos ?> Reels publicados. Assista agora.</p>
-                    </div>
-                </a>
-            <?php endif; ?>
 
-            <?php if(!isset($total_notificacoes) || $total_notificacoes == 0): ?>
-                <div id="painel_vazio_sino" style="padding: 25px; text-align: center; color: #64748b; font-size: 12px; font-style: italic;">
-                    Não tens novas notificações por agora.
-                </div>
-            <?php endif; ?>
-        </div>
-    </div>
-</li>
-</ul>
-     <script>
-     function toggleMenuNotificacoes() {
-         var menu = document.getElementById('dropdownNotif');
-         if (menu) {
-             menu.style.display = (menu.style.display === 'none' || menu.style.display === '') ? 'block' : 'none';
-         }
-     }
-     
-     window.addEventListener('click', function(e) {
-         var menu = document.getElementById('dropdownNotif');
-         var wrapper = document.querySelector('.notif-wrapper');
-         if (menu && wrapper && !wrapper.contains(e.target)) { 
-             menu.style.display = 'none'; 
-         }
-     });
- 
-     // Oculta a bolha vermelha de contagem localmente ao clicar em "Limpar"
-     function limparNotificacoesLocal() {
-         var badge = document.getElementById('contador-sininho-real');
-         var painelVazio = document.getElementById('painel_vazio_sino');
-         
-         if (badge) { 
-             badge.style.display = 'none'; 
-         }
-         
-         const itens = document.querySelectorAll('.notif-item');
-         itens.forEach(item => item.style.display = 'none');
-        
-        if (painelVazio) {
-            painelVazio.style.display = 'block';
-            painelVazio.innerHTML = 'Não tens novas notificações por agora.';
-        }
+<script>
+function toggleMenuNotificacoes() {
+    var menu = document.getElementById('dropdownNotif');
+    if (menu) {
+        menu.style.display = (menu.style.display === 'none' || menu.style.display === '') ? 'block' : 'none';
     }
-    </script>
+}
 
+window.addEventListener('click', function(e) {
+    var menu = document.getElementById('dropdownNotif');
+    var wrapper = document.querySelector('.notif-wrapper');
+    if (menu && wrapper && !wrapper.contains(e.target)) { 
+        menu.style.display = 'none'; 
+    }
+});
+
+function limparNotificacoesLocal() {
+    var badge = document.getElementById('contador-sininho-real');
+    var painelVazio = document.getElementById('painel_vazio_sino');
+    
+    if (badge) { 
+        badge.style.display = 'none'; 
+    }
+    
+    const itens = document.querySelectorAll('.notif-item');
+    itens.forEach(item => item.style.display = 'none');
+   
+   if (painelVazio) {
+       painelVazio.style.display = 'block';
+       painelVazio.innerHTML = 'Não tens novas notificações por agora.';
+   }
+}
+</script>
 
 
 
@@ -1086,40 +1083,36 @@ if (isset($mysqli) && !$mysqli->connect_error) {
 
 
 
-        <!-- =========================================================================
-     📍 FILTRO GEOGRÁFICO NACIONAL AUTOMÁTICO (UNIFICADO LOJAS E SALÕES)
+      <!-- =========================================================================
+     📍 FILTRO GEOGRÁFICO NACIONAL AUTOMÁTICO (ESTILO FACEBOOK RESPONSIVO)
      ========================================================================= -->
-<div style="margin: 30px auto 10px auto; text-align: center; font-family: 'Segoe UI', Arial, sans-serif; max-width: 1350px; padding: 0 15px;">
-<span style="color: #94a3b8; font-size: 11px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 12px; letter-spacing: 0.5px;">📍 Filtrar Rede por Província Ativa:</span>
-<div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+<div style="margin: 20px auto 10px auto; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 1350px; padding: 0 10px;">
+<span style="color: #94a3b8; font-size: 11px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 10px; letter-spacing: 0.5px;">📍 Filtrar por Província Ativa:</span>
+
+<!-- Container Flex Estilo Facebook: Botões pequenos, fluidos e dinâmicos -->
+<div style="display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; width: 100%; box-sizing: border-box;">
     
     <!-- Botão Mestre Inicial -->
-    <button class="btn-filtro-prov-nacional" onclick="executarFiltragemGeograficaCarrossel('todos', this)" style="background: #38bdf8; color: #0f172a; border: none; padding: 10px 22px; font-size: 12px; font-weight: bold; border-radius: 20px; cursor: pointer; text-transform: uppercase; transition: 0.2s; outline: none; letter-spacing: 0.5px;">🇦🇴 Mostrar Todas</button>
+    <button class="btn-filtro-prov-nacional" onclick="executarFiltragemGeograficaCarrossel('todos', this)" style="background: #38bdf8; color: #0f172a; border: none; padding: 6px 14px; font-size: 11px; font-weight: 600; border-radius: 14px; cursor: pointer; text-transform: uppercase; transition: background 0.2s; outline: none;">🇦🇴 Todas</button>
     
     <?php
-    // Lista oficial regulamentar de Angola para indexação estrita na rede SaaS
+    // Lista padrão regulamentar de Angola para indexação estrita na rede SaaS
     $todas_prov_angola = ['Bengo', 'Benguela', 'Bié', 'Cabinda', 'Cuando-Cubango', 'Cuanza-Norte', 'Cuanza-Sul', 'Cunene', 'Huambo', 'Huíla', 'Luanda', 'Lunda-Norte', 'Lunda-Sul', 'Malanje', 'Moxico', 'Namibe', 'Uíge', 'Zaire'];
     
     $prov_com_parceiros = [];
     
     // Abre conexão única reutilizável para varrer todas as frentes comerciais ativas
     $mysqli = $conexao_link ?? $conexao_aurelius;
-    if (!$mysqli->connect_error) {
+    if ($mysqli && !$mysqli->connect_error) {
         $mysqli->set_charset("utf8mb4");
         
-      // 🟢 CORREÇÃO MESTRE: Alinhado com as colunas reais da sua tabela 'usuario'
-     // 🟢 CONSULTA MULTI-TENANT: Varre os parceiros hospedados ativos (Ignora os suspensos)
-     $consultas_enderecos = [
-        "SELECT `codigo`, `endereco` FROM `usuario` WHERE `visivel_no_site` = 1 AND `nivel` = 'parceiro_hospedado'"
-    ];
-    
-    foreach ($consultas_enderecos as $sql_query) {
-        $query_botoes = $mysqli->query($sql_query);
+        // Consulta sem duplicações estruturais diretamente na tabela 'usuario'
+        $query_botoes = $mysqli->query("SELECT DISTINCT `endereco` FROM `usuario` WHERE `visivel_no_site` = 1 AND `nivel` = 'parceiro_hospedado'");
+        
         if ($query_botoes && $query_botoes->num_rows > 0) {
             while ($p_row = $query_botoes->fetch_assoc()) {
                 if (empty($p_row['endereco'])) continue;
                 
-                // Normalização para caixa baixa para evitar distinção entre maiúsculas/minúsculas
                 $endereco_limpo = mb_strtolower(trim($p_row['endereco']), 'UTF-8');
                 
                 foreach ($todas_prov_angola as $prov_nome) {
@@ -1133,6 +1126,7 @@ if (isset($mysqli) && !$mysqli->connect_error) {
                         str_contains($endereco_limpo, $prov_sem_acento) || 
                         str_contains($endereco_limpo, $prov_sem_hifen)) {
                         
+                        // Adiciona apenas se não existir no array, evitando repetições de botões
                         if (!in_array($prov_nome, $prov_com_parceiros)) {
                             $prov_com_parceiros[] = $prov_nome;
                         }
@@ -1141,72 +1135,63 @@ if (isset($mysqli) && !$mysqli->connect_error) {
             }
         }
     }
-      
-    }
     
-    // Desenha reativamente apenas os botões das províncias que possuem salões ou lojas registados
+    // Desenha apenas as províncias que realmente possuem parceiros na base de dados
     foreach ($prov_com_parceiros as $nome_p):
-        // Normaliza o nome para o evento javascript (Ex: Huíla vira huila para evitar conflitos de url)
-        $slug_prov = str_replace(['í', 'é'], ['i', 'e'], mb_strtolower($nome_p, 'UTF-8'));
+        $slug_prov = str_replace(['í', 'é', 'á'], ['i', 'e', 'a'], mb_strtolower($nome_p, 'UTF-8'));
+        $slug_prov = str_replace('-', ' ', $slug_prov);
     ?>
-        <button class="btn-filtro-prov-nacional" onclick="executarFiltragemGeograficaCarrossel('<?= $slug_prov ?>', this)" style="background: #1e293b; color: #f8fafc; border: 1px solid #334155; padding: 10px 22px; font-size: 12px; font-weight: bold; border-radius: 20px; cursor: pointer; text-transform: uppercase; transition: 0.2s; outline: none; letter-spacing: 0.5px;"><?= $nome_p ?></button>
+        <button class="btn-filtro-prov-nacional" onclick="executarFiltragemGeograficaCarrossel('<?= $slug_prov ?>', this)" style="background: #1e293b; color: #f8fafc; border: 1px solid #334155; padding: 6px 14px; font-size: 11px; font-weight: 600; border-radius: 14px; cursor: pointer; text-transform: uppercase; transition: background 0.2s; outline: none;"><?= $nome_p ?></button>
     <?php endforeach; ?>
 </div>
 </div>
-        
 
-
-
-        
-        <!-- =========================================================================
-             🟩 SCRIPT JAVASCRIPT: MOTOR DE FILTRAGEM REATIVA DE CARROSSEL
-             ========================================================================= -->
-             <script>
+<!-- =========================================================================
+ 🟩 SCRIPT JAVASCRIPT: MOTOR DE FILTRAGEM REATIVA DE CARROSSEL
+ ========================================================================= -->
+<script>
 function executarFiltragemGeograficaCarrossel(provinciaAlvo, botaoElemento) {
-    // 1. Reseta os estados visuais da botonera
-    const botoes = document.querySelectorAll('.btn-filtro-prov-nacional');
-    botoes.forEach(btn => {
-        btn.style.background = '#1e293b';
-        btn.style.color = '#f8fafc';
-        btn.style.border = '1px solid #334155';
-    });
-    botaoElemento.style.background = '#38bdf8';
-    botaoElemento.style.color = '#0f172a';
-    botaoElemento.style.border = 'none';
+// 1. Reseta os estados visuais da botonera estilo Facebook
+const botoes = document.querySelectorAll('.btn-filtro-prov-nacional');
+botoes.forEach(btn => {
+    btn.style.background = '#1e293b';
+    btn.style.color = '#f8fafc';
+    btn.style.border = '1px solid #334155';
+});
+botaoElemento.style.background = '#38bdf8';
+botaoElemento.style.color = '#0f172a';
+botaoElemento.style.border = 'none';
 
-    // 2. Captura os cards do carrossel para aplicação da máscara
-    const cardsCarrossel = document.querySelectorAll('#trilho_carrossel_salao .sub-grid');
-    
-    // Normalização completa de acentuação e hifens para busca flexível
-    let provLimpa = provinciaAlvo.toLowerCase().trim()
+// 2. Captura os cards do carrossel para aplicação da máscara
+const cardsCarrossel = document.querySelectorAll('#trilho_carrossel_salao .sub-grid');
+
+// Normalização completa de acentuação e hifens para busca flexível
+let provLimpa = provinciaAlvo.toLowerCase().trim()
+    .replace(/[íìî]/g, 'i')
+    .replace(/[éèê]/g, 'e')
+    .replace(/[áàâã]/g, 'a')
+    .replace(/-/g, ' ');
+
+const trilho = document.getElementById('trilho_carrossel_salao');
+if (trilho) trilho.style.transform = `translateX(0px)`;
+
+cardsCarrossel.forEach(card => {
+    let textoCardCompleto = card.innerText.toLowerCase()
         .replace(/[íìî]/g, 'i')
         .replace(/[éèê]/g, 'e')
         .replace(/[áàâã]/g, 'a')
         .replace(/-/g, ' ');
     
-    posicaoDeslocamentoAtual = 0;
-    const trilho = document.getElementById('trilho_carrossel_salao');
-    if (trilho) trilho.style.transform = `translateX(0px)`;
-
-    cardsCarrossel.forEach(card => {
-        let textoCardCompleto = card.innerText.toLowerCase()
-            .replace(/[íìî]/g, 'i')
-            .replace(/[éèê]/g, 'e')
-            .replace(/[áàâã]/g, 'a')
-            .replace(/-/g, ' ');
-        
-        if (provinciaAlvo === 'todos') {
-            card.style.setProperty('display', 'flex', 'important');
-        } else if (textoCardCompleto.includes(provLimpa)) {
-            card.style.setProperty('setProperty', 'display', 'flex', 'important');
-            card.style.display = 'flex';
-        } else {
-            card.style.setProperty('display', 'none', 'important');
-        }
-    });
+    if (provinciaAlvo === 'todos') {
+        card.style.setProperty('display', 'flex', 'important');
+    } else if (textoCardCompleto.includes(provLimpa)) {
+        card.style.setProperty('display', 'flex', 'important');
+    } else {
+        card.style.setProperty('display', 'none', 'important');
+    }
+});
 }
 </script>
-
 
 
 
@@ -2153,9 +2138,7 @@ $cores_medalhas = ["#eab308", "#cbd5e1", "#b45309"]; // Ouro, Prata, Bronze
          }
      </style>
      
-     <div class="feed-container-fb">
-         
-         <h4 style="color: #38bdf8; text-transform: uppercase; font-weight: bold; font-size: 13px; margin-bottom: 20px; border-left: 4px solid #1877f2; padding-left: 10px; letter-spacing: 0.5px;">
+     <h4 style="color: #38bdf8; text-transform: uppercase; font-weight: bold; font-size: 13px; margin-bottom: 20px; border-left: 4px solid #1877f2; padding-left: 10px; letter-spacing: 0.5px;">
             🛍️ Podes também comprar a partir daqui • Sugestões para Si
          </h4>
      
@@ -2164,7 +2147,7 @@ $cores_medalhas = ["#eab308", "#cbd5e1", "#b45309"]; // Ouro, Prata, Bronze
                  $id_post = intval($post['id']);
                  
                  $data_registo_bruta = isset($post['data_cadastro']) ? $post['data_cadastro'] : ''; 
-$tempo_exibicao = "Publicado Recentemente";
+                 $tempo_exibicao = "Publicado Recentemente";
 
                  if (!empty($data_registo_bruta) && $data_registo_bruta !== '0000-00-00 00:00:00') {
                     $timestamp_post = strtotime($data_registo_bruta);
@@ -2176,281 +2159,94 @@ $tempo_exibicao = "Publicado Recentemente";
                     elseif ($diferenca_segundos < 86400) { $horas = floor($diferenca_segundos / 3600); $tempo_exibicao = "Há " . $horas . " h"; }
                     elseif ($diferenca_segundos < 604800) { $dias = floor($diferenca_segundos / 86400); $tempo_exibicao = "Há " . $dias . " d"; }
                     elseif ($diferenca_segundos < 1209600) { $semanas = floor($diferenca_segundos / 604800); $tempo_exibicao = "Há " . $semanas . " sem"; }
-                }
-
-
-                // 📊 CONTADORES DINÂMICOS GERADOS POR PRODUTO (NUNCA ZERADOS)
-$likes_iniciais = ($id_post * 13) % 120 + 24;
-$comentarios_totais = ($id_post * 4) % 18 + 3;
-$partilhas_totais = ($id_post * 3) % 11 + 2;
-
-// Captura segura com fallbacks dos campos do seu PHPMyAdmin
-$loja_nome    = htmlspecialchars(!empty($post['nome_loja']) ? $post['nome_loja'] : 'Loja Oficial');
-$produto_nome = htmlspecialchars(!empty($post['nome_produto']) ? $post['nome_produto'] : 'Artigo Comercial Premium');
-$stock_total  = (int)(!empty($post['stock_atual']) ? $post['stock_atual'] : (!empty($post['stock']) ? $post['stock'] : rand(3, 12)));
-$preco_real   = number_format(!empty($post['preco']) ? $post['preco'] : rand(5000, 45000), 2, ',', '.');
-$link_compra  = !empty($link_checkout_fb) ? $link_checkout_fb : '#';
-$img_post     = !empty($imagem_validada) ? $imagem_validada : 'uploads/prod_6a5b9ae1d1e26.jpg';
-?>
-
-<!-- 🛍️ SEÇÃO DE RECOMENDAÇÃO FACEBOOK STYLE -->
-<div style="color: #94a3b8; font-size: 13px; font-weight: 600; margin: 15px 0 8px 5px; display: flex; align-items: center; gap: 6px;">
-    <span>🛍️ Podes também comprar a partir daqui • Sugestões para Si</span>
-</div>
-             ?>
-
-
-
-
-
-
-
-
-
-
-
-
-
-                <!-- 🟦 CAIXA PRINCIPAL DO CARD (ESTILO REDE SOCIAL) -->
-<div id="post_fb_<?php echo $id_post; ?>" class="post-card-fb" style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.25); margin-bottom: 24px; font-family: 'Segoe UI', -apple-system, sans-serif; width: 100%; box-sizing: border-box;">
-    
-<!-- 👤 CABEÇALHO DA LOJA -->
-<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-    <div style="width: 40px; height: 40px; background: #0f172a; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #1877f2; overflow: hidden; flex-shrink: 0;">
-        <span style="font-size: 18px;">🏬</span>
-    </div>
-    <div style="min-width: 0; flex: 1;">
-        <strong style="color: #ffffff; font-size: 14px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600;"><?php echo $loja_nome; ?></strong>
-        <span style="color: #94a3b8; font-size: 12px; display: flex; align-items: center; gap: 4px;">
-            <?php echo $tempo_exibicao; ?> • 🌍 Angola • 👤 Gestor
-        </span>
-    </div>
-</div>
-
-<!-- 📝 TEXTO DO POST -->
-<p style="color: #e2e8f0; font-size: 13.5px; line-height: 1.5; margin: 0 0 12px 0;">
-    ⚡ Grande Oportunidade! Adquira já o produto <b style="color: #38bdf8; font-weight: 600;"><?php echo $produto_nome; ?></b> diretamente no nosso balcão. Stock limitado de apenas <b style="color: #f87171; font-weight: 600;"><?php echo $stock_total; ?></b> unidades!
-</p>
-
-<!-- 🖼️ CONTAINER DE IMAGEM DO FEED -->
-<div class="img-container-fb" style="width: 100%; max-height: 320px; border-radius: 8px; overflow: hidden; background: #0f172a; border: 1px solid #334155; display: flex; align-items: center; justify-content: center; margin-bottom: 12px;">
-    <img src="<?php echo $img_post; ?>" 
-         alt="<?php echo $produto_nome; ?>" 
-         style="width: 100%; height: auto; max-height: 320px; object-fit: cover;"
-         onerror="this.src='uploads/prod_6a5b9ae1d1e26.jpg';">
-</div>
-
-                   <!-- 💰 EMBALAGEM DE PREÇO -->
-    <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid #334155; margin-bottom: 8px;">
-    <span style="color: #94a3b8; font-size: 12.5px;">Preço Comercial:</span>
-    <strong style="color: #22c55e; font-size: 18px; font-weight: 700;"><?php echo $preco_real; ?> Kz</strong>
-</div>
-
-<!-- 📊 INDICADORES SOCIAIS DO FACEBOOK (LIKES / COMÉNTARIOS / PARTILHAS) -->
-<div style="display: flex; justify-content: space-between; align-items: center; color: #94a3b8; font-size: 12px; padding: 2px 4px 6px 4px;">
-    <div style="display: flex; align-items: center; gap: 4px;">
-        <span style="background: #1877f2; border-radius: 50%; width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; color: white;">👍</span>
-        <span id="likes_count_<?php echo $id_post; ?>" style="font-weight: 500;"><?php echo $likes_iniciais; ?></span>
-    </div>
-    <div style="font-weight: 500;">
-        <span id="txt_coment_count_<?php echo $id_post; ?>"><?php echo $comentarios_totais; ?> comentários</span> • 
-        <span id="txt_partilha_count_<?php echo $id_post; ?>"><?php echo $partilhas_totais; ?> partilhas</span>
-    </div>
-</div>
-
-                  <!-- 🟢 BOTÕES DE AÇÃO INTERATIVOS COM SUPORTE PARA ABRIR/FECHAR GAVETA -->
-    <div style="display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid #334155; border-bottom: 1px solid #334155; padding: 4px 0; margin-bottom: 10px; gap: 2px;">
-    <button type="button" onclick="interacaoGostoFBAudio(this, <?php echo $id_post; ?>)" style="background: none; border: none; color: #94a3b8; font-size: 12px; font-weight: 600; cursor: pointer; padding: 8px 0; display: flex; align-items: center; justify-content: center; gap: 4px; transition: background 0.2s; border-radius: 4px;">👍 Gostar</button>
-    <button type="button" onclick="alternarGavetaDiscussao(<?php echo $id_post; ?>)" style="background: none; border: none; color: #94a3b8; font-size: 12px; font-weight: 600; cursor: pointer; padding: 8px 0; display: flex; align-items: center; justify-content: center; gap: 4px; transition: background 0.2s; border-radius: 4px;">💬 Comentar</button>
-    <button type="button" onclick="interacaoPartilhaFBAudio(this, <?php echo $id_post; ?>)" style="background: none; border: none; color: #94a3b8; font-size: 12px; font-weight: 600; cursor: pointer; padding: 8px 0; display: flex; align-items: center; justify-content: center; gap: 4px; transition: background 0.2s; border-radius: 4px;">↪️ Partilhar</button>
-    <a href="<?php echo $link_compra; ?>" style="text-decoration: none; color: #22c55e; font-size: 12px; font-weight: 700; padding: 8px 0; display: flex; align-items: center; justify-content: center; gap: 4px; background: rgba(34, 197, 94, 0.08); border-radius: 4px; text-transform: uppercase; text-align: center;">⚡ Comprar</a>
-</div>
-
-
-
-
-
-
-
-
-
-             <!-- 📂 GAVETA DE DISCUSSÃO DINÂMICA (ESTILO FACEBOOK - INICIA FECHADA) -->
-<!-- =========================================================================
-     📍 BLOCO GEOGRÁFICO: FILTRAR REDE POR PROVÍNCIA ATIVA (100% DINÂMICO)
-     ========================================================================= -->
-     <div class="bloco-provincias" style="text-align: center; margin: 20px 0;">
-     <p style="font-weight: bold; color: #555;">📍 FILTRAR REDE POR PROVÍNCIA ATIVA:</p>
-     
-     <div class="botoes-provincias" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; padding: 10px;">
-         <a href="Principal.php" class="btn-provincia azul">🇦🇴 MOSTRAR TODAS</a>
- 
-         <?php
-         // Usa estritamente a conexão estabelecida no topo do arquivo Principal.php
-         if (isset($conexao_link) && $conexao_link instanceof mysqli) {
-             
-             // Query Dinâmica: Puxa apenas as províncias que possuem Barbearias ou Lojas Ativas e Confirmadas
-             $query_provincias_ativas = mysqli_query($conexao_link, "
-                 SELECT DISTINCT SUBSTRING_INDEX(`endereco`, ' - ', 1) AS provincia_nome 
-                 FROM `usuario` 
-                 WHERE `nivel` = 'parceiro_hospedado' 
-                 AND `transacao_status` = 'Confirmado'
-                 ORDER BY provincia_nome ASC
-             ");
- 
-             if ($query_provincias_ativas && mysqli_num_rows($query_provincias_ativas) > 0) {
-                 while ($prov = mysqli_fetch_assoc($query_provincias_ativas)) {
-                     $nome_filtrado = trim($prov['provincia_nome']);
-                     if (!empty($nome_filtrado)) {
-                         // Renderiza dinamicamente as províncias reais da sua base de dados
-                         echo '<a href="Principal.php?filtrar_provincia=' . urlencode($nome_filtrado) . '" class="btn-provincia preto" style="text-transform: uppercase; text-decoration: none; padding: 8px 16px; background: #1a1a1a; color: #fff; border-radius: 20px; font-size: 12px; font-weight: bold;">' . htmlspecialchars(mb_strtoupper($nome_filtrado, 'UTF-8')) . '</a>';
-                     }
                  }
-             }
-         } else {
-             // Em caso de falha estrita na conexão, exibe um alerta discreto, mas NÃO trava o resto do HTML abaixo
-             echo '<span style="color: #ef4444; font-size: 12px; font-style: italic;">🚨 Base de dados temporariamente inacessível para leitura de províncias.</span>';
-         }
-         ?>
-     </div>
- </div>
 
-<!-- FORMULÁRIO DE ENVIO ASSÍNCRONO: AJAX Ativo para salvar e injetar no card correto -->
-<form onsubmit="processarComentarioFB(event, <?php echo $id_post; ?>)" style="display: flex; gap: 8px; margin-top: 10px; background: transparent; align-items: center; border-top: 1px solid #e4e6eb; padding-top: 10px;">
-    <input type="text" id="input_msg_fb_<?php echo $id_post; ?>" placeholder="Escreva um comentário público..." style="flex: 1; padding: 10px 16px; background: #f0f2f5; border: none; border-radius: 20px; color: #050505; font-size: 13px; outline: none;" required autocomplete="off">
-    <button type="submit" style="background: #1877f2; color: #fff; border: none; padding: 10px 18px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 12px; transition: background 0.2s;">Enviar</button>
-</form>
+                 // 📊 CONTADORES DINÂMICOS GERADOS POR PRODUTO (NUNCA ZERADOS)
+                 $likes_iniciais = ($id_post * 13) % 120 + 24;
+                 $comentarios_totais = ($id_post * 4) % 18 + 3;
+                 $partilhas_totais = ($id_post * 3) % 11 + 2;
 
-</div> <!-- 🟢 FECHA A GAVETA DE COMENTÁRIOS CORRETAMENTE -->
-</div> <!-- 🟢 FECHA O POST-CARD-FB DE FORMA ISOLADA -->
+                 // Captura segura com fallbacks dos campos do seu PHPMyAdmin
+                 $loja_nome    = htmlspecialchars(!empty($post['nome_loja']) ? $post['nome_loja'] : 'Barbearia Branca');
+                 $produto_nome = htmlspecialchars(!empty($post['nome_produto']) ? $post['nome_produto'] : (!empty($post['nome']) ? $post['nome'] : 'Artigo Comercial Premium'));
+                 $stock_total  = (int)(!empty($post['stock_atual']) ? $post['stock_atual'] : (!empty($post['stock']) ? $post['stock'] : rand(3, 12)));
+                 $preco_real   = number_format(!empty($post['preco']) ? $post['preco'] : (!empty($post['preco_venda']) ? $post['preco_venda'] : rand(5000, 45000)), 2, ',', '.');
+                 $link_compra  = !empty($link_checkout_fb) ? $link_checkout_fb : 'unitele.php?id_parceiro=' . ($post['usuario_id'] ?? '');
 
-<?php endforeach; ?>
-<?php else: ?>
-<p style="color: #64748b; font-style: italic; padding: 20px; text-align: center;">Nenhum produto sugerido por agora.</p>
-<?php endif; ?>
-</div> <!-- 🟢 FECHA O CONTAINER GERAL DOS PRODUTOS -->
+                 // 🟢 CORREÇÃO MESTRE DA IMAGEM: Puxa dinamicamente a coluna certa da sua tabela de produtos
+                 $nome_imagem_banco = !empty($post['imagem']) ? trim($post['imagem']) : (!empty($post['logo_empresa']) ? trim($post['logo_empresa']) : '');
+                 if (!empty($nome_imagem_banco) && file_exists("uploads/" . $nome_imagem_banco)) {
+                     $img_post = "uploads/" . $nome_imagem_banco;
+                 } elseif (!empty($nome_imagem_banco) && file_exists($nome_imagem_banco)) {
+                     $img_post = $nome_imagem_banco;
+                 } else {
+                     $img_post = 'OIP (6).webp'; // Fallback padrão caso não encontre nenhuma
+                 }
 
+                 // 🟢 FOTO DE PERFIL DINÂMICA DA BARBEARIA/LOJA
+                 $foto_perfil_loja = "OIP (6).webp";
+                 if (!empty($post['logo_empresa']) && file_exists("uploads/" . $post['logo_empresa'])) {
+                     $foto_perfil_loja = "uploads/" . $post['logo_empresa'];
+                 }
+                 ?>
 
-
-
-<script>
-// 🔀 Abre/fecha a gaveta e força começar fechada (display = 'none')
-function alternarGavetaDiscussao(id) {
-    const gaveta = document.getElementById('gaveta_comentarios_' + id);
-    if (gaveta) {
-        if (gaveta.style.display === 'none' || gaveta.style.display === '') {
-            gaveta.style.display = 'block';
-            const input = document.getElementById('input_msg_fb_' + id);
-            if (input) input.focus();
-        } else {
-            gaveta.style.display = 'none';
-        }
-    }
-}
-
-// 👍 Interação reativa para Likes
-function interacaoGostoFBAudio(btn, id) {
-    const contador = document.getElementById('likes_count_' + id);
-    if (contador) {
-        let valorAtual = parseInt(contador.innerText);
-        if (btn.style.color === 'rgb(24, 119, 242)') {
-            btn.style.color = '#94a3b8';
-            contador.innerText = valorAtual - 1;
-        } else {
-            btn.style.color = '#1877f2';
-            contador.innerText = valorAtual + 1;
-        }
-    }
-}
-
-// ↪️ Sugestões de partilha
-function interacaoPartilhaFBAudio(btn, id) {
-    const spanPartilhas = document.getElementById('txt_partilha_count_' + id);
-    if(spanPartilhas) {
-        alert("↪️ Link do produto copiado! Partilhe com os seus amigos no WhatsApp ou Facebook.");
-        btn.style.color = '#22c55e';
-        let texto = spanPartilhas.innerText;
-        let numero = parseInt(texto) + 1;
-        spanPartilhas.innerText = numero + " partilhas";
-    }
-}
-
-// 💬 Ativa o modo de resposta para uma mensagem específica
-function definirDestinoResposta(idPost, idComentario, nomeAutor) {
-    const campo = document.getElementById('input_msg_fb_' + idPost);
-    const marcador = document.getElementById('marcador_resposta_' + idPost);
-    const parentInput = document.getElementById('parent_id_' + idPost);
+                 <!-- 🟦 CAIXA PRINCIPAL DO CARD (ESTILO REDE SOCIAL) -->
+                 <div id="post_fb_<?php echo $id_post; ?>" class="post-card-fb" style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.25); margin-bottom: 24px; font-family: 'Segoe UI', -apple-system, sans-serif; width: 100%; box-sizing: border-box;">
     
-    if(campo && marcador && parentInput) {
-        parentInput.value = idComentario;
-        marcador.innerText = "@" + nomeAutor;
-        marcador.style.display = "inline-block";
-        campo.focus();
-    }
-}
+                     <!-- 👤 CABEÇALHO DA LOJA DINÂMICO -->
+                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                         <div style="width: 36px; height: 36px; background: #0f172a; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1.5px solid #1877f2; overflow: hidden; flex-shrink: 0;">
+                             <img src="<?php echo $foto_perfil_loja; ?>" style="width: 100%; height: 100%; object-fit: cover;">
+                         </div>
+                         <div style="min-width: 0; flex: 1;">
+                             <strong style="color: #ffffff; font-size: 13.5px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600;"><?php echo $loja_nome; ?></strong>
+                             <span style="color: #94a3b8; font-size: 11.5px; display: flex; align-items: center; gap: 4px;">
+                                 <?php echo $tempo_exibicao; ?> • 🌍 Angola • 👤 Gestor
+                             </span>
+                         </div>
+                     </div>
 
- // 📨 Processamento do envio do comentário com inserção visual reativa instantânea
-function processarComentarioFB(event, id) {
-    // 1. Bloqueia o recarregamento padrão da página ao submeter
-    event.preventDefault();
-    
-    // 2. Localiza os elementos corretos na árvore HTML
-    const input = document.getElementById('input_msg_fb_' + id);
-    const caixa = document.getElementById('caixa_mensagens_fb_' + id);
-    const aviso = document.getElementById('sem_comentarios_aviso_' + id);
-    
-    // 3. Validação de segurança: se o campo estiver vazio, não faz nada
-    if (!input || input.value.trim() === "") return;
+                     <!-- 📝 TEXTO DO POST -->
+                     <p style="color: #e2e8f0; font-size: 13px; line-height: 1.5; margin: 0 0 12px 0;">
+                         ⚡ Grande Oportunidade! Adquira já o produto <b style="color: #38bdf8; font-weight: 600;"><?php echo $produto_nome; ?></b> diretamente no nosso balcão. Stock limitado de apenas <b style="color: #f87171; font-weight: 600;"><?php echo $stock_total; ?></b> unidades!
+                     </p>
 
-    // 4. Oculta o aviso de "Nenhum comentário por aqui" se ele existir
-    if (aviso) { 
-        aviso.style.display = 'none'; 
-    }
+                     <!-- 🖼️ CONTAINER DE IMAGEM DO FEED (CORRIGIDO) -->
+                     <div class="img-container-fb" style="width: 100%; height: 250px; border-radius: 8px; overflow: hidden; background: #0f172a; border: 1px solid #334155; display: flex; align-items: center; justify-content: center; margin-bottom: 12px;">
+                         <img src="<?php echo $img_post; ?>" 
+                              alt="<?php echo $produto_nome; ?>" 
+                              style="width: 100%; height: 100%; object-fit: cover;"
+                              onerror="this.src='OIP (6).webp';">
+                     </div>
 
-    // 5. Criação do balão de comentário no estilo Facebook Claro
-    const novoComentario = document.createElement('div');
-    novoComentario.style.textAlign = 'left';
-    novoComentario.style.background = '#f0f2f5';
-    novoComentario.style.padding = '8px 12px';
-    novoComentario.style.borderRadius = '18px';
-    novoComentario.style.width = 'fit-content';
-    novoComentario.style.maxWidth = '85%';
-    novoComentario.style.marginBottom = '6px';
-    
-    novoComentario.innerHTML = `
-        <b style="color: #050505; font-size: 13px; display: block; margin-bottom: 2px;">Tu (Utilizador):</b>
-        <span style="color: #050505; font-size: 13px; word-break: break-word;">${escapeHTML(input.value)}</span>
-    `;
+                     <!-- 💰 EMBALAGEM DE PREÇO -->
+                     <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid #334155; margin-bottom: 8px;">
+                         <span style="color: #94a3b8; font-size: 12px;">Preço Comercial:</span>
+                         <strong style="color: #22c55e; font-size: 16px; font-weight: 700;"><?php echo $preco_real; ?> Kz</strong>
+                     </div>
 
-    // 6. Injeta o novo balão na gaveta e faz scroll automático para o fundo
-    if (caixa) {
-        caixa.appendChild(novoComentario);
-        caixa.scrollTop = caixa.scrollHeight;
-    }
+                     <!-- 📊 INDICADORES SOCIAIS -->
+                     <div style="display: flex; justify-content: space-between; align-items: center; color: #94a3b8; font-size: 11px; padding: 2px 4px 6px 4px;">
+                         <div style="display: flex; align-items: center; gap: 4px;">
+                             <span style="background: #1877f2; border-radius: 50%; width: 14px; height: 14px; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; color: white;">👍</span>
+                             <span id="likes_count_<?php echo $id_post; ?>" style="font-weight: 500;"><?php echo $likes_iniciais; ?></span>
+                         </div>
+                         <div style="font-weight: 500;">
+                             <span id="txt_coment_count_<?php echo $id_post; ?>"><?php echo $comentarios_totais; ?> com.</span> • 
+                             <span id="txt_partilha_count_<?php echo $id_post; ?>"><?php echo $partilhas_totais; ?> part.</span>
+                         </div>
+                     </div>
 
-    // 7. Incrementa o contador de comentários na interface se existir
-    const spanComentarios = document.getElementById('txt_coment_count_' + id);
-    if (spanComentarios) {
-        let total = parseInt(spanComentarios.innerText) + 1;
-        spanComentarios.innerText = total + " comentários";
-    }
-
-    // 8. Limpa o campo de texto preparado para a próxima mensagem
-    input.value = "";
-}
-
-// 🛡️ Função auxiliar para evitar falhas de segurança e caracteres quebrados
-function escapeHTML(str) {
-    return str.replace(/[&<>'"]/g, 
-        tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
-    );
-}
-</script>
-
-
-
-
-
-
+                     <!-- 🟢 BOTÕES DE AÇÃO INTERATIVOS ADAPTADOS PARA MÓVEL -->
+                     <div style="display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid #334155; border-bottom: 1px solid #334155; padding: 4px 0; margin-bottom: 5px; gap: 2px;">
+                         <button type="button" onclick="interacaoGostoFBAudio(this, <?php echo $id_post; ?>)" style="background: none; border: none; color: #94a3b8; font-size: 11px; font-weight: 600; cursor: pointer; padding: 6px 0; display: flex; align-items: center; justify-content: center; gap: 2px; border-radius: 4px;">👍 Gostar</button>
+                         <button type="button" onclick="alternarGavetaDiscussao(<?php echo $id_post; ?>)" style="background: none; border: none; color: #94a3b8; font-size: 11px; font-weight: 600; cursor: pointer; padding: 6px 0; display: flex; align-items: center; justify-content: center; gap: 2px; border-radius: 4px;">💬 Com.</button>
+                         <button type="button" onclick="interacaoPartilhaFBAudio(this, <?php echo $id_post; ?>)" style="background: none; border: none; color: #94a3b8; font-size: 11px; font-weight: 600; cursor: pointer; padding: 6px 0; display: flex; align-items: center; justify-content: center; gap: 2px; border-radius: 4px;">↪️ Part.</button>
+                         <a href="<?php echo $link_compra; ?>" style="text-decoration: none; color: #22c55e; font-size: 11px; font-weight: 700; padding: 6px 0; display: flex; align-items: center; justify-content: center; gap: 2px; background: rgba(34, 197, 94, 0.08); border-radius: 4px; text-transform: uppercase; text-align: center;">⚡ Comprar</a>
+                     </div>
+                 </div>
+             <?php endforeach; ?>
+         <?php endif; ?>
 
 
 
