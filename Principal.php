@@ -805,126 +805,232 @@ try {
      }
  }
  ?>
- 
- <!-- 📱 NAVBAR SUPERIOR TOTALMENTE RESPONSIVA -->
- <nav style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; padding: 10px 15px; background: #0f172a; border-bottom: 1px solid #1e293b; gap: 10px; width: 100%; box-sizing: border-box;">
-     <a class="au" href="#" style="text-decoration: none; color: #fff; font-size: 16px; font-weight: bold; letter-spacing: 0.5px; min-width: max-content;">AURELIUS <span style="color: #38bdf8;">GRUPO</span></a>
-     
-     <!-- Botões Superiores Compactos estilo Mobile -->
-     <div class="nav-links" style="display: flex; gap: 6px; align-items: center; max-width: 100%;">
-         <a href="registro_Parceiro_Vendas.php" style="text-decoration: none; background: rgba(56, 189, 248, 0.1); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.2); padding: 5px 8px; font-size: 10px; font-weight: 600; border-radius: 6px; white-space: nowrap;">Parceria</a>
-         <a href="hospedagem.php" style="text-decoration: none; background: #1877f2; color: #fff; padding: 5px 8px; font-size: 10px; font-weight: 600; border-radius: 6px; white-space: nowrap;">Profissional</a>
-     </div>
- </nav>
- 
- <main style="width: 100%; box-sizing: border-box;">
-     <div class="img"></div>
- </main>
- 
- <!-- 📱 BARRA HORIZONTAL DE ABAS COMPACTA (ESTILO FACEBOOK MÓVEL) -->
- <ul class="menu-horizontal" style="list-style: none; display: flex; gap: 4px; padding: 6px 4px; align-items: center; justify-content: space-between; width: 100%; max-width: 440px; margin: 10px auto 0 auto; box-sizing: border-box; background: #1e293b; border-radius: 20px; border: 1px solid #334155;">
-     
-      <!-- 1. Aba Apoios -->
-      <li style="flex: 1; text-align: center;">
-          <a href="Patrocinadores.php" style="font-size: 10.5px; font-weight: 500; text-decoration: none; color: #94a3b8; display: block; padding: 4px 2px;">Apoios</a>
-      </li>
-  
-      <!-- 2. Aba Lojas Dinâmica -->
-      <li style="position: relative; flex: 1; text-align: center;">
-          <a href="Lojas.php" style="font-size: 10.5px; font-weight: 500; text-decoration: none; color: #94a3b8; display: block; padding: 4px 2px;">Lojas</a>
-          <?php if ($novasLojas > 0): ?>
-              <span class="badge-contador" style="background: #3b82f6; position: absolute; top: -1px; right: 1px; z-index: 10; width: 13px; height: 13px; font-size: 8px; line-height: 13px; text-align: center; color: white; border-radius: 50%; display: inline-block; font-weight: 700;"><?= $novasLojas ?></span>
-          <?php endif; ?>
-      </li>
-  
-      <!-- 3. Aba Barbearias Reativa (Destaque Ativo) -->
-      <li style="position: relative; flex: 1.2; min-width: 85px; text-align: center; background: #0f172a; border-radius: 12px;">
-          <a href="Principal.php?limpar_bolha_barbearia=1" style="font-size: 10.5px; font-weight: 700; text-decoration: none; color: #38bdf8; display: block; padding: 4px 2px;">Barbearias</a>
-          <?php if ($total_barbearias_real > 0): ?>
-              <span class="badge-contador" style="position: absolute; top: -1px; right: 3px; z-index: 10; width: 13px; height: 13px; font-size: 8px; line-height: 13px; text-align: center; color: white; background: #ef4444; border-radius: 50%; display: inline-block; font-weight: 700;"><?= $total_barbearias_real ?></span>
-          <?php endif; ?>
-      </li>
-  
-      <!-- 4. Aba Vagas Dinâmica -->
-      <li style="position: relative; flex: 1; text-align: center;">
-          <a href="Vagas.php" style="font-size: 10.5px; font-weight: 500; text-decoration: none; color: #94a3b8; display: block; padding: 4px 2px;">Vagas</a>
-          <?php if ($novasVagas > 0): ?>
-              <span class="badge-contador" style="background: #10b981; position: absolute; top: -1px; right: 1px; z-index: 10; width: 13px; height: 13px; font-size: 8px; line-height: 13px; text-align: center; color: white; border-radius: 50%; display: inline-block; font-weight: 700;"><?= $novasVagas ?></span>
-          <?php endif; ?>
-      </li>
-  
-      <!-- 5. Elemento do Sino Incorporado com Contador Unificado -->
-      <li style="position: relative; flex: 0.6; display: flex; justify-content: center; align-items: center;">
-          <div class="notif-wrapper">
-              <button class="sino-btn" onclick="toggleMenuNotificacoes()" title="Notificações" style="background: none; border: none; font-size: 12px; cursor: pointer; position: relative; padding: 2px;">
-                  🔔
-                  <?php if ($total_notificacoes > 0): ?>
-                      <span class="badge-contador" id="contador-sininho-real" style="position: absolute; top: -2px; right: -2px; width: 12px; height: 12px; font-size: 7.5px; line-height: 12px; text-align: center; color: white; background: #ef4444; border-radius: 50%; display: inline-block; font-weight: 700;"><?= $total_notificacoes ?></span>
-                  <?php endif; ?>
-              </button>
-          </div>
-          
-          <!-- Dropdown das Mensagens Recentes Ajustado para Mobile -->
-          <div class="notif-dropdown" id="dropdownNotif" style="display: none; position: absolute; right: 0; top: 120%; background: #0f1423; border: 1px solid #334155; border-radius: 6px; width: 220px; z-index: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
-              <div class="notif-header" style="display: flex; justify-content: space-between; padding: 6px 10px; border-bottom: 1px solid #334155; font-size: 10px; font-weight: bold; color: #fff;">
-                  <span>Notificações Recentes</span>
-                  <span style="color: #38bdf8; cursor: pointer;" onclick="limparNotificacoesLocal()">Limpar</span>
-              </div>
-              
-              <?php if(isset($notif_videos) && $notif_videos > 0): ?>
-                  <a href="Video.php" class="notif-item" style="text-decoration: none; display: flex; gap: 6px; padding: 10px; border-bottom: 1px solid #1e293b; color: #fff; text-align: left;">
-                      <span style="font-size: 12px;">🎬</span>
-                      <div>
-                          <strong style="font-size: 10px; display: block; color: #00d2ff;">Nova Tendência!</strong>
-                          <p style="font-size: 9px; color: #94a3b8; margin: 0;">Temos +<?= $notif_videos ?> Reels publicados.</p>
-                      </div>
-                  </a>
-              <?php endif; ?>
- 
-              <?php if($total_notificacoes == 0): ?>
-                  <div id="painel_vazio_sino" style="padding: 15px; text-align: center; color: #64748b; font-size: 9px; font-style: italic;">
-                      Não tens novas notificações por agora.
-                  </div>
-              <?php endif; ?>
-          </div>
-      </li>
-  </ul>
- 
- <script>
- function toggleMenuNotificacoes() {
-     var menu = document.getElementById('dropdownNotif');
-     if (menu) {
-         menu.style.display = (menu.style.display === 'none' || menu.style.display === '') ? 'block' : 'none';
-     }
- }
- 
- window.addEventListener('click', function(e) {
-     var menu = document.getElementById('dropdownNotif');
-     var wrapper = document.querySelector('.notif-wrapper');
-     if (menu && wrapper && !wrapper.contains(e.target)) { 
-         menu.style.display = 'none'; 
-     }
- });
- 
- function limparNotificacoesLocal() {
-     var badge = document.getElementById('contador-sininho-real');
-     var painelVazio = document.getElementById('painel_vazio_sino');
-     
-     if (badge) { 
-         badge.style.display = 'none'; 
-     }
-     
-     const itens = document.querySelectorAll('.notif-item');
-     itens.forEach(item => item.style.display = 'none');
+
+
+
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+date_default_timezone_set('Africa/Luanda');
+
+// Garante o reuso seguro da conexão mestre PDO/MySQLi
+$mysqli = $conexao_link ?? $conexao_aurelius ?? $conexao ?? null;
+
+// Inicializadores nativos padrão contra quebras de código abaixo
+$total_barbearias_real = 0;
+$novasLojas = 0;
+$novasVagas = 0;
+$total_notificacoes = 0;
+$notif_videos = 0;
+
+// 1. TIMESTAMPS ESTILO FACEBOOK: Define o horário do último clique do utilizador
+$tempo_agora = date('Y-m-d H:i:s');
+if (!isset($_SESSION['last_click_barbearias'])) { $_SESSION['last_click_barbearias'] = $tempo_agora; }
+if (!isset($_SESSION['last_click_lojas']))      { $_SESSION['last_click_lojas'] = $tempo_agora; }
+if (!isset($_SESSION['last_click_vagas']))      { $_SESSION['last_click_vagas'] = $tempo_agora; }
+if (!isset($_SESSION['last_click_sino']))       { $_SESSION['last_click_sino'] = $tempo_agora; }
+
+// 2. DETECTOR DE NAVEGAÇÃO: Zera a bolha dinamicamente dependendo da URL ativa
+$pagina_atual = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
+
+if (isset($_GET['limpar_bolha_barbearia']) || strpos($pagina_atual, 'Principal.php') !== false) {
+    $_SESSION['last_click_barbearias'] = date('Y-m-d H:i:s');
+}
+if (strpos($pagina_atual, 'Lojas.php') !== false) {
+    $_SESSION['last_click_lojas'] = date('Y-m-d H:i:s');
+}
+if (strpos($pagina_atual, 'Vagas.php') !== false) {
+    $_SESSION['last_click_vagas'] = date('Y-m-d H:i:s');
+}
+if (strpos($pagina_atual, 'Video.php') !== false || strpos($pagina_atual, 'Admin_Venda.php') !== false) {
+    $_SESSION['last_click_sino'] = date('Y-m-d H:i:s');
+}
+
+// 3. CONSULTAS SÍNCRONAS BLINDADAS COM FETCH_ROW (EVITA ERRO DE ABAS OCULTAS)
+if ($mysqli && !$mysqli->connect_error) {
+    @$mysqli->set_charset("utf8mb4");
+
+    // 💈 CONTADOR DE BARBEARIAS VALIDADAS: Conta APENAS novas barbearias com status 'Confirmado' pós-clique
+    $ref_b = $_SESSION['last_click_barbearias'];
+    $res_cont_b = @$mysqli->query("SELECT COUNT(DISTINCT `nome`) FROM `usuario` WHERE `nivel` = 'parceiro_hospedado' AND `transacao_status` = 'Confirmado' AND `visivel_no_site` = 1 AND `data` > '$ref_b'");
+    if ($res_cont_b) {
+        $row_b = $res_cont_b->fetch_row();
+        $total_barbearias_real = isset($row_b[0]) ? (int)$row_b[0] : 0;
+        $res_cont_b->close();
+    }
+
+    // 🛒 CONTADOR DE LOJAS: Só mostra número se adicionarem novas lojas pós-clique
+    $ref_l = $_SESSION['last_click_lojas'];
+    $res_cont_l = @$mysqli->query("SELECT COUNT(*) FROM `lojas` WHERE `data_cadastro` > '$ref_l'");
+    if ($res_cont_l) {
+        $row_l = $res_cont_l->fetch_row();
+        $novasLojas = isset($row_l[0]) ? (int)$row_l[0] : 0;
+        $res_cont_l->close();
+    }
+
+    // ⚡ CONTADOR DE VAGAS: Só mostra número se adicionarem novas vagas pós-clique
+    $ref_v = $_SESSION['last_click_vagas'];
+    $res_cont_v = @$mysqli->query("SELECT COUNT(*) FROM `vagas_trabalho` WHERE `data_criacao` > '$ref_v'");
+    if ($res_cont_v) {
+        $row_v = $res_cont_v->fetch_row();
+        $novasVagas = isset($row_v[0]) ? (int)$row_v[0] : 0;
+        $res_cont_v->close();
+    }
+
+    // 🔔 CONTADOR DO SINO: Só conta novos vídeos de anúncios pós-clique
+    $ref_s = $_SESSION['last_click_sino'];
+    $res_cont_n = @$mysqli->query("SELECT COUNT(*) FROM `anuncios` WHERE `tipo_media` = 'video' AND `ativo` = 1 AND `data_publicacao` > '$ref_s'");
+    if ($res_cont_n) {
+        $row_n = $res_cont_n->fetch_row();
+        $notif_videos = isset($row_n[0]) ? (int)$row_n[0] : 0;
+        $total_notificacoes = $notif_videos;
+        $res_cont_n->close();
+    }
+}
+?>
+
+<!-- 📱 NAVBAR SUPERIOR TOTALMENTE RESPONSIVA -->
+<nav style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #0f172a; border-bottom: 1px solid #1e293b; gap: 8px; width: 100% !important; box-sizing: border-box; margin: 0 !important;">
+    <a class="au" href="#" style="text-decoration: none; color: #fff; font-size: 15px; font-weight: bold; letter-spacing: 0.5px; white-space: nowrap;">AURELIUS <span style="color: #38bdf8;">GRUPO</span></a>
     
+    <div class="nav-links" style="display: flex; gap: 5px; align-items: center; max-width: 100%;">
+        <a href="registro_Parceiro_Vendas.php" style="text-decoration: none; background: rgba(56, 189, 248, 0.1); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.2); padding: 5px 8px; font-size: 10px; font-weight: 600; border-radius: 6px; white-space: nowrap;">Parceria</a>
+        <a href="hospedagem.php" style="text-decoration: none; background: #1877f2; color: #fff; padding: 5px 8px; font-size: 10px; font-weight: 600; border-radius: 6px; white-space: nowrap;">Profissional</a>
+    </div>
+</nav>
+
+<!-- 📱 BARRA HORIZONTAL DE ABAS COMPACTA (COLADA ÀS BORDAS 100% LARGURA) -->
+<ul class="menu-horizontal" style="list-style: none; display: flex; gap: 4px; padding: 4px 6px; align-items: center; justify-content: space-between; width: 100% !important; max-width: 100% !important; margin: 8px 0 12px 0 !important; box-sizing: border-box; background: #1e293b; border-top: 1px solid #334155; border-bottom: 1px solid #334155;">
+    
+     <!-- 1. Aba Apoios -->
+     <li style="flex: 1; text-align: center;">
+         <a href="Patrocinadores.php" style="font-size: 10.5px; font-weight: 500; text-decoration: none; color: #94a3b8; display: block; padding: 4px 2px;">Apoios</a>
+     </li>
+ 
+     <!-- 2. Aba Lojas Dinâmica -->
+     <li style="position: relative; flex: 1; text-align: center;">
+         <a href="Lojas.php" style="font-size: 10.5px; font-weight: 500; text-decoration: none; color: #94a3b8; display: block; padding: 4px 2px;">Lojas</a>
+         <?php if ($novasLojas > 0): ?>
+             <span class="badge-contador" style="background: #3b82f6; position: absolute; top: -1px; right: 2px; z-index: 10; width: 13px; height: 13px; font-size: 8px; line-height: 13px; text-align: center; color: white; border-radius: 50%; display: inline-block; font-weight: 700;"><?= $novasLojas ?></span>
+         <?php endif; ?>
+     </li>
+ 
+     <!-- 3. Aba Barbearias Reativa (Destaque Ativo) -->
+     <li style="position: relative; flex: 1.2; min-width: 85px; text-align: center; background: #0f172a; border-radius: 8px;">
+         <a href="Principal.php?limpar_bolha_barbearia=1" style="font-size: 10.5px; font-weight: 700; text-decoration: none; color: #38bdf8; display: block; padding: 4px 2px;">Barbearias</a>
+         <?php if ($total_barbearias_real > 0): ?>
+             <span class="badge-contador" style="position: absolute; top: -1px; right: 3px; z-index: 10; width: 13px; height: 13px; font-size: 8px; line-height: 13px; text-align: center; color: white; background: #ef4444; border-radius: 50%; display: inline-block; font-weight: 700;"><?= $total_barbearias_real ?></span>
+         <?php endif; ?>
+     </li>
+ 
+     <!-- 4. Aba Vagas Dinâmica -->
+     <li style="position: relative; flex: 1; text-align: center;">
+         <a href="Vagas.php" style="font-size: 10.5px; font-weight: 500; text-decoration: none; color: #94a3b8; display: block; padding: 4px 2px;">Vagas</a>
+         <?php if ($novasVagas > 0): ?>
+             <span class="badge-contador" style="background: #10b981; position: absolute; top: -1px; right: 2px; z-index: 10; width: 13px; height: 13px; font-size: 8px; line-height: 13px; text-align: center; color: white; border-radius: 50%; display: inline-block; font-weight: 700;"><?= $novasVagas ?></span>
+         <?php endif; ?>
+     </li>
+ 
+     <!-- 5. Ícone do Sino Incorporado -->
+     <li style="position: relative; flex: 0.6; display: flex; justify-content: center; align-items: center;">
+         <div class="notif-wrapper">
+             <button class="sino-btn" onclick="toggleMenuNotificacoes()" title="Notificações" style="background: none; border: none; font-size: 12px; cursor: pointer; position: relative; padding: 2px;">
+                 🔔
+                 <?php if ($total_notificacoes > 0): ?>
+                     <span class="badge-contador" id="contador-sininho-real" style="position: absolute; top: -2px; right: -2px; width: 12px; height: 12px; font-size: 7.5px; line-height: 12px; text-align: center; color: white; background: #ef4444; border-radius: 50%; display: inline-block; font-weight: 700; border: 1px solid #1e293b;"><?= $total_notificacoes ?></span>
+                 <?php endif; ?>
+             </button>
+         </div>
+         
+         <!-- Dropdown de Notificações -->
+         <div class="notif-dropdown" id="dropdownNotif" style="display: none; position: absolute; right: 0; top: 120%; background: #0f1423; border: 1px solid #334155; border-radius: 6px; width: 220px; z-index: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+             <div class="notif-header" style="display: flex; justify-content: space-between; padding: 6px 10px; border-bottom: 1px solid #334155; font-size: 10px; font-weight: bold; color: #fff;">
+                 <span>Notificações Recentes</span>
+                 <span style="color: #38bdf8; cursor: pointer;" onclick="limparNotificacoesLocal()">Limpar</span>
+             </div>
+             
+             <?php if(isset($notif_videos) && $notif_videos > 0): ?>
+                 <a href="Video.php" class="notif-item" style="text-decoration: none; display: flex; gap: 6px; padding: 10px; border-bottom: 1px solid #1e293b; color: #fff; text-align: left;">
+                     <span style="font-size: 12px;">🎬</span>
+                     <div>
+                         <strong style="font-size: 10px; display: block; color: #00d2ff;">Nova Tendência!</strong>
+                         <p style="font-size: 9px; color: #94a3b8; margin: 0;">Temos +<?= $notif_videos ?> Reels publicados.</p>
+                     </div>
+                 </a>
+             <?php endif; ?>
+
+             <?php if($total_notificacoes == 0): ?>
+                 <div id="painel_vazio_sino" style="padding: 15px; text-align: center; color: #64748b; font-size: 9px; font-style: italic;">
+                 Não tens novas notificações por agora.
+                 </div>
+             <?php endif; ?>
+         </div>
+     </li>
+ </ul>
+
+<!-- 🟩 JAVASCRIPT DE COMPORTAMENTO REATIVO DO CABEÇALHO (MÓVEL ANDROID) -->
+<script>
+/**
+ * Alterna a exibição do painel suspenso de notificações estilo Facebook
+ */
+function toggleMenuNotificacoes() {
+    var menu = document.getElementById('dropdownNotif');
+    if (menu) {
+        var estaOculto = (menu.style.display === 'none' || menu.style.display === '');
+        menu.style.display = estaOculto ? 'block' : 'none';
+        
+        // 🛰️ AJUSTE ANDROID: Corrige o redimensionamento do mapa se o menu mover a viewport
+        if (typeof engineMapa !== 'undefined' && engineMapa) {
+            setTimeout(function() { engineMapa.resize(); }, 100);
+        }
+    }
+}
+
+/**
+ * Fecha o menu flutuante de notificações ao tocar em qualquer espaço vazio da tela
+ */
+window.addEventListener('click', function(e) {
+    var menu = document.getElementById('dropdownNotif');
+    var wrapper = document.querySelector('.notif-wrapper');
+    if (menu && wrapper && !wrapper.contains(e.target)) { 
+        menu.style.display = 'none'; 
+    }
+});
+
+/**
+ * Faz a limpeza visual imediata das notificações no smartphone do cliente
+ */
+function limparNotificacoesLocal() {
+    var badge = document.getElementById('contador-sininho-real');
+    var painelVazio = document.getElementById('painel_vazio_sino');
+    
+    // Oculta a bolha vermelha de contagem do sino
+    if (badge) { 
+        badge.style.display = 'none'; 
+    }
+    
+    // Oculta todos os cards de notificações ativos dentro do loop
+    document.querySelectorAll('.notif-item').forEach(function(item) {
+        item.style.display = 'none';
+    });
+   
+    // Exibe a mensagem de feedback vazia de forma dinâmica
     if (painelVazio) {
         painelVazio.style.display = 'block';
         painelVazio.innerHTML = 'Não tens novas notificações por agora.';
     }
- }
- </script>
+}
 
-
+/**
+ * Escuta mudanças de orientação do telemóvel para evitar quebras de proporção
+ */
+window.addEventListener('resize', function() {
+    if (typeof engineMapa !== 'undefined' && engineMapa) {
+        engineMapa.resize();
+    }
+});
+</script>
 
 
 
@@ -1351,11 +1457,21 @@ cardsCarrossel.forEach(card => {
                  ");
                  
                  if ($query_publica && $query_publica->num_rows > 0) {
+                     // Cria um array temporário para registar quem já foi desenhado no ecrã
+                     $parceiros_desenhados = [];
+               
                      while ($row = $query_publica->fetch_assoc()) {
-                         
                          $id_foto = (int)$row['codigo'];
+                         $nome_barbearia = trim($row['nome'] ?? '');
+
+                         // 🔒 TRAVA ANTI-REPETIÇÃO ANDROID/LOCAL: Se já foi desenhada, salta para a próxima
+                         if (in_array($nome_barbearia, $parceiros_desenhados)) {
+                             continue;
+                         }
+                         // Regista o nome no array para travar futuras repetições
+                         $parceiros_desenhados[] = $nome_barbearia;
                          
-                         // 🟢 CARREGAMENTO SEGURO DE IMAGEM
+                         // 🟢 CARREGAMENTO SEGURO DE IMAGEM DO PARCEIRO
                          $arquivo_logo = trim($row['logo_empresa'] ?? '');
                          
                          if (!empty($arquivo_logo) && file_exists("uploads/" . $arquivo_logo)) {
@@ -1365,7 +1481,7 @@ cardsCarrossel.forEach(card => {
                          } else {
                              $foto_src = "OIP (6).webp"; 
                          }
- 
+
                          // Roteador dinâmico reativo por slug
                          $slug_banco = !empty($row['slug']) ? trim($row['slug']) : 'Login';
                          $link_destino = $slug_banco . ".php";
