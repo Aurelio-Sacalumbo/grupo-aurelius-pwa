@@ -1141,7 +1141,7 @@ if (isset($mysqli) && !$mysqli->connect_error) {
             }
         }
     }
-        $mysqli->close();
+      
     }
     
     // Desenha reativamente apenas os botões das províncias que possuem salões ou lojas registados
@@ -1331,7 +1331,7 @@ function executarFiltragemGeograficaCarrossel(provinciaAlvo, botaoElemento) {
                  } else {
                      echo "<p style='color: #64748b; padding: 20px; font-style: italic; width:100%; text-align:center;'>Nenhuma barbearia ativa encontrada.</p>";
                  }
-                 $mysqli->close(); // Fecha a conexão de forma limpa
+               
              } 
              ?>
           </div> <!-- Fecha trilho_carrossel_salao -->
@@ -3774,7 +3774,7 @@ function processarEnvioMensagemAlana(origemTela) {
             } else {
                 echo "<p style='color: #64748b; grid-column: 1/-1; text-align: center; font-style: italic; padding: 25px;'>Nenhum cosmético localizado nas tabelas operacionais da rede.</p>";
             }
-            $mysqli_produtos->close();
+           
         }
         ?>
     </div>
