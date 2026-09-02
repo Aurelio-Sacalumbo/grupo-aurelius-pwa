@@ -260,30 +260,53 @@ if ('serviceWorker' in navigator) {
         /* =========================================================================
            2. ESTILOS GLOBAIS E RESET DE ECRÃ
            ========================================================================= */
-        body { 
+
+
+
+
+
+
+           
+           html, body { 
             font-family: 'Segoe UI', Arial, sans-serif; 
             background-color: #0f172a; 
-            margin: 0; 
-            padding: 0; 
+            margin: 0 !important; 
+            padding: 0 !important; 
             color: #ffffff;
+            width: 100% !important; /* 🟢 CORRIGIDO: Ocupa a largura total do ecrã, sem falhas */
+            max-width: 100% !important;
+            overflow-x: hidden !important; /* 🔒 Garante que o site não dança para os lados */
+            box-sizing: border-box !important;
         }
 
-        /* Cabeçalho estável com Flexbox para impedir quebras no Chrome */
+        /* 📱 CONTAINER MESTRE: Ocupa 100% do visor do telemóvel, colado às bordas laterais */
+        body > div:first-of-type, .div_grad_principal, main, .main-container {
+            width: 100% !important;
+            max-width: 100% !important; /* 🟢 MUDADO: Remove o limite dos 450px para esticar até ao fim da tela */
+            margin: 0 !important; /* 🟢 Remove qualquer centralização que criasse faixas brancas */
+            padding: 0 !important;
+            position: relative !important;
+            box-sizing: border-box !important;
+        }
+
+        /* Cabeçalho esticado de ponta a ponta sem margens */
         nav {
             background: #14424b;
-            padding: 15px 30px;
+            padding: 10px 15px; 
             display: flex;
             justify-content: space-between;
             align-items: center;
-            height: 80px;
+            height: 60px; 
+            width: 100% !important; /* 🟢 Garante colagem total nas laterais */
             box-sizing: border-box;
+            margin: 0 !important;
         }
-
         .au {
             color: aqua;
             font-weight: bolder;
-            font-size: 22px;
+            font-size: 16px; /* Reduzido de 22px para evitar empurrar os botões */
             text-decoration: none;
+            white-space: nowrap;
         }
 
         .au span {
@@ -292,41 +315,44 @@ if ('serviceWorker' in navigator) {
 
         .nav-links {
             display: flex;
-            gap: 15px;
+            gap: 6px; /* Espaço otimizado para mobile */
             align-items: center;
         }
 
         .nav-links a { 
-            border-radius: 12px;
+            border-radius: 8px;
             border: 1px solid white;
-            padding: 8px 16px;
+            padding: 4px 8px; /* Compactado para não transbordar */
             color: aliceblue;
             text-decoration: none;
-            font-size: 16px;
+            font-size: 11px; /* Reduzido de 16px para caber em qualquer smartphone */
             font-weight: bold;
+            white-space: nowrap;
             transition: all 0.2s ease-in-out;
         }
 
-        /* FIX: Hover sem alteração de tamanho de borda ou fonte para eliminar tremores */
         .nav-links a:hover {
             background-color: white;
             color: #14424b;
             border-color: white;
         }
 
-        /* Menu de Links do Ecossistema Inferior */
+        /* ⚙️ FIX DESIGN: Menu de Links do Ecossistema Inferior (Erros de sintaxe removidos) */
         .menu-horizontal {
             display: flex;
             flex-wrap: wrap;
-            gap: 15px;
+            gap: 6px;
             list-style: none;
-            padding: 2px;
-            margin: 20px auto;
-            max-width: 90%;
-            backgrund-color: #1e293b;
-            borer: 2px solid #14424b;
-            border-radius: 8px;
+            padding: 4px;
+            margin: 15px auto;
+            width: 95%;
+            max-width: 100%;
+            background-color: #1e293b; /* Correção: 'backgrund-color' corrigido */
+            border: 1px solid #14424b; /* Correção: 'borer' corrigido */
+            border-radius: 20px; /* Arredondado fluido estilo Facebook */
             align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
         }
 
         .menu-horizontal li {
@@ -336,10 +362,11 @@ if ('serviceWorker' in navigator) {
 
         .menu-horizontal li a { 
             text-decoration: none; 
-            color: blue; 
-            padding: 1px 15px;
+            color: #38bdf8; /* Mudado de azul escuro ilegível para azul brilhante visível */
+            padding: 4px 10px;
             border-radius: 12px; 
             border: 1px solid #334155;
+            font-size: 11px; /* Proporcional para telas pequenas */
             font-weight: bold;
             display: inline-block;
             transition: all 0.3s ease;
@@ -361,8 +388,8 @@ if ('serviceWorker' in navigator) {
             background: #1e293b;
             border: 1px solid #334155;
             color: #e2e8f0;
-            font-size: 20px;
-            padding: 10px;
+            font-size: 14px; /* Reduzido de 20px */
+            padding: 6px; /* Compactado */
             border-radius: 50%;
             cursor: pointer;
             position: relative;
@@ -377,30 +404,30 @@ if ('serviceWorker' in navigator) {
 
         .badge-contador {
             position: absolute;
-            top: -2px;
-            right: -2px;
+            top: -3px;
+            right: -3px;
             background: #ef4444;
             color: white;
-            font-size: 11px;
+            font-size: 8px; /* Mais pequeno e polido */
             font-weight: bold;
-            width: 18px;
-            height: 18px;
+            width: 13px; /* Reduzido de 18px */
+            height: 13px; /* Reduzido de 18px */
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            border: 2px solid #0f172a;
+            border: 1px solid #0f172a;
             animation: pulsoNotif 2s infinite;
         }
 
         .notif-dropdown {
             position: absolute;
-            top: 55px;
+            top: 40px;
             right: 0;
-            width: 320px;
+            width: 240px; /* Reduzido de 320px para não estourar o limite de 450px do corpo */
             background: #111827;
             border: 1px solid #1e293b;
-            border-radius: 12px;
+            border-radius: 8px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
             display: none;
             z-index: 1000;
@@ -410,8 +437,8 @@ if ('serviceWorker' in navigator) {
 
         .notif-header {
             background: #1f2937;
-            padding: 12px;
-            font-size: 13px;
+            padding: 8px 12px;
+            font-size: 11px;
             font-weight: bold;
             color: #ffffff;
             border-bottom: 1px solid #374151;
@@ -420,11 +447,11 @@ if ('serviceWorker' in navigator) {
         }
 
         .notif-item {
-            padding: 12px;
+            padding: 10px;
             border-bottom: 1px solid #1f2937;
             display: flex;
             align-items: flex-start;
-            gap: 10px;
+            gap: 8px;
             text-decoration: none;
             transition: background 0.2s;
         }
@@ -435,40 +462,47 @@ if ('serviceWorker' in navigator) {
 
         .notif-item p {
             margin: 0;
-            font-size: 12px;
+            font-size: 11px;
             color: #94a3b8;
         }
 
         .notif-item strong {
             color: #ffffff;
             display: block;
-            font-size: 13px;
+            font-size: 11px;
             margin-bottom: 2px;
         }
 
-        /* Secção Fixa de Depoimentos Centralizados */
+        /* 📱 OPTIMIZAÇÃO DOS DEPOIMENTOS PARA TELEMÓVEL */
         .seccao-depoimentos { 
-            width: 100%; 
-            max-width: 50%; 
-            margin: 30px auto; 
+            width: 95% !important; /* Mudado de 50% (que ficava esmagado no mobile) para 95% */
+            max-width: 100%; 
+            margin: 20px auto; 
             background: #1d4ed8; 
             border: 1px solid #e2e8f0; 
-            padding: 20px; 
+            padding: 15px; 
             border-radius: 12px; 
             box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
             text-align: left; 
+            box-sizing: border-box;
         }
 
         .seccao-depoimentos:hover { 
             background: #1e293b; 
         }
 
-        .seccao-depoimentos h3 { color: #fff; margin-top: 0; margin-bottom: 5px; font-size: 16px; }
-        .seccao-depoimentos p { color: #fff; font-size: 12px; margin-bottom: 15px; }
+        .seccao-depoimentos h3 { color: #fff; margin-top: 0; margin-bottom: 5px; font-size: 14px; }
+        .seccao-depoimentos p { color: #fff; font-size: 11px; margin-bottom: 10px; line-height: 1.4; }
+
+        /* Garante que imagens gerais do portal respeitem o travamento */
+        img, iframe, .viewport-canvas-3d, .post-card-fb {
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+        }
 
         @keyframes pulsoNotif {
             0% { transform: scale(1); }
-            50% { transform: scale(1.15); box-shadow: 0 0 10px rgba(239, 68, 68, 0.6); }
+            50% { transform: scale(1.1); box-shadow: 0 0 6px rgba(239, 68, 68, 0.5); }
             100% { transform: scale(1); }
         }
     </style>
