@@ -1,59 +1,44 @@
 <?php
-// recuperar.php - Módulo de Redefinição de Credenciais (Grupo Aurélius)
-if (!isset($_SESSION)) {
+if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 date_default_timezone_set('Africa/Luanda');
-include("conect.php");
 
-$erro = array();
-$sucesso = false;
+require_once __DIR__ . "/config/Banco.php";
+$mysqli = $conexao_link ?? $conexao_aurelius ?? null;
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['recuperar_senha'])) {
-    $email = $mysqli->escape_string(trim($_POST['email']));
-    
-    // Procura o e-mail na tabela de usuários (Parceiros) e na de clientes comuns
-    $sql_user = "SELECT * FROM `usuario` WHERE `email` = '$email'";
-    $query_user = $mysqli->query($sql_user);
-    
-    $sql_client = "SELECT * FROM `clientes` WHERE `email` = '$email'";
-    $query_client = $mysqli->query($sql_client);
+$mensagem_sucesso = "";
+$erro = "";
 
-    $encontrou_algum = false;
+if (isset($_POST['recuperar'])) {
+    $email = isset($_POST['email']) ? mysqli_real_escape_string($mysqli, trim($_POST['email'])) : '';
 
-    // 🟢 TRATAMENTO PARA PARCEIROS (TABELA USUARIO)
-    if ($query_user && $query_user->num_rows > 0) {
-        $encontrou_algum = true;
-        // Gera um PIN limpo de 6 dígitos para o ambiente seguro de parceiros
-        $novo_pin_puro = rand(100000, 999999);
+    if (empty($email)) {
+        $erro = "Por favor, digite o seu e-mail cadastrado.";
+    } else {
+        // Verifica se o e-mail existe na base de dados global do portal
+        $check_user = mysqli_query($mysqli, "SELECT codigo, nome FROM `usuario` WHERE `email` = '$email' LIMIT 1");
         
-        // Atualiza a coluna pin_acesso sem criptografia MD5 conforme a nova regra
-        $sql_update_user = "UPDATE `usuario` SET `pin_acesso` = '$novo_pin_puro' WHERE `email` = '$email'";
-        $mysqli->query($sql_update_user);
-        
-        $sucesso = "✓ Um novo PIN de acesso temporário foi gerado com sucesso para o seu painel de parceiro: <strong style='font-size: 18px; color: #22c55e; letter-spacing: 1px;'>$novo_pin_puro</strong>";
-    }
-    
-    // 🔵 TRATAMENTO PARA CLIENTES COMUNS (TABELA CLIENTES)
-    if ($query_client && $query_client->num_rows > 0) {
-        $encontrou_algum = true;
-        // Mantém a regra antiga de senha criptografada para os clientes normais
-        $nova_senha_pura = rand(100000, 999999);
-        $senha_cripto = md5(md5($nova_senha_pura));
+        if ($check_user && mysqli_num_rows($check_user) > 0) {
+            $user_data = mysqli_fetch_assoc($check_user);
+            $id_cliente = $user_data['codigo'];
+            $nome_cliente = $user_data['nome'];
 
-        $sql_update_client = "UPDATE `clientes` SET `senha` = '$senha_cripto' WHERE `email` = '$email'";
-        $mysqli->query($sql_update_client);
-        
-        // Se já exibiu a mensagem do parceiro, concatena, senão define a do cliente
-        if ($sucesso) {
-            $sucesso .= "<br>✓ Acesso de cliente atualizado. Nova senha: <strong>$nova_senha_pura</strong>";
+            // 🟢 AUTOMÁTICO: Gera uma nova senha aleatória de 6 dígitos numéricos
+            $nova_senha_numero = rand(100000, 999999);
+            $nova_senha_cripto = md5($nova_senha_numero);
+
+            // Atualiza a tabela do cliente no Railway com a nova credencial limpa
+            $update = mysqli_query($mysqli, "UPDATE `usuario` SET `senha` = '$nova_senha_cripto' WHERE `codigo` = '$id_cliente'");
+
+            if ($update) {
+                $mensagem_sucesso = "Olá <b>$nome_cliente</b>!<br>O teu ID Único de Acesso é: <span style='color:#38bdf8; font-size:16px;'>#$id_cliente</span><br>A tua Nova Palavra-passe temporária é: <span style='color:#4ade80; font-size:16px; font-family:monospace;'>$nova_senha_numero</span>";
+            } else {
+                $erro = "Falha interna ao processar redefinição no servidor.";
+            }
         } else {
-            $sucesso = "✓ Uma nova credencial temporária de cliente foi gerada com sucesso: <strong>$nova_senha_pura</strong>";
+            $erro = "Este endereço de e-mail não foi localizado na nossa base de dados.";
         }
-    }
-
-    if (!$encontrou_algum) {
-        $erro[] = "Este e-mail não foi localizado no ecossistema comercial.";
     }
 }
 ?>
@@ -61,49 +46,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['recuperar_senha'])) {
 <html lang="pt-PT">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recuperar Acesso - Grupo Aurélius</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Recuperar Credenciais - Grupo Aurélius</title>
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #0b0f19; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; color: white; }
-        .container { width: 100%; max-width: 440px; background: #111827; padding: 45px; border-radius: 16px; border: 2px solid #ca8a04; box-shadow: 0 0 20px rgba(202, 138, 4, 0.4); text-align: center; animation: pulsar 3s infinite alternate; }
-        @keyframes pulsar { 0% { box-shadow: 0 0 12px #a16207; } 100% { box-shadow: 0 0 25px #eab308; } }
-        h2 { margin-top:0; border-bottom: 2px solid rgba(202, 138, 4, 0.3); padding-bottom: 12px; font-size: 20px; text-transform: uppercase; color: #ca8a04; }
-        .campo { margin-bottom: 20px; text-align: left; }
-        .campo label { display: block; font-size: 12px; margin-bottom: 6px; text-transform: uppercase; color: #cbd5e1; }
-        input { width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #374151; background: #0b0f19; color: white; outline: none; box-sizing: border-box; font-size: 15px; text-align: center; }
-        input:focus { border-color: #ca8a04; }
-        button { width: 100%; padding: 15px; background: linear-gradient(135deg, #ca8a04, #a16207); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
-        .erro-msg { background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #f87171; padding: 12px; border-radius: 6px; font-size: 13px; margin-bottom: 20px; text-align: left; font-weight: bold; }
-        .sucesso-msg { background: rgba(34, 197, 94, 0.15); border: 1px solid #22c55e; color: #4ade80; padding: 12px; border-radius: 6px; font-size: 13px; margin-bottom: 20px; text-align: center; line-height: 1.6; }
-        .links { margin-top: 25px; font-size: 13px; border-top: 1px dashed #374151; padding-top: 15px; display: flex; justify-content: space-around; }
-        .links a { color: #38bdf8; text-decoration: none; font-weight: bold; }
+        html, body { width: 100% !important; max-width: 100% !important; overflow-x: hidden !important; margin: 0 !important; padding: 0 !important; box-sizing: border-box !important; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #0b0f19; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 15px !important; }
+        .container { width: 100% !important; max-width: 440px !important; background: #111827; padding: 35px 20px; border-radius: 24px; text-align: center; color: white; border: 2px solid #ef4444; box-shadow: 0 0 20px rgba(239, 68, 68, 0.15); box-sizing: border-box; }
+        .container h2 { margin: 0 0 10px 0; color: #ffffff; font-size: 18px; font-weight: 900; text-transform: uppercase; }
+        .campo-form { margin-bottom: 18px; text-align: left; }
+        .campo-form label { font-weight: bold; display: block; margin-bottom: 8px; font-size: 12px; color: #f87171; text-transform: uppercase; }
+        .campo-form input { width: 100%; padding: 13px 16px; border: 1px solid #374151; border-radius: 20px; box-sizing: border-box; font-size: 14px; background: #0b0f19; color: #ffffff; outline: none; }
+        .btn-enviar { width: 100%; background: linear-gradient(135deg, #ef4444, #b91c1c); color: white; border: none; padding: 14px; cursor: pointer; font-size: 14px; border-radius: 20px; font-weight: bold; text-transform: uppercase; }
+        .btn-voltar { display: block; width: 100%; text-align: center; background: #374151; color: white; border: 1px solid #4b5563; padding: 11px; font-size: 13px; border-radius: 20px; font-weight: bold; text-decoration: none; margin-top: 15px; text-transform: uppercase; }
     </style>
 </head>
 <body>
+
 <div class="container">
-    <h2>Recuperar Acesso</h2>
-    
-    <?php if(count($erro) > 0) { foreach($erro as $msg) { echo "<p class='erro-msg'>⚠️ $msg</p>"; } } ?>
-    <?php if($sucesso) { echo "<p class='sucesso-msg'>$sucesso</p>"; } ?>
-    
-    <form action="" method="POST">
-        <div class="campo">
-            <label for="email">Insira o E-mail registado:</label>
-            <input type="email" name="email" id="email" required placeholder="gerente@aurelius.com ou cliente@gmail.com">
+    <h2>REATIVAR CHAVES DE CLIENTE</h2>
+    <p style="font-size:11px; color:#64748b; text-transform:uppercase; margin-bottom:20px; border-bottom:1px solid rgba(239,68,68,0.2); padding-bottom:10px;">Recuperação Automática de Acesso Unificado</p>
+
+    <?php if (!empty($mensagem_sucesso)): ?>
+        <div style="background: rgba(34, 197, 94, 0.12); border: 1px solid #22c55e; color: #cbd5e1; padding: 15px; border-radius: 14px; font-size: 13px; margin-bottom: 20px; text-align: left; line-height: 1.5;">
+            🎉 <b>REDEFINIÇÃO GERADA COM SUCESSO!</b><br><br>
+            <?php echo $mensagem_sucesso; ?><br><br>
+            <span style="font-size: 11px; color: #94a3b8;">Use estes dados novos para fazer o login no formulário de acesso agora.</span>
         </div>
-        <button type="submit" name="recuperar_senha">Gerar Novas Credenciais</button>
-        
-        <div class="links" style="display: flex; flex-direction: column; gap: 10px; margin-top: 25px; border-top: 1px dashed #374151; padding-top: 15px;">
-        <!-- 🔑 Direciona para o Painel Mercantil e Barbearias que usam PIN -->
-        <p style="margin: 0;"><a href="login_parceiros.php" style="color: #38bdf8; font-size: 14px;">← Voltar ao Portal de Parceiros (Login por PIN)</a></p>
-        <p style="font-size: 12px; color: #94a3b8; text-align: center; margin-bottom: 20px; line-height: 1.4;">
-    <strong>Atenção Parceiro:</strong> Atualizámos o nosso sistema para sua segurança. <br>
-    Se é a sua primeira vez neste painel, clique em <strong>Esqueci-me do meu PIN</strong> abaixo para gerar o seu código de acesso.
-</p>
-        <!-- 👤 Direciona apenas para os Clientes finais do Salão (Agendamentos) -->
-        <p style="margin: 0;"><a href="Login.php" style="color: #94a3b8; font-size: 12px; font-weight: normal;">✕ Ir para Login de Clientes (E-mail e Senha)</a></p>
-    </div>
+    <?php endif; ?>
+
+    <?php if (!empty($erro)): ?>
+        <div style="background: rgba(239, 68, 68, 0.12); border: 1px solid #ef4444; color: #f87171; padding: 10px; border-radius: 12px; font-size: 12px; margin-bottom: 15px; text-align: left; font-weight: bold;">
+            ⚠️ <?php echo $erro; ?>
+        </div>
+    <?php endif; ?>
+
+    <form action="" method="POST">
+        <div class="campo-form">
+            <label for="email">Insira o seu E-mail de Registo:</label>
+            <input type="email" name="email" id="email" required placeholder="Ex: teu-email@gmail.com">
+        </div>
+
+        <button type="submit" name="recuperar" class="btn-enviar">Gerar Novo ID e Senha →</button>
+        <a href="Login.php" class="btn-voltar">← Voltar ao Login</a>
     </form>
 </div>
+
 </body>
 </html>

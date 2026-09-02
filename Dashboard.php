@@ -1,283 +1,531 @@
-
-
-
-
 <?php
 // =========================================================================
-// 🔮 MOTOR OPERACIONAL UNIFICADO - SÓ TRANÇAS (DASHBOARD.PHP)
+// 🔮 ECOSSISTEMA MESTRE - MOTOR DE AUTENTICAÇÃO E REDIRECIONAMENTO DE ABAS
 // =========================================================================
-if (!isset($pdo)) { include_once("Conexao.php"); }
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+date_default_timezone_set('Africa/Luanda');
 
-$id_empresa_ativa = 242; 
-$hoje_sql = date('Y-m-d');
-$grade_horaria = ['01:00', '08:00', '09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
+// IMPORTAÇÃO DA CONEXÃO CENTRAL MESTRE
+require_once __DIR__ . "/config/Banco.php";
+$mysqli = $conexao_link ?? $conexao_aurelius ?? null;
 
-$pauta_ocupada = [];
-$lista_pendentes = [];
-$lista_concluidos = [];
+// Fallback de contingência caso a conexão mestre falhe
+if (!$mysqli || @mysqli_ping($mysqli) === false) {
+    $mysqli = @mysqli_connect("altaria.proxy.rlwy.net", "root", "tPzDwXGkyczyyYdcyvLmHLSMmfZmnMIZ", "railway", 52030);
+}
 
-try {
-    if ($pdo) {
-        // 🟢 1. BUSCA TODAS AS MARCAÇÕES DE HOJE PARA O MAPA DE CORES (LIVRE/OCUPADO)
-        // Lida com as colunas 'hora_servico', 'horario_vaga' ou 'data' de forma segura
-        $stmt_m = $pdo->prepare("SELECT `profissional`, `data_servico`, IFNULL(`horario_vaga`, IFNULL(`hora_servico`, `data`)) AS hora FROM `pagamentos` WHERE `id_parceiro` = ? AND `data_servico` = ? AND `status_atendimento` = 'Confirmado'");
-        $stmt_m->execute([$id_empresa_ativa, $hoje_sql]);
-        $marcacoes_hoje = $stmt_m->fetchAll(PDO::FETCH_ASSOC);
+// Captura e memoriza a intenção de rota do cliente vinda do botão ENTRAR
+if (isset($_GET['acceder_a'])) {
+    $_SESSION['barbearia_alvo_slug'] = mysqli_real_escape_string($mysqli, trim($_GET['acceder_a']));
+}
 
-        foreach ($marcacoes_hoje as $m) {
-            $h_limpa = date('H:i', strtotime($m['hora']));
-            $pauta_ocupada[trim($m['profissional'])][] = $h_limpa;
+$erro = [];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email = isset($_POST['email']) ? mysqli_real_escape_string($mysqli, trim($_POST['email'])) : '';
+    $senha_raw = isset($_POST['senha']) ? trim($_POST['senha']) : '';
+
+    if (empty($email) || empty($senha_raw)) {
+        $erro[] = "Por favor, preencha o seu e-mail e a palavra-passe.";
+    } else {
+        $senha_cripto = md5($senha_raw);
+
+        // Busca o cliente de forma global no ecossistema
+        $query_cliente = mysqli_query($mysqli, "SELECT * FROM `usuario` WHERE `email` = '$email' AND `senha` = '$senha_cripto' LIMIT 1");
+
+        if ($query_cliente && mysqli_num_rows($query_cliente) > 0) {
+            $dados_cliente = mysqli_fetch_assoc($query_cliente); 
+        
+            // Grava os trincos de sessão do Cliente Global
+            $_SESSION['cliente_logado']  = true;
+            $_SESSION['cliente_id']      = $dados_cliente['codigo']; // ID ÚNICO DO CLIENTE
+            $_SESSION['cliente_nome']    = $dados_cliente['nome'];
+            $_SESSION['cliente_email']   = $dados_cliente['email'];
+            $_SESSION['tipo_conta']      = $dados_cliente['nivel']; // Guarda se é 'cliente' ou 'parceiro_hospedado'
+
+            // Limpa as bolhas de alertas antigos na navegação
+            $_SESSION['bloqueio_bolha_barbearia'] = true;
+
+            // =========================================================================
+            // 🔒 TRAVA DE SEGURANÇA E DIRECIONAMENTO DE ABAS
+            // =========================================================================
+            if ($dados_cliente['nivel'] === 'cliente') {
+                
+                // Se o usuário veio de uma intenção direta ou clique anterior
+                if (!empty($_SESSION['barbearia_alvo_slug'])) {
+                    $barbearia_escolhida = $_SESSION['barbearia_alvo_slug'];
+                } else {
+                    $barbearia_escolhida = !empty($_SESSION['barbearia_selecionada']) ? trim($_SESSION['barbearia_selecionada']) : 'Principal';
+                }
+                
+                // Constrói o nome do ficheiro físico (ex: BarbeariaBranca.php ou Principal.php)
+                $ficheiro_destino = $barbearia_escolhida . ".php";
+
+                // 🟢 VERIFICAÇÃO AUTOMÁTICA: O ficheiro existe na pasta do teu projeto?
+                if (file_exists(__DIR__ . "/" . $ficheiro_destino)) {
+                    header("Location: " . $ficheiro_destino);
+                    exit();
+                } else {
+                    // 🚨 SE NÃO EXISTIR: Manda para a index mestre passando o alerta
+                    header("Location: Principal.php?erro_pagina=1&nome_tentado=" . urlencode($barbearia_escolhida));
+                    exit();
+                }
+                
+            } else {
+                // Rota padrão para Gestores / Donos de Barbearias
+                $destino_admin = !empty($dados_cliente['slug']) ? trim($dados_cliente['slug']) . ".php" : "Principal.php";
+                
+                if (file_exists(__DIR__ . "/" . $destino_admin)) {
+                    header("Location: " . $destino_admin);
+                } else {
+                    header("Location: Principal.php?erro_pagina=1");
+                }
+                exit();
+            }
+
+        } else {
+            $erro[] = "Credenciais inválidas. Verifique o e-mail ou a palavra-passe.";
         }
-
-        // 🟢 2. LISTA CRÍTICA A: PENDENTES (Atrasos de hoje até 5 dias OU agendamentos futuros)
-        $stmt_pendentes = $pdo->prepare("
-            SELECT *, DATEDIFF(?, data_servico) as dias_atraso 
-            FROM `pagamentos` 
-            WHERE `id_parceiro` = ? 
-              AND `status_trabalho` = 'Pendente'
-              AND `status_atendimento` = 'Confirmado'
-              AND (`data_servico` > ? OR (`data_servico` <= ? AND DATEDIFF(?, data_servico) <= 5))
-            ORDER BY data_servico ASC
-        ");
-        $stmt_pendentes->execute([$hoje_sql, $id_empresa_ativa, $hoje_sql, $hoje_sql, $hoje_sql]);
-        $lista_pendentes = $stmt_pendentes->fetchAll(PDO::FETCH_ASSOC);
-
-        // 🟢 3. LISTA CRÍTICA B: SERVIÇOS JÁ TRABALHADOS HOJE
-        $stmt_concluidos = $pdo->prepare("
-            SELECT * FROM `pagamentos` 
-            WHERE `id_parceiro` = ? 
-              AND `status_trabalho` = 'Concluído'
-            ORDER BY id_pagamento DESC
-        ");
-        $stmt_concluidos->execute([$id_empresa_ativa]);
-        $lista_concluidos = $stmt_concluidos->fetchAll(PDO::FETCH_ASSOC);
     }
-} catch (Exception $e) { /* Silencioso */ }
+}
 ?>
-
 <html lang="pt-PT">
 <head>
     <meta charset="UTF-8">
     <title>Aurelius - Salão de Beleza e Barbearia</title>
+
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
-        body { background-color: #0b1a30; color: #ffffff; padding-bottom: 80px;  width:90%; margin-left:100px; margin-top:30px; margin-bottom:10px;}
-        
-        /* Menu Superior */
-        nav { display: flex; justify-content: space-between; align-items: center; background-color: #e0e0e0; padding: 10px 20px; }
-        /* --- REGRAS DE ADAPTAÇÃO PARA TELEMÓVEL --- */
-@media (max-width: 900px) {
-    /* Esconde os botões azuis grandes do topo */
-    #menuDesktop {
-        display: flex;
-        list-style: none;
-        gap: 15px; /* Espaço entre os botões */
-        margin-right: 20px; /* Alasta o último botão da borda direita */
-    }
-    /* Mostra o ícone de 3 barras no canto direito */
-    .Menu-Icon {
-        display: block !important;
-    }
-}
-        .logo { color: #d32f2f; cursor: pointer; }
-        .logo h6 { color: #0b1a30; font-size: 11px; margin-top: -2px; }
-        .ul {
-            display: flex;
-            align-items: center;
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            margin-right: 25px; /* 
-            gap: 10px;          /
-        }
-        
-        .ul li {
-            list-style: none;
-            margin: 0;
-        }
-        
-        .ul li a { 
-            display: block; 
-            background-color: #0088cc; 
-            color: white; 
-            padding: 10px 15px; /* 👈 Reduzido ligeiramente para caber melhor em ecrãs menores */
-            text-decoration: none; 
-            border-radius: 12px; 
-            font-size: 13px; 
-            font-weight: bold; 
-            text-align: center; 
-            min-width: 100px;   /* 👈 Ajustado de 110px para 100px para dar mais folga */
-            border: 1px solid #006699; 
-            white-space: nowrap; /* 👈 Evita que o texto quebre em duas linhas dentro do botão */
-        }
-        /* Efeito de destaque ao passar o rato sobre os passos do atendimento */
-.painel-boas-vindas .aba-balanco-infinito:hover {
-    background-color: #1e293b !important;
-    border-color: #38bdf8 !important;
-    box-shadow: 0 10px 20px rgba(56, 189, 248, 0.15);
-    transform: translateY(-4px);
-    cursor: default;
+    /* =========================================================================
+   🔮 CORE & RESET DO ECOSSISTEMA AURELIUS (MOBILE-FIRST)
+   ========================================================================= */
+* { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0; 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
 }
 
-        @keyframes dancaCaixas {
-    0% { transform: translateY(0px) rotate(0deg); }
-    25% { transform: translateY(-3px) rotate(-0.5deg); }
-    50% { transform: translateY(0px) rotate(0deg); }
-    75% { transform: translateY(-3px) rotate(0.5deg); }
-    100% { transform: translateY(0px) rotate(0deg); }
+html, body { 
+    width: 100% !important; 
+    max-width: 100% !important; 
+    overflow-x: hidden !important; 
+    background-color: #0f172a; 
+    color: #ffffff; 
 }
 
-        /* Conteedores Principais */
-        .container { max-width: 1200px; margin: 20px auto; padding: 0 15px; }
-        .painel-azul { background-color: #21409a; border: 2px dashed #0088cc; border-radius: 15px; padding: 20px; margin-bottom: 20px; }
-        @media print {
-    body * { visibility: hidden !important; }
-    #area-impressao-global, #area-impressao-global * { visibility: visible !important; }
-    #area-impressao-global { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; }
+/* Contentor Geral com Margens Otimizadas para PC e Seguras para Telemóvel */
+body { 
+    padding-bottom: 80px; 
+    width: 100%;
 }
 
+.container { 
+    width: 100%; 
+    max-width: 1350px; 
+    margin: 0 auto; 
+    padding: 0 15px; 
+}
 
+/* Classes de Ocultação */
+.hidden, #area-impressao-global.hidden { 
+    display: none !important; 
+}
+
+/* =========================================================================
+   👑 BARRA DE NAVEGAÇÃO SUPERIOR & SINO DE NOTIFICAÇÕES
+   ========================================================================= */
+nav { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    background-color: #ffffff; 
+    padding: 10px 40px; 
+    position: relative; 
+    z-index: 1000; 
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    height: 70px;
+}
+
+.logo { 
+    color: #d32f2f; 
+    cursor: pointer; 
+    text-decoration: none;
+}
+.logo h1 { font-size: 22px; font-weight: bold; line-height: 1; margin: 0; }
+.logo h1 span { color: #0b1a30; }
+.logo h6 { color: #0b1a30; font-size: 11px; margin-top: 2px; }
+
+/* Menu Desktop */
+#menuDesktop { 
+    display: flex !important; 
+    align-items: center;
+    list-style: none; 
+    gap: 12px; 
+}
+
+#menuDesktop li a { 
+    display: block; 
+    background-color: #0088cc; 
+    color: #ffffff; 
+    padding: 10px 16px; 
+    text-decoration: none; 
+    border-radius: 20px; 
+    font-size: 13px; 
+    font-weight: bold; 
+    text-align: center; 
+    border: 1px solid #006699; 
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+#menuDesktop li a:hover { 
+    background-color: #0056b3; 
+    transform: translateY(-1px);
+}
+
+/* Ícone do Menu Mobile */
+.Menu-Icon { 
+    display: none !important; 
+    cursor: pointer; 
+}
+
+/* Bolha do Sino de Notificações */
+.notif-wrapper { 
+    position: relative; 
+    display: inline-block; 
+}
+
+.sino-btn { 
+    background: #1e293b; 
+    border: 1px solid #334155; 
+    color: #e2e8f0; 
+    font-size: 18px; 
+    padding: 8px 12px; 
+    border-radius: 50%; 
+    cursor: pointer; 
+    outline: none;
+}
+
+.badge-contador { 
+    position: absolute; 
+    top: -5px; 
+    right: -5px; 
+    background: #ef4444; 
+    color: white; 
+    font-size: 10px; 
+    font-weight: bold; 
+    width: 18px; 
+    height: 18px; 
+    border-radius: 50%; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    border: 2px solid #ffffff; 
+    animation: pulsoNotif 2s infinite; 
+}
+
+@keyframes pulsoNotif {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); box-shadow: 0 0 8px rgba(239, 68, 68, 0.6); }
+    100% { transform: scale(1); }
+}
+
+/* =========================================================================
+   📋 PAINÉIS DE DADOS, INPUTS & FORMULÁRIOS DA SESSÃO
+   ========================================================================= */
+.painel-azul { 
+    background-color: #21409a; 
+    border: 2px dashed #0088cc; 
+    border-radius: 16px; 
+    padding: 20px; 
+    margin-bottom: 20px; 
+}
+
+.painel-titulo { 
+    font-size: 15px; 
+    font-weight: bold; 
+    margin-bottom: 12px; 
+    display: block; 
+    color: #ffffff; 
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.grid-inputs { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
+    gap: 12px; 
+}
+
+.input-estilizado { 
+    width: 100%; 
+    padding: 12px 16px; 
+    border: 1px solid #ccc; 
+    border-radius: 8px; 
+    font-size: 16px; /* Impede o zoom indesejado no iOS */
+    color: #333333; 
+    background-color: #ffffff; 
+    outline: none;
+}
+
+/* =========================================================================
+   💇 INTERFACE DE ABAS, SERVIÇOS & EQUIPA
+   ========================================================================= */
+.aba-conteudo { 
+    display: none; 
+}
+.aba-conteudo.active { 
+    display: block; 
+}
+
+.grid-categorias, .grid-container { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
+    gap: 12px; 
+    margin-top: 15px; 
+}
+
+.aba-item { 
+    background-color: #1e293b; 
+    border: 1px solid #334155; 
+    border-radius: 12px; 
+    color: #ffffff; 
+    padding: 12px; 
+    cursor: pointer; 
+    text-align: center; 
+    transition: background 0.2s, transform 0.2s; 
+    display: flex;
+    flex-direction: column !important;
+    align-items: center;
+    justify-content: center;
+}
+.aba-item:hover { 
+    background-color: #334155; 
+    transform: translateY(-2px);
+}
+
+.aba-item img { 
+    border-radius: 8px; 
+    margin-bottom: 8px; 
+    object-fit: cover; 
+    height: 110px; 
+    width: 100%; 
+}
+
+/* =========================================================================
+   💰 SINALIZADORES DE MONETIZAÇÃO, PLUGINS FREEMIUM & ANÚNCIOS
+   ========================================================================= */
+.painel-freemium {
+    background: #ffffff; 
+    border: 2px dashed #340aee; 
+    border-radius: 16px;
+    padding: 16px; 
+    width: 100%; 
+    margin: 15px auto; 
+    text-align: left;
+    color: #333333;
+}
+
+.badge-premium { 
+    background: #ffc107; 
+    color: #000000; 
+    padding: 4px 10px; 
+    border-radius: 6px; 
+    font-size: 11px; 
+    font-weight: bold; 
+    float: right; 
+    text-transform: uppercase;
+}
+
+.btn-upgrade { 
+    background: #ffc107; 
+    color: #000000; 
+    border: none; 
+    padding: 10px 18px; 
+    border-radius: 8px; 
+    font-weight: bold; 
+    cursor: pointer; 
+    margin-top: 10px; 
+    font-size: 13px;
+    transition: background 0.2s;
+}
+.btn-upgrade:hover { background: #e0a800; }
+
+.bloco-publicidade {
+    background: #fff3cd; 
+    border: 1px solid #ffeeba; 
+    border-radius: 12px;
+    padding: 15px; 
+    width: 100%; 
+    margin: 15px auto; 
+    text-align: center; 
+    color: #333333;
+}
+
+.tag-anuncio { 
+    font-size: 10px; 
+    color: #6c757d; 
+    display: block; 
+    text-transform: uppercase; 
+    letter-spacing: 1px; 
+    margin-bottom: 4px; 
+}
+
+.btn-anuncio-comissao { 
+    background: #dc3545; 
+    color: white; 
+    border: none; 
+    padding: 10px 16px; 
+    border-radius: 6px; 
+    margin-top: 10px; 
+    cursor: pointer; 
+    font-size: 13px; 
+    font-weight: bold; 
+}
+
+/* =========================================================================
+   💸 CAIXA DE PREÇO, COMPROVATIVOS E IMPRESSÃO (MODAL NEON)
+   ========================================================================= */
+.preco-container { 
+    background-color: #0f172a; 
+    border: 2px dashed #22c55e; 
+    border-radius: 12px; 
+    padding: 20px; 
+    text-align: center; 
+    margin-top: 20px; 
+}
+.preco-container h3 { margin-bottom: 5px; font-size: 16px; }
+.preco-container p { font-size: 26px; font-weight: bold; color: #22c55e; margin-bottom: 12px; }
+
+.btn-voltar { 
+    background-color: #6c757d; 
+    color: white; 
+    border: none; 
+    padding: 8px 20px; 
+    border-radius: 20px; 
+    font-weight: bold; 
+    cursor: pointer; 
+    margin: 10px auto; 
+    display: inline-block; 
+}
+
+/* Design de Fatura Neon em Tela */
+#faturaPainelNatural {
+    background-color: rgba(11, 26, 48, 0.96) !important;
+}
+
+/* =========================================================================
+   🛍️ MERCADO GLOBAL & FLUXO DE PRODUTOS COSMÉTICOS (CARDS DE PROXIMIDADE)
+   ========================================================================= */
 .passo-card {
-        background-color: #0f172a;
-        border: 1px solid #1e293b;
-        border-radius: 12px;
-        padding: 20px;
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        position: relative;
-        overflow: hidden;
-        cursor: default;
-    }
-
-    /* Efeito ao passar o rato (Hover) */
-    .passo-card:hover {
-        transform: translateY(-8px) scale(1.02);
-        border-color: #38bdf8;
-        background-color: #111e36;
-        box-shadow: 0 10px 25px -5px rgba(56, 189, 248, 0.2);
-    }
-
-    /* Brilho reflexivo interno ao passar o rato */
-    .passo-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.1), transparent);
-        transition: 0.5s;
-    }
-    .passo-card:hover::before {
-        left: 100%;
-    }
-
-    /* Animação de pulso no emoji */
-    .passo-card:hover .emoji-animado {
-        animation: pulsoEmoji 0.6s ease-in-out infinite alternate;
-    }
-
-    @keyframes pulsoEmoji {
-        0% { transform: scale(1); }
-        100% { transform: scale(1.3) rotate(10deg); }
-    }
-
-    /* Brilho pulsante no bloco de campanha */
-    .campanha-bloco {
-        background-color: #1e293b;
-        border-left: 5px solid #eab308;
-        border-radius: 8px;
-        padding: 15px;
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        transition: all 0.3s ease;
-    }
-
-    #menuDesktop {
-    display: flex !important; /* Mantém alinhado em linha no PC */
-    gap: 20px;
-    list-style: none;
-    margin: 0;
-    padding: 0;
+    background-color: #111827;
+    border: 1px solid #1e293b;
+    border-radius: 14px;
+    padding: 16px;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    overflow: hidden;
 }
 
-.Menu-Icon {
-    display: none !important;
+.passo-card:hover {
+    transform: translateY(-4px);
+    border-color: #38bdf8;
+    box-shadow: 0 10px 20px rgba(56, 189, 248, 0.15);
 }
 
+.passo-card img {
+    width: 100%;
+    max-width: 110px;
+    height: 110px;
+    object-fit: contain;
+    margin: 0 auto 10px auto;
+    display: block;
+}
 
+/* =========================================================================
+   📱 REGRAS DE ADAPTAÇÃO TOTAL PARA TELEMÓVEIS (ABAIXO DE 991PX)
+   ========================================================================= */
 @media (max-width: 991px) {
-    #menuDesktop, ul#menuDesktop {
-        display: none !important;
+    /* Menu superior reativo */
+    #menuDesktop { 
+        display: none !important; 
     }
     
-    .Menu-Icon {
-        display: block !important;
+    .Menu-Icon { 
+        display: block !important; 
     }
     
-    /* 3. Garante que a barra cinza de navegação distribua o espaço corretamente */
-    nav {
-        padding: 10px 20px !important;
-        width: 100%;
-        box-sizing: border-box;
+    nav { 
+        padding: 10px 15px !important; 
+        width: 100%; 
+    }
+
+    /* Ajuste de margens corporativas laterais nos telefones */
+    body { 
+        width: 100% !important; 
+        margin-left: 0 !important; 
+        margin-right: 0 !important; 
+        padding: 0 10px 80px 10px !important; 
+    }
+
+    /* Grids reconfiguradas para 2 colunas perfeitas lado a lado */
+    .grid-inputs, .grid-categorias, .grid-container { 
+        grid-template-columns: repeat(2, 1fr) !important; 
+        gap: 8px !important; 
+    }
+
+    /* Inputs expandem a 100% no formulário mobile */
+    .grid-inputs input, .grid-inputs select {
+        grid-column: span 2;
+    }
+
+    /* Ajuste dos elementos internos dos cartões de serviços e cosméticos */
+    .aba-item { 
+        padding: 10px 6px !important; 
+    }
+    
+    .aba-item img { 
+        height: 95px !important; 
+    }
+
+    .passo-card { 
+        padding: 12px 8px !important; 
+    }
+    
+    .passo-card img { 
+        height: 90px !important; 
     }
 }
 
-    .campanha-bloco:hover {
-        box-shadow: 0 0 15px rgba(234, 179, 8, 0.15);
-        background-color: #233147;
-    }
-        .painel-titulo { font-size: 16px; font-weight: bold; margin-bottom: 12px; display: block; color: #fff; }
-        
-        /* Grid de Inputs do Topo */
-        .grid-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; }
-        .input-estilizado { width: 100%; padding: 12px; } /* 👈 Esta era a sua última linha */
-        
-        /* Bloco Conta Grátis */
-        .flex-freemium { display: flex; justify-content: space-between; align-items: flex-start; }
-        .info-freemium p { font-size: 13px; color: #cbd5e1; margin-top: 4px; }
-        .badge-premium { background-color: #ffcc00; color: #000; padding: 4px 8px; font-weight: bold; font-size: 12px; border-radius: 4px; }
-        .btn-upgrade { background-color: #ff9900; color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 10px; }
-        @media print {
-    body * { display: none !important; }
-    #area-impressao-global, #area-impressao-global * { display: block !important; background: #fff !important; color: #000 !important; }
-}
-/* Força qualquer subgrupo ou nível com a classe hidden a sumir por completo */
-.hidden {
-    display: none !important;
-}
+/* =========================================================================
+   🖨️ CONTROLO EXCLUSIVO DE IMPRESSÃO LIMPA (MÓDULO CÁTEDRA)
+   ========================================================================= */
+@media print {
+    body * { 
 
-/* Garante o comportamento correto das grelhas quando não estiverem ocultas */
-.grid-container.hidden, .sub-grupo.hidden {
-    display: none !important;
+        visibility: hidden !important; 
+    }
+    .no-print, nav, footer, .Menu-Icon, button, .btn-voltar, .botoes-pagamento { 
+        display: none !important; 
+    }
+    #area-impressao-global, #area-impressao-global * { 
+        visibility: visible !important; 
+    }
+    #area-impressao-global { 
+        position: absolute !important; 
+        left: 0 !important; 
+        top: 0 !important; 
+        width: 100% !important; 
+        background: #ffffff !important; 
+        color: #000000 !important; 
+    }
 }
-        /* Abas de Categorias e Itens */
-        .aba-conteudo { display: none; }
-        .aba-conteudo.active { display: block; }
-        .grid-categorias, .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-top: 15px; }
-        
-        .aba-item { background-color: #1e293b; border: 1px solid #334155; border-radius: 10px; color: white; padding: 15px; cursor: pointer; text-align: center; transition: 0.2s; }
-        .aba-item:hover { background-color: #334155; }
-        .aba-item img { border-radius: 6px; margin-bottom: 8px; object-fit: cover; height: 150px; width: 100%; }
-        
-        /* Caixa de Confirmação de Preço */
-        .preco-container { background-color: #0f172a; border: 2px dashed #22c55e; border-radius: 10px; padding: 20px; text-align: center; margin-top: 20px; }
-        .preco-container h3 { margin-bottom: 5px; font-size: 18px; }
-        .preco-container p { font-size: 28px; font-weight: bold; color: #22c55e; margin-bottom: 15px; }
-        .btn-confirmar { background-color: #22c55e; color: white; border: none; padding: 12px 35px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; width: 100%; max-width: 300px; }
-        .btn-voltar { background-color: #475569; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-bottom: 15px; font-weight: bold; }
-        
-        /* Rodapé e Parcerias */
-        .secao-parcerias { text-align: center; margin: 25px 0; font-size: 12px; color: #94a3b8; border-top: 1px dashed #334155; padding-top: 15px; }
-        .lista-parceiros { display: flex; justify-content: center; gap: 20px; margin-top: 8px; font-style: italic; }
-        .bloco-institucional { text-align: center; padding: 30px 15px; background-color: #0f172a; border-radius: 12px; margin-top: 20px; }
-        .contactos-footer { font-size: 14px; color: #94a3b8; margin-top: 15px; line-height: 1.6; }
-        
-        /* Cookies */
-        .banner-consentimento { position: fixed; bottom: 0; left: 0; right: 0; background-color: rgba(15, 23, 42, 0.95); border-top: 1px solid #334155; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #94a3b8; z-index: 9999; }
-        .btn-aceitar { background-color: #22c55e; color: white; border: none; padding: 8px 16px; font-weight: bold; border-radius: 4px; cursor: pointer; }
-    </style>
+</style>
+
+
+
 </head>
 <body>
 <nav style="display: flex; justify-content: space-between; align-items: center; background-color: #e0e0e0; padding: 10px 40px; position: relative; z-index: 1000; width: 100%; box-sizing: border-box;">
@@ -914,15 +1162,20 @@ try {
          <!-- FORMULÁRIO B: CARREGAR VÍDEOS -->
          <div class="painel-azul" style="flex: 1; min-width: 280px; background: #0f172a; border: 1px solid #1d4d50; padding: 20px; border-radius: 8px;">
              <span class="painel-titulo" style="font-size: 14px; font-weight: bold; color: #fff; display: block; margin-bottom: 10px;"> Carregar Novo Vídeo</span>
-             <form action="guardar_video.php" method="POST" enctype="multipart/form-data" style="display:flex; flex-direction:column; gap:12px; text-align:left;">
+             <!-- 🟢 ALTERADO: Agora envia para guardar_foto.php que possui o motor PDO integrado -->
+             <form action="guardar_foto.php" method="POST" enctype="multipart/form-data" style="display:flex; flex-direction:column; gap:12px; text-align:left;">
+                 
                  <label style="color: #fff; font-size: 13px; font-weight: bold;">Título do Vídeo:</label>
-                 <input type="text" name="titulo_video" placeholder="nome do Vídeo" required style="padding: 10px; border-radius: 4px; border: none; background: #fff; color: #333; width: 100%; box-sizing: border-box;">
-                 <label style="color: #fff; font-size: 13px; font-weight: bold;">Escolher Vídeo (MP4):</label>
-                 <input type="file" name="ficheiro_video" accept="video/mp4" required style="color: #fff; font-size: 13px;">
+                 <!-- 🟢 ALTERADO: name mudado para 'titulo_foto' para o script processar o texto corretamente -->
+                 <input type="text" name="titulo_foto" placeholder="nome do Vídeo" required style="padding: 10px; border-radius: 4px; border: none; background: #fff; color: #333; width: 100%; box-sizing: border-box;">
+                 
+                 <label style="color: #fff; font-size: 13px; font-weight: bold;">Escolher Vídeo (MP4/MOV):</label>
+                 <!-- 🟢 ALTERADO: name mudado para 'ficheiro_foto' e accept alargado para suportar telemóveis Android -->
+                 <input type="file" name="ficheiro_foto" accept="video/mp4,video/quicktime,video/*" required style="color: #fff; font-size: 13px;">
+                 
                  <button type="submit" style="background: #ca8a04; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 12px;">Carregar Vídeo</button>
              </form>
          </div>
- 
      </div>
  
      <!-- GRADE DE MÍDIAS AUTOMATIZADA -->
@@ -1193,15 +1446,35 @@ function abrirPautaVisual(nome, status) {
 // 1. IMPORTA O SEU CONEXAO.PHP ORIGINAL (PDO) NO TOPO OU ANTES DO BLOCO VISUAL
 include_once("Conexao.php");
 
+// Garante que o controlo de sessão está ativo para ler o ID do utilizador logado
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 try {
     // Busca a lista atualizada de todos os funcionários direto do banco
-    $query_cards = $pdo->query("SELECT * FROM funcionarios ORDER BY nome ASC");
-    $lista_cards = $query_cards->fetchAll(PDO::FETCH_ASSOC);
+    $id_barbearia_logada = isset($_SESSION['usuario_id']) ? intval($_SESSION['usuario_id']) : 20;
+
+    // 🟢 CONVERSÃO REATIVA PARA PDO: Usa o objeto $pdo do teu Conexao.php mestre
+    $sql_cards = "SELECT * FROM `anuncios` 
+                  WHERE `id_barbearia` = :id_logada 
+                     OR `id_barbearia` = 20 
+                  ORDER BY `id_anuncio` DESC";
+                  
+    $stmt_cards = $pdo->prepare($sql_cards);
+    $stmt_cards->execute([
+        ':id_logada' => $id_barbearia_logada
+    ]);
+    
+    // Armazena os resultados num array limpo para ler no teu HTML em baixo
+    $lista_cards = $stmt_cards->fetchAll(PDO::FETCH_ASSOC);
+
 } catch (PDOException $e) {
+    // Captura falhas de conexão de forma profissional sem quebrar o ecrã
+    echo "<div style='color:#ef4444; padding:10px;'>⚠️ Erro ao carregar anúncios: " . htmlspecialchars($e->getMessage()) . "</div>";
     $lista_cards = [];
 }
 ?>
-
 
 <!-- =================================================================
      🔮 PAINEL DE DICAS EXECUTIVAS: PONTOS DE PAGAMENTO E FREEMIUM (SAAS VIP)
@@ -1491,17 +1764,53 @@ $query_produtos = $mysqli->query("SELECT * FROM `produtos_cosmeticos` WHERE `emp
 
                 // 🟢 UNIFICAÇÃO DE ROTAS (DINAMISMO ABSOLUTO): Passa o preço unitel exato obtido da tabela
                 $rota_unitele_mestre = "unitele.php?id_produto_comprado=" . $id_prod . "&gateway=unitel_money&id_parceiro=" . $id_empresa_ativa . "&preco_final=" . number_format($preco_unitel, 2, '.', '');
-            ?>
-                <div class="card-produto-social" id="produto-card-<?= $id_prod ?>">
-                    
-                    <!-- Cabeçalho Autenticado: Identidade da Barbearia Branca -->
-                    <div class="perfil-loja-header">
-                        <div class="avatar-salao-ficticio">BB</div>
-                        <div>
-                            <strong style="color: #fff; font-size: 13.5px; display: block;"><?= $nome_salao_dinamico ?></strong>
-                            <span style="color: #64748b; font-size: 10.5px; display: block;">📍 <?= $endereco_salao_dinamico ?></span>
-                        </div>
-                    </div>
+            ?> 
+            <!-- 🟢 MOTOR DE RENDERIZAÇÃO MULTIMÉDIA ATIVADO -->
+<?php if (!empty($lista_cards)): ?>
+<?php foreach ($lista_cards as $row): 
+    // Captura os dados dinâmicos de cada vídeo da tabela anuncios
+    $id_prod = intval($row['id_anuncio']);
+    $titulo_video = htmlspecialchars($row['titulo']);
+    $arquivo_multimedia = trim($row['imagem'] ?? '');
+    
+    // Mantém as variáveis de identidade da Barbearia Branca
+    $nome_salao_dinamico = "Barbearia Branca";
+    $endereco_salao_dinamico = "Huambo";
+?>
+
+<div class="card-produto-social" id="produto-card-<?= $id_prod ?>" style="margin-bottom: 20px;">
+    
+    <!-- Cabeçalho Autenticado: Identidade da Barbearia Branca -->
+    <div class="perfil-loja-header" style="display: flex; gap: 10px; align-items: center; padding: 10px 0;">
+        <div class="avatar-salao-ficticio" style="background: #14424b; color: #fff; padding: 8px; border-radius: 50%; font-weight: bold; font-size: 12px;">BB</div>
+        <div>
+            <strong style="color: #fff; font-size: 13.5px; display: block;"><?= $nome_salao_dinamico ?></strong>
+            <span style="color: #64748b; font-size: 10.5px; display: block;">📍 <?= $endereco_salao_dinamico ?></span>
+        </div>
+    </div>
+
+    <!-- Título do Vídeo Publicado -->
+    <p style="color: #cbd5e1; font-size: 13px; margin: 5px 0 10px 0; text-align: left; font-weight: 500;">
+        <?= $titulo_video ?>
+    </p>
+
+    <!-- 📱 PLAYER REELS VERTICAL INTEGRADO PARA TELEMÓVEL ANDROID -->
+    <div style="width: 100%; border-radius: 12px; overflow: hidden; background: #070b12; border: 1px solid #1e293b;">
+        <video width="100%" controls preload="metadata" style="display: block; object-fit: cover; max-height: 400px;">
+            <source src="uploads/<?= urlencode($arquivo_multimedia) ?>" type="video/mp4">
+            O teu dispositivo não suporta este leitor.
+        </video>
+    </div>
+
+</div>
+
+<?php endforeach; ?>
+<?php else: ?>
+<!-- Feedback visual limpo caso a tabela esteja limpa -->
+<div style="padding: 30px 15px; text-align: center; color: #64748b; font-size: 12px; font-style: italic;">
+    Nenhum trabalho ou corte em vídeo publicado para este painel de momento.
+</div>
+<?php endif; ?>
 
                     <!-- Exibição de Média com Fallback Seguro -->
                     <div style="width: 100%; height: 240px; background: #070b12; border-radius: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; border: 1px solid #1e293b; overflow: hidden; position: relative;">
@@ -1727,19 +2036,7 @@ Historial da Barbearia Branca
 
 
 
-<!-- =================================================================
-     📋 BANNER DE CONSENTIMENTO E INTELIGÊNCIA DE NEGÓCIO (BI) REAL
-     ================================================================= -->
-     <div class="banner-consentimento" id="cookieBanner" style="position: fixed; bottom: 0; left: 0; right: 0; background-color: rgba(15, 23, 42, 0.98); border-top: 2px solid #ca8a04; padding: 15px 25px; display: none; justify-content: space-between; align-items: center; font-size: 12px; color: #94a3b8; z-index: 9999; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: sans-serif;">
-     <div style="padding-right: 20px; line-height: 1.5; text-align: justify;">
-         <strong style="color: #ca8a04;">Controlo de Auditoria PWA:</strong> O Grupo Aurélius recolhe métricas estatísticas de navegação anonimizadas, escolhas de serviços estéticos e volumetria financeira para otimização da agenda diária, cálculo do ranking mensal de produtividade e monetização regionalizada no Huambo.
-     </div>
-     <div style="display: flex; gap: 10px; align-items: center;">
-         <button class="btn-aceitar" onclick="processarConsentimentoRealBI()" style="background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer; white-space: nowrap; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); transition: 0.2s;">
-             Aceitar e Permitir Rastreamento
-         </button>
-     </div>
- </div>
+
  
  <!-- ⚡ JAVASCRIPT DE GOVERNANÇA DE DADOS (COLAR JUNTO AOS OUTROS SCRIPTS) -->
  <script>
@@ -1912,16 +2209,85 @@ Historial da Barbearia Branca
 </footer>
 
 
-<!-- =================================================================
-     📋 BANNER DE CONSENTIMENTO E INTELIGÊNCIA DE NEGÓCIO (BI) REAL
-     ================================================================= -->
-<div class="banner-consentimento" id="cookieBanner" style="position: fixed; bottom: 0; left: 0; right: 0; background-color: rgba(15, 23, 42, 0.98); border-top: 2px solid #ca8a04; padding: 15px 25px; display: none; justify-content: space-between; align-items: center; font-size: 12px; color: #94a3b8; z-index: 9999; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); font-family: sans-serif;">
-    <div style="padding-right: 20px; line-height: 1.5; text-align: justify;">
+
+
+
+
+
+
+
+
+
+
+<div class="banner-consentimento" id="cookieBanner" style="position: fixed; bottom: 0; left: 0; right: 0; background-color: rgba(15, 23, 42, 0.98); border-top: 2px solid #ca8a04; padding: 10px 12px; display: none; z-index: 9999; box-shadow: 0 -4px 15px rgba(0,0,0,0.5); font-family: sans-serif; box-sizing: border-box;">
+    
+    <!-- Bloco de Estilos Embutido para Forçar Responsividade Fluida Mobile -->
+    <style>
+        #cookieBanner {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+        .banner-texto-bi {
+            font-size: 11.5px;
+            line-height: 1.4;
+            color: #94a3b8;
+            text-align: left;
+            flex: 1;
+        }
+        .banner-acoes-bi {
+            display: flex;
+            align-items: center;
+        }
+        .btn-permitir-bi {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            white-space: nowrap;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.3px;
+            width: auto;
+        }
+        /* 📱 Quebra de linha e expansão automática para ecrãs de Telemóveis */
+        @media (max-width: 600px) {
+            #cookieBanner {
+                flex-direction: column !important;
+                text-align: center !important;
+                gap: 8px !important;
+                padding: 10px !important;
+            }
+            .banner-texto-bi {
+                text-align: center !important;
+                font-size: 11px !important;
+                padding-right: 0 !important;
+            }
+            .banner-acoes-bi {
+                width: 100% !important;
+            }
+            .btn-permitir-bi {
+                width: 100% !important;
+                padding: 10px !important;
+                text-align: center !important;
+            }
+        }
+    </style>
+
+    <!-- Texto Informativo Otimizado -->
+    <div class="banner-texto-bi">
         <strong style="color: #ca8a04;">Controlo de Auditoria PWA:</strong> O Grupo Aurélius recolhe métricas estatísticas de navegação anonimizadas, escolhas de serviços estéticos e volumetria financeira para otimização da agenda diária, cálculo do ranking mensal de produtividade e monetização regionalizada no Huambo.
     </div>
-    <div style="display: flex; gap: 10px; align-items: center;">
-        <button class="btn-aceitar" onclick="processarConsentimentoRealBI()" style="background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer; white-space: nowrap; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); transition: 0.2s;">
-            Aceitar e Permitir Rastreamento
+    
+    <!-- Botão de Ação Redimensionável -->
+    <div class="banner-acoes-bi">
+        <button class="btn-permitir-bi" onclick="processarConsentimentoRealBI()">
+            Aceitar e Permitir
         </button>
     </div>
 </div>

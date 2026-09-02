@@ -9,8 +9,15 @@ if (session_status() === PHP_SESSION_NONE) {
 include_once("Conexao.php");
 
 $conexao_link = $conexao_aurelius ?? $conexao ?? $link ?? $conn ?? $pdo ?? null;
-if (!$conexao_link || !($conexao_link instanceof mysqli)) {
-    $conexao_link = @mysqli_connect("127.0.0.1", "root", "", "aurelius_salao");
+
+if (!$conexao_link || !($conexao_link instanceof mysqli) || @mysqli_ping($conexao_link) === false) {
+    // Tenta primeiro conectar ao banco de dados virtual online do Railway
+    $conexao_link = @mysqli_connect("altaria.proxy.rlwy.net", "root", "tPzDwXGkyczyyYdcyvLmHLSMmfZmnMIZ", "railway", 52030);
+    
+    // Se o Railway falhar ou estiver sem internet, usa o teu XAMPP local como fallback
+    if (!$conexao_link) {
+        $conexao_link = @mysqli_connect("127.0.0.1", "root", "", "aurelius_salao");
+    }
 }
 
 if (!isset($_SESSION['videos_vistos_feed'])) { $_SESSION['videos_vistos_feed'] = []; }
@@ -58,14 +65,14 @@ if ($conexao_link) {
 
     // 🟢 QUERY COESORA: Pedestal virtual calculado com base na interação do utilizador
     $sql_videos = "
-        SELECT a.*, 
-               l.nome_loja, l.endereco_armazem, 
-               (a.likes_adoro * 10 + a.contagem_partilhas * 25) AS ranking_pedestal
-        FROM `anuncios` a 
-        LEFT JOIN `lojas` l ON a.id_barbearia = l.id 
-        WHERE a.ativo = 1 AND a.tipo_media = 'video' AND a.id_anuncio NOT IN ($ids_ignorados)
-        ORDER BY (a.likes_adoro * 10 + a.contagem_partilhas * 25) DESC, RAND()
-    ";
+    SELECT a.*, 
+           u.nome AS nome_loja, u.endereco AS endereco_armazem, 
+           (a.likes_adoro * 10 + a.contagem_partilhas * 25) AS ranking_pedestal
+    FROM `anuncios` a 
+    LEFT JOIN `usuario` u ON a.id_barbearia = u.codigo 
+    WHERE a.ativo = 1 AND a.id_anuncio NOT IN ($ids_ignorados)
+    ORDER BY (a.likes_adoro * 10 + a.contagem_partilhas * 25) DESC, RAND()
+";
     
     $res_vids = mysqli_query($conexao_link, $sql_videos);
     if ($res_vids) {
@@ -131,28 +138,35 @@ if ($conexao_link) {
                 $reels_exibidos++;
     ?>
         <div id="reel-<?= $id_anuncio_real ?>" class="reel-card-vertical">
-            <video src="uploads/<?= htmlspecialchars($reel['imagem']) ?>" class="video-vertical-src" loop playsinline onclick="gerenciarPlayVideo(this)"></video>
+        <video controls autoplay muted playsinline loop style="width: 100%; height: 100%; object-fit: cover; background: #000000;">
+    <source src="uploads/<?= htmlspecialchars($reel['imagem']) ?>" type="video/mp4">
+    <source src="uploads/<?= htmlspecialchars($reel['imagem']) ?>" type="video/quicktime">
+    O seu telemóvel não suporta a reprodução deste vídeo.
+</video>
             
             <div class="barra-lateral-acoes">
-            <!-- ❤️ BOTÃO GOSTO ASSÍNCRONO (NÃO MUDA DE VÍDEO) -->
-            <div class="btn-circulo-vivo" onclick="enviarReacaoAssincrona(<?= $id_anuncio_real ?>, 'adoro')" style="border-color:#ef4444; cursor: pointer;">
-                ❤️<span class="txt-cont-viva" id="cont_like_<?= $id_anuncio_real ?>"><?= intval($reel['likes_adoro']) ?></span>
-            </div>
-            
-            <!-- ❌ BOTÃO NÃO CURTO ASSÍNCRONO (NÃO MUDA DE VÍDEO) -->
-            <div class="btn-circulo-vivo" onclick="enviarReacaoAssincrona(<?= $id_anuncio_real ?>, 'ncurto')" style="cursor: pointer;">
-                ❌<span class="txt-cont-viva" id="cont_dislike_<?= $id_anuncio_real ?>"><?= intval($reel['likes_ncurto']) ?></span>
-            </div>
-            
-            <div class="btn-circulo-vivo" onclick="abrirGavetaComentarios(<?= $id_anuncio_real ?>)" style="cursor: pointer;">
-                💬<span class="txt-cont-viva">SMS</span>
-            </div>
-            
-            <div class="btn-circulo-vivo" style="background:#00d2ff; color:#000; cursor: pointer;" onclick="dispararPartilhaSaaS('<?= htmlspecialchars($titulo_v) ?>', <?= $id_anuncio_real ?>, <?= $id_barb_real ?>)">
-                🚀<span class="txt-cont-viva">Partilhar</span>
-            </div>
-<!-- Botão de Compra Reativo com Filtro de Stock do Parceiro -->
-<a href="<?= $link_comprar_saas ?>" class="btn-circulo-vivo" style="background: #22c55e; border-color: #16a34a; box-shadow: 0 4px 12px rgba(34,197,94,0.4); text-decoration: none;">🛒<span class="txt-cont-viva">Loja</span></a>
+                <!-- ❤️ BOTÃO GOSTO ASSÍNCRONO -->
+                <div class="btn-circulo-vivo" onclick="enviarReacaoAssincrona(<?= $id_anuncio_real ?>, 'adoro')" style="border-color:#ef4444; cursor: pointer;">
+                    ❤️<span class="txt-cont-viva" id="cont_like_<?= $id_anuncio_real ?>"><?= intval($reel['likes_adoro']) ?></span>
+                </div>
+                
+                <!-- ❌ BOTÃO NÃO CURTO ASSÍNCRONO -->
+                <div class="btn-circulo-vivo" onclick="enviarReacaoAssincrona(<?= $id_anuncio_real ?>, 'ncurto')" style="cursor: pointer;">
+                    ❌<span class="txt-cont-viva" id="cont_dislike_<?= $id_anuncio_real ?>"><?= intval($reel['likes_ncurto']) ?></span>
+                </div>
+                
+                <div class="btn-circulo-vivo" onclick="abrirGavetaComentarios(<?= $id_anuncio_real ?>)" style="cursor: pointer;">
+                    💬<span class="txt-cont-viva">SMS</span>
+                </div>
+                
+                <div class="btn-circulo-vivo" style="background:#00d2ff; color:#000; cursor: pointer;" onclick="dispararPartilhaSaaS('<?= htmlspecialchars($titulo_v) ?>', <?= $id_anuncio_real ?>, <?= $id_barb_real ?>)">
+                    🚀<span class="txt-cont-viva">Partilhar</span>
+                </div>
+
+                <!-- 🛒 CORRIGIDO: Rota dinâmica baseada no ID real do Parceiro da foto para não quebrar a pauta -->
+                <a href="Principal.php?id_parceiro=<?= $id_barb_real ?>#nivel1" class="btn-circulo-vivo" style="background: #22c55e; border-color: #16a34a; box-shadow: 0 4px 12px rgba(34,197,94,0.4); text-decoration: none;">
+                    🛒<span class="txt-cont-viva">Loja</span>
+                </a>
             </div>
 
             <!-- Painel Inferior de Informações e Metadados do Pedestal -->
@@ -170,7 +184,7 @@ if ($conexao_link) {
 
             <!-- Gaveta Coesiva de Diálogo Comercial (SMS) -->
             <div id="gaveta_<?= $id_anuncio_real ?>" class="gaveta-comentarios">
-                <div class="topo-gaveta">
+                <div class="topo-gaveta" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <strong style="font-size: 11px; color: #00d2ff; text-transform: uppercase; letter-spacing: 0.5px;">Comentários Públicos</strong>
                     <span onclick="fecharGavetaComentarios(<?= $id_anuncio_real ?>)" style="cursor: pointer; font-size: 22px; color: #ef4444; font-weight: bold; line-height: 1;">&times;</span>
                 </div>
@@ -189,10 +203,9 @@ if ($conexao_link) {
                 </div>
 
                 <!-- Formulário de Envio Conectado à Tabela comentarios_reels -->
-                <form method="POST" action="Video.php" style="display: flex; gap: 6px; margin-top: 10px; background: #0b0f19;">
+                <form method="POST" action="video.php" style="display: flex; gap: 6px; margin-top: 10px; background: #0b0f19;">
                     <input type="hidden" name="enviar_comentario_db" value="1">
                     <input type="hidden" name="id_post_coment" value="<?= $id_anuncio_real ?>">
-                    <input type="hidden" name="id_barb_coment" value="<?= $id_barb_real ?>">
                     <input type="text" name="texto_comentario" placeholder="Escreva aqui..." class="input-msg" style="flex: 1; padding: 9px 14px; background: #070b12; border: 1px solid #334155; border-radius: 20px; color: #fff; font-size: 12px; outline: none; box-sizing: border-box;" required autocomplete="off">
                     <button type="submit" style="background: #00d2ff; color: #0f172a; border: none; padding: 0 14px; border-radius: 20px; font-weight: bold; font-size: 11px; cursor: pointer; text-transform: uppercase;">OK</button>
                 </form>
@@ -205,6 +218,7 @@ if ($conexao_link) {
     ?>
 </div>
 
+               
 <!-- =========================================================================
      🖥️ SEÇÃO 2: ABA DE VÍDEOS HORIZONTAIS (16:9 - CINEMA/AULAS)
      ========================================================================= -->
@@ -222,7 +236,11 @@ if ($conexao_link) {
                 $cinemas_exibidos++;
     ?>
         <div class="card-video-cinema">
-            <video src="uploads/<?= htmlspecialchars($reel['imagem']) ?>" class="video-horizontal-src" controls></video>
+        <video controls autoplay muted playsinline loop style="width: 100%; height: 100%; object-fit: cover; background: #000000;">
+    <source src="uploads/<?= htmlspecialchars($reel['imagem']) ?>" type="video/mp4">
+    <source src="uploads/<?= htmlspecialchars($reel['imagem']) ?>" type="video/quicktime">
+    O seu telemóvel não suporta a reprodução deste vídeo.
+</video>
             <h4 style="color: #00d2ff; margin: 12px 0 4px 0; font-size: 14px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="<?= $titulo_v ?>"><?= $titulo_v ?></h4>
             <span style="color: #22c55e; font-size: 11px; display: block; font-weight: bold;">📍 Local: <?= $endereco_loja ?></span>
             <span style="color: #64748b; font-size: 11px; display: block; margin-top: 2px;">🏢 Empresa: <?= htmlspecialchars($reel['nome_loja'] ?? 'Grupo Aurélius') ?></span>
@@ -331,7 +349,14 @@ function criarEstruturaDoCardReel(reel) {
     div.setAttribute('data-id', reel.id_anuncio);
     
     div.innerHTML = `
-        <video src="uploads/${reel.imagem}" class="video-vertical-src" loop playsinline onclick="gerenciarPlayVideo(this)"></video>
+
+    <video autoplay loop playsinline muted style="width: 100%; height: 100%; object-fit: cover;">
+    <!-- Vai buscar o nome do ficheiro .mp4 real gravado na coluna 'imagem' -->
+    <source src="uploads/<?php echo htmlspecialchars($r['imagem']); ?>" type="video/mp4">
+    O teu telemóvel não suporta este leitor.
+</video>
+
+
         <div class="barra-lateral-acoes">
             <div class="btn-circulo-vivo" onclick="processarReacaoAssincrona(${reel.id_anuncio}, 'adoro')">❤️<span class="txt-cont-viva" id="cont_like_${reel.id_anuncio}">${reel.likes_adoro}</span></div>
             <div class="btn-circulo-vivo" onclick="processarReacaoAssincrona(${reel.id_anuncio}, 'ncurto')">❌</div>

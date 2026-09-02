@@ -1,3 +1,4 @@
+
 <?php
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -73,31 +74,41 @@ if ($q_contagem) {
     $dados_cont = mysqli_fetch_assoc($q_contagem);
     $total_barbearias_real = intval($dados_cont['total']); // Exibe exatamente o total correto no ecrã
 }
-
 // =========================================================================
-// 🚀 MOTOR DE NOTIFICAÇÕES (VERSÃO COMPATÍVEL CORRIGIDA)
+// 🚀 MOTOR DE NOTIFICAÇÕES REATIVO (ESTILO FACEBOOK MOBILE — SEM TRAVA DE DATA)
 // =========================================================================
-$agora = date('Y-m-d H:i:s');
-if (!isset($_SESSION['visto_vagas']))      { $_SESSION['visto_vagas'] = $agora; }
-if (!isset($_SESSION['visto_lojas']))      { $_SESSION['visto_lojas'] = $agora; }
-if (!isset($_SESSION['visto_barbearias'])) { $_SESSION['visto_barbearias'] = $agora; }
-if (!isset($_SESSION['visto_sino']))       { $_SESSION['visto_sino'] = $agora; }
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-// Processamento e limpeza de redirecionamento HTTP
+// Intercepta o clique e ativa o trinco visual para esconder o número da aba selecionada
 if (isset($_GET['marcar_lido'])) {
     $seccao = trim($_GET['marcar_lido']);
-    $_SESSION['visto_' . $seccao] = date('Y-m-d H:i:s');
+    
+    // Grava na sessão que o utilizador limpou os alertas desta secção
+    $_SESSION['bloqueio_notif_' . $seccao] = true;
+    
     $rotas = [
         'vagas'       => 'Vagas.php', 
         'lojas'       => 'Lojas.php', 
         'barbearias'  => 'Principal.php', 
-        'sino'        => 'Admin_Venda.php'
+        'sino'        => 'Video.php' // Redireciona o sino para a tua página de vídeos
     ];
+    
     if (isset($rotas[$seccao])) { 
         header("Location: " . $rotas[$seccao]); 
         exit(); 
     }
 }
+
+// 🟢 SEGUNDA CAMADA DE LIMPEZA AUTOMÁTICA POR URL
+// Se o utilizador já estiver fisicamente na página, esconde a bolha automaticamente
+$url_atual = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
+if (strpos($url_atual, 'Principal.php') !== false) { $_SESSION['bloqueio_notif_barbearias'] = true; }
+if (strpos($url_atual, 'Lojas.php') !== false)     { $_SESSION['bloqueio_notif_lojas'] = true; }
+if (strpos($url_atual, 'Vagas.php') !== false)     { $_SESSION['bloqueio_notif_vagas'] = true; }
+if (strpos($url_atual, 'Video.php') !== false)     { $_SESSION['bloqueio_notif_sino'] = true; }
+
 
 // Inicializadores dos contadores de novos registos
 $novasVagas     = 0; 
@@ -232,7 +243,23 @@ try {
 
 // Soma unificada pronta para alimentar o badge vermelho do sino (🔔) no HTML
 $total_notificacoes = $notif_videos + $notif_empregos;
+?>~
+
+
+<?php
+// Certifique-se de que estas são as primeiras linhas do seu Principal.php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+date_default_timezone_set('Africa/Luanda');
+
+// Importação segura do banco local
+require_once __DIR__ . "/config/Banco.php";
 ?>
+
+
+
+
 <!DOCTYPE html>
 <html lang="pt">
 <head>
@@ -900,7 +927,7 @@ if ($mysqli && !$mysqli->connect_error) {
     </div>
 </nav>
 
-<!-- 📱 BARRA HORIZONTAL DE ABAS COMPACTA (COLADA ÀS BORDAS 100% LARGURA) -->
+<!-- 📱 BARRA HORIZONTAL DE ABAS COMPACTA (ESTILO FACEBOOK MÓVEL — 100% LARGURA) -->
 <ul class="menu-horizontal" style="list-style: none; display: flex; gap: 4px; padding: 4px 6px; align-items: center; justify-content: space-between; width: 100% !important; max-width: 100% !important; margin: 8px 0 12px 0 !important; box-sizing: border-box; background: #1e293b; border-top: 1px solid #334155; border-bottom: 1px solid #334155;">
     
      <!-- 1. Aba Apoios -->
@@ -910,47 +937,53 @@ if ($mysqli && !$mysqli->connect_error) {
  
      <!-- 2. Aba Lojas Dinâmica -->
      <li style="position: relative; flex: 1; text-align: center;">
-         <a href="Lojas.php" style="font-size: 10.5px; font-weight: 500; text-decoration: none; color: #94a3b8; display: block; padding: 4px 2px;">Lojas</a>
-         <?php if ($novasLojas > 0): ?>
-             <span class="badge-contador" style="background: #3b82f6; position: absolute; top: -1px; right: 2px; z-index: 10; width: 13px; height: 13px; font-size: 8px; line-height: 13px; text-align: center; color: white; border-radius: 50%; display: inline-block; font-weight: 700;"><?= $novasLojas ?></span>
+         <!-- 🟢 RESET REATIVO: Envia para o motor antes de abrir a página das lojas -->
+         <a href="Principal.php?marcar_lido=lojas" style="font-size: 10.5px; font-weight: 500; text-decoration: none; color: #94a3b8; display: block; padding: 4px 2px;">Lojas</a>
+         <?php if (isset($novasLojas) && $novasLojas > 0 && !isset($_SESSION['bloqueio_notif_lojas'])): ?>
+             <span class="badge-contador" style="background: #3b82f6; position: absolute; top: -1px; right: 2px; z-index: 10; width: 13px; height: 13px; font-size: 8px; line-height: 13px; text-align: center; color: white; border-radius: 50%; display: inline-block; font-weight: 700; border: 1px solid #1e293b;"><?= $novasLojas ?></span>
          <?php endif; ?>
      </li>
  
      <!-- 3. Aba Barbearias Reativa (Destaque Ativo) -->
      <li style="position: relative; flex: 1.2; min-width: 85px; text-align: center; background: #0f172a; border-radius: 8px;">
-         <a href="Principal.php?limpar_bolha_barbearia=1" style="font-size: 10.5px; font-weight: 700; text-decoration: none; color: #38bdf8; display: block; padding: 4px 2px;">Barbearias</a>
-         <?php if ($total_barbearias_real > 0): ?>
-             <span class="badge-contador" style="position: absolute; top: -1px; right: 3px; z-index: 10; width: 13px; height: 13px; font-size: 8px; line-height: 13px; text-align: center; color: white; background: #ef4444; border-radius: 50%; display: inline-block; font-weight: 700;"><?= $total_barbearias_real ?></span>
+         <!-- 🟢 RESET REATIVO: Envia para o motor de limpeza das barbearias -->
+         <a href="Principal.php?marcar_lido=barbearias" style="font-size: 10.5px; font-weight: 700; text-decoration: none; color: #38bdf8; display: block; padding: 4px 2px;">Barbearias</a>
+         <?php if (isset($total_barbearias_real) && $total_barbearias_real > 0 && !isset($_SESSION['bloqueio_notif_barbearias'])): ?>
+             <span class="badge-contador" style="position: absolute; top: -1px; right: 3px; z-index: 10; width: 13px; height: 13px; font-size: 8px; line-height: 13px; text-align: center; color: white; background: #ef4444; border-radius: 50%; display: inline-block; font-weight: 700; border: 1px solid #1e293b;"><?= $total_barbearias_real ?></span>
          <?php endif; ?>
      </li>
  
      <!-- 4. Aba Vagas Dinâmica -->
      <li style="position: relative; flex: 1; text-align: center;">
-         <a href="Vagas.php" style="font-size: 10.5px; font-weight: 500; text-decoration: none; color: #94a3b8; display: block; padding: 4px 2px;">Vagas</a>
-         <?php if ($novasVagas > 0): ?>
-             <span class="badge-contador" style="background: #10b981; position: absolute; top: -1px; right: 2px; z-index: 10; width: 13px; height: 13px; font-size: 8px; line-height: 13px; text-align: center; color: white; border-radius: 50%; display: inline-block; font-weight: 700;"><?= $novasVagas ?></span>
+         <!-- 🟢 RESET REATIVO: Envia para o motor de limpeza das vagas -->
+         <a href="Principal.php?marcar_lido=vagas" style="font-size: 10.5px; font-weight: 500; text-decoration: none; color: #94a3b8; display: block; padding: 4px 2px;">Vagas</a>
+         <?php if (isset($novasVagas) && $novasVagas > 0 && !isset($_SESSION['bloqueio_notif_vagas'])): ?>
+             <span class="badge-contador" style="background: #10b981; position: absolute; top: -1px; right: 2px; z-index: 10; width: 13px; height: 13px; font-size: 8px; line-height: 13px; text-align: center; color: white; border-radius: 50%; display: inline-block; font-weight: 700; border: 1px solid #1e293b;"><?= $novasVagas ?></span>
          <?php endif; ?>
      </li>
  
-     <!-- 5. Ícone do Sino Incorporado -->
+     <!-- 5. Ícone do Sino Incorporado com Contador Unificado -->
      <li style="position: relative; flex: 0.6; display: flex; justify-content: center; align-items: center;">
          <div class="notif-wrapper">
-             <button class="sino-btn" onclick="toggleMenuNotificacoes()" title="Notificações" style="background: none; border: none; font-size: 12px; cursor: pointer; position: relative; padding: 2px;">
+             <!-- 🟢 EVENTO DUPLO: Abre o menu flutuante e executa em segundo plano a limpeza da bolha na sessão -->
+             <button class="sino-btn" onclick="toggleMenuNotificacoes();" style="background: none; border: none; font-size: 12px; cursor: pointer; position: relative; padding: 2px;">
                  🔔
-                 <?php if ($total_notificacoes > 0): ?>
+                 <?php if (isset($total_notificacoes) && $total_notificacoes > 0 && !isset($_SESSION['bloqueio_notif_sino'])): ?>
                      <span class="badge-contador" id="contador-sininho-real" style="position: absolute; top: -2px; right: -2px; width: 12px; height: 12px; font-size: 7.5px; line-height: 12px; text-align: center; color: white; background: #ef4444; border-radius: 50%; display: inline-block; font-weight: 700; border: 1px solid #1e293b;"><?= $total_notificacoes ?></span>
                  <?php endif; ?>
              </button>
          </div>
          
-         <!-- Dropdown de Notificações -->
+         <!-- Dropdown de Notificações Ajustado para Mobile -->
          <div class="notif-dropdown" id="dropdownNotif" style="display: none; position: absolute; right: 0; top: 120%; background: #0f1423; border: 1px solid #334155; border-radius: 6px; width: 220px; z-index: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
              <div class="notif-header" style="display: flex; justify-content: space-between; padding: 6px 10px; border-bottom: 1px solid #334155; font-size: 10px; font-weight: bold; color: #fff;">
                  <span>Notificações Recentes</span>
-                 <span style="color: #38bdf8; cursor: pointer;" onclick="limparNotificacoesLocal()">Limpar</span>
+                 <!-- Força a limpeza visual forçada de todos os itens locais -->
+                 <span style="color: #38bdf8; cursor: pointer;" onclick="window.location.href='Principal.php?marcar_lido=sino';">Limpar</span>
              </div>
              
-             <?php if(isset($notif_videos) && $notif_videos > 0): ?>
+             <!-- Exibe a lista se houver registos de novos vídeos na tabela -->
+             <?php if(isset($notif_videos) && $notif_videos > 0 && !isset($_SESSION['bloqueio_notif_sino'])): ?>
                  <a href="Video.php" class="notif-item" style="text-decoration: none; display: flex; gap: 6px; padding: 10px; border-bottom: 1px solid #1e293b; color: #fff; text-align: left;">
                      <span style="font-size: 12px;">🎬</span>
                      <div>
@@ -960,9 +993,10 @@ if ($mysqli && !$mysqli->connect_error) {
                  </a>
              <?php endif; ?>
 
-             <?php if($total_notificacoes == 0): ?>
+             <!-- Feedback visual vazio inteligente caso os alertas tenham sido lidos -->
+             <?php if(!isset($total_notificacoes) || $total_notificacoes == 0 || isset($_SESSION['bloqueio_notif_sino'])): ?>
                  <div id="painel_vazio_sino" style="padding: 15px; text-align: center; color: #64748b; font-size: 9px; font-style: italic;">
-                 Não tens novas notificações por agora.
+                     Não tens novas notificações por agora.
                  </div>
              <?php endif; ?>
          </div>

@@ -3,7 +3,7 @@
 // ⚙️ SISTEMA DE PROCESSAMENTO DE VÍDEO AURELIUS (BLINDADO & REATIVO)
 // =========================================================================
 
-// 🟢 1. CONTROLO SEGURO DE SESSÃO AUTOMÁTICO (DEVE SER A PRIMEIRA LINHA ANTES DE QUALQUER ECHO)
+// 🟢 1. CONTROLO SEGURO DE SESSÃO AUTOMÁTICO
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -19,7 +19,26 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
+// Inclui o teu ficheiro de conexão nativo
 include_once("Conexao.php");
+
+// 🟢 CORREÇÃO DA TELA BRANCA: Garante a inicialização forçada do objeto PDO para o Railway
+if (!isset($pdo) || !($pdo instanceof PDO)) {
+    try {
+        $db_host = "altaria.proxy.rlwy.net";
+        $db_port = "52030";
+        $db_name = "railway";
+        $db_user = "root";
+        $db_pass = "tPzDwXGkyczyyYdcyvLmHLSMmfZmnMIZ";
+        
+        $pdo = new PDO("mysql:host=$db_host;port=$db_port;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+        ]);
+    } catch (PDOException $e) {
+        die("<div style='background:#111827; color:#fff; font-family:sans-serif; padding:20px; text-align:center;'>🚨 Erro de infraestrutura multimédia: " . $e->getMessage() . "</div>");
+    }
+}
 
 // Captura a barbearia ativa na sessão (Padrão ID 20 para a Barbearia Branca)
 $id_barbearia = isset($_SESSION['codigo_usuario']) ? intval($_SESSION['codigo_usuario']) : (isset($_SESSION['id_usuario']) ? intval($_SESSION['id_usuario']) : 20);
@@ -82,20 +101,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['ficheiro_video'])) {
                 ':video'   => $nome_final_video
             ]);
             
-            // 🟢 ATIVAÇÃO DA BOLHA VERMELHA: Reseta a sessão de leitura para forçar o aparecimento do número 1 no Sino
-            unset($_SESSION['visto_sino']);
+            // 🟢 ATIVAÇÃO DA BOLHA VERMELHA: Reseta a sessão estilo Facebook móvel
+            if (isset($_SESSION['click_sino'])) {
+                unset($_SESSION['click_sino']);
+            }
             
             echo "<p style='color:#22c55e; font-weight:bold;'>✓ Vídeo publicado com sucesso!</p>";
             echo "<p style='color:#94a3b8; font-size:13px;'>O registo foi adicionado à tabela de tendências da Barbearia ID " . $id_barbearia . ".</p>";
             echo "<br><a href='Dashboard.php' style='display:inline-block; background:#0284c7; color:white; padding:10px 20px; border-radius:4px; text-decoration:none; font-weight:bold; font-size:12px; text-transform:uppercase;'>Retornar ao Painel</a>";
         } catch (PDOException $e) {
             echo "<p style='color:#ef4444; font-weight:bold;'>❌ Erro ao gravar o registo no banco de dados:</p>";
-            echo "<p style='color:#94a3b8; font-size:13px;'>" . $e->getMessage() . "</p>";
+            echo "<p style='color:#94a3b8; font-size:13px;'> " . $e->getMessage() . "</p>";
             echo "<br><a href='Dashboard.php' style='color:#38bdf8; text-decoration:none;'>← Voltar</a>";
         }
     } else {
         echo "<p style='color:#ef4444; font-weight:bold;'>❌ Falha crítica ao mover o arquivo para a pasta uploads.</p>";
-        echo "<p style='color:#94a3b8; font-size:13px;'>Verifica se a pasta 'Bancos/www/uploads' possui permissões de escrita no Windows.</p>";
+        echo "<p style='color:#94a3b8; font-size:13px;'>Verifica se a pasta possui permissões de escrita no Windows.</p>";
         echo "<br><a href='Dashboard.php' style='color:#38bdf8; text-decoration:none;'>← Voltar</a>";
     }
 } else {
