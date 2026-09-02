@@ -1,29 +1,30 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) { 
-    session_start(); 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
-date_default_timezone_set('Africa/Luanda');
 
-// Inclui o ficheiro de ligação global primeiro
-include_once(__DIR__ . "/Conexao.php");
+// 🟢 Garante a inclusão do arquivo que acabámos de corrigir
+include_once(__DIR__ . "/config/Banco.php");
 
-$mysqli_reg_vendas = $conexao_link ?? $conexao_aurelius;
+// Reaproveita a ligação gerada
+$mysqli_reg_vendas = $conexao_link ?? null;
 
-if (!$mysqli_reg_vendas || !($mysqli_reg_vendas instanceof mysqli)) {
-    $db_host = getenv('DB_HOST') ?: "altaria.proxy.rlwy.net:52030";
-    $db_user = getenv('DB_USER') ?: "root";
-    $db_pass = getenv('DB_PASSWORD') ?: "tPzDwXGkyczyyYdcyvLmHLSMmfZmnMIZ";
-    $db_name = getenv('DB_NAME') ?: "railway";
+if (!$mysqli_reg_vendas) {
+    $db_host = "altaria.proxy.rlwy.net:52030";
+    $db_user = "root";
+    $db_pass = "tPzDwXGkyczyyYdcyvLmHLSMmfZmnMIZ";
+    $db_name = "railway";
     $mysqli_reg_vendas = @new mysqli($db_host, $db_user, $db_pass, $db_name);
 }
 
-if (!$conexao_link || mysqli_connect_errno()) {
-    die("<div style='padding:20px; background:#ffdddd; color:#aa0000; font-family:sans-serif;'>
-            <strong>Erro de Parceria:</strong> Banco de dados inacessível para registo de vendas.
-         </div>");
+if (!$mysqli_reg_vendas || $mysqli_reg_vendas->connect_error) {
+    die("Erro de Parceria: Banco de dados inacessível para registo de vendas.");
 }
 mysqli_set_charset($conexao_link, "utf8mb4");
 ?>
+
+
+
 <!DOCTYPE html>
 <html lang="pt-PT">
 <head>
