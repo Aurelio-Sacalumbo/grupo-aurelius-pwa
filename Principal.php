@@ -1238,12 +1238,17 @@ function executarFiltragemGeograficaCarrossel(provinciaAlvo, botaoElemento) {
          <!-- LISTAGEM EM LINHA FLUIDA DA GRID REATIVA (FLEX CARROSSEL) -->
          <div class="grid" id="trilho_carrossel_salao" style="display: flex !important; gap: 20px !important; width: max-content !important; transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1); box-sizing: border-box !important; padding: 0 10px;">
  
-             <?php
-             // 🔑 CONEXÃO DIRETA À BASE DE DADOS MESTRE
-             $mysqli = $conexao_link ?? $conexao_aurelius;
+         <?php
+             // 🔑 CONEXÃO DIRETA E ISOLADA À BASE DE DADOS MESTRE
+             $h_host = getenv('DB_HOST') ?: "altaria.proxy.rlwy.net";
+             $h_port = getenv('DB_PORT') ?: "52030";
+             $h_name = getenv('DB_NAME') ?: "railway";
+             $h_user = getenv('DB_USER') ?: "root";
+             $h_pass = getenv('DB_PASSWORD') ?: "tPzDwXGkyczyyYdcyvLmHLSMmfZmnMIZ";
 
-             if ($mysqli->connect_error) {
-                 die("<p style='color:red;'>Erro na ligação: " . $mysqli->connect_error . "</p>");
+             $mysqli = mysqli_init();
+             if (!@mysqli_real_connect($mysqli, $h_host, $h_user, $h_pass, $h_name, $h_port)) {
+                 die("<p style='color:red;'>Erro crítico na ligação do painel: " . mysqli_connect_error() . "</p>");
              }
              
              $mysqli->set_charset("utf8mb4");
