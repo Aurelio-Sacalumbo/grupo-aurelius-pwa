@@ -1555,22 +1555,71 @@ function moverCarrosselSalores(direcao) {
      
      <!-- Estilo CSS Fluido para Adaptação em Telemóveis -->
      <style>
-         @media (max-width: 580px) {
-             .card-lider-dinamico {
-                 flex-direction: column !important;
-                 text-align: center !important;
-                 padding: 25px 15px 15px 15px !important;
-             }
-             .card-lider-dinamico .tag-posicionada {
-                 position: static !important;
-                 display: inline-block !important;
-                 margin-bottom: 12px !important;
-             }
-             .card-lider-dinamico .zona-texto {
-                 text-align: center !important;
-             }
-         }
-     </style>
+       /* 📱 Otimizações reativas para Telemóveis (Mobile-First) */
+       @media (max-width: 580px) {
+        /* ==================================================================
+           💥 CORREÇÃO DO DESIGN DO TOPO (MENU, BOTÕES E FILTROS DE PROVÍNCIAS)
+           ================================================================== */
+        /* Garante que os botões do topo (Criar Conta, Parceria) quebram linha e não saem do ecrã */
+        [style*="display: flex"] > a, .header-buttons, .buttons-container {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            gap: 8px !important;
+            justify-content: center !important;
+            width: 100% !important;
+        }
+
+        /* Ajusta o tamanho dos botões superiores para caberem no telemóvel */
+        .header-buttons a, button, [style*="border-radius"] {
+            font-size: 11px !important;
+            padding: 6px 10px !important;
+            white-space: nowrap !important;
+        }
+
+        /* Organiza as Províncias (Huambo, Luanda, etc.) numa grelha flexível e limpa */
+        div[style*="display: flex"][style*="flex-wrap"] {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            justify-content: center !important;
+            gap: 6px !important;
+            padding: 0 10px !important;
+            width: 100% !important;
+        }
+
+        /* Garante que os botões das províncias ficam perfeitamente alinhados */
+        div[style*="display: flex"] > button {
+            flex: 1 1 auto !important;
+            max-width: 140px !important;
+            text-align: center !important;
+        }
+
+        /* ==================================================================
+           ⚙️ O TEU CÓDIGO ORIGINAL DO RODAPÉ (MANTIDO INTACTO)
+           ================================================================== */
+        .lista-nav-footer {
+            border-radius: 16px !important;
+            padding: 15px !important;
+            gap: 12px !important;
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important; /* Transforma em grelha dupla simétrica */
+            width: 100% !important;
+            max-width: 320px !important;
+            margin: 0 auto !important;
+        }
+        
+        .separador-footer {
+            display: none !important; /* Oculta as bolhas no mobile para economizar espaço */
+        }
+
+        .link-social-footer {
+            justify-content: center !important;
+            background: rgba(56, 189, 248, 0.05) !important;
+            padding: 8px !important;
+            border-radius: 8px !important;
+            border: 1px solid rgba(56, 189, 248, 0.1) !important;
+        }
+    }
+</style>
 
 
 
@@ -2788,25 +2837,29 @@ if (isset($pdo)) {
     .mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip { border-top-color: #00d2ff !important; }
 </style>
 
+
+
+
+<!-- Seccao Macro de Geolocalizacao -->
 <div class="seccao-macro-geolocalizacao">
     <div style="text-align: left; margin-bottom: 20px;">
         <span style="color: #00d2ff; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1.5px; display: block;">🛰️ CENTRAL DE INTELIGÊNCIA GEOGRÁFICA 4D</span>
         <h2 style="color: #fff; font-size: 22px; font-weight: bold; margin-top: 5px;">Mapeamento Vetorial Tridimensional do Ecossistema</h2>
     </div>
 
-    <!-- Container da Viewport Tridimensional -->
-    <div class="viewport-canvas-3d">
+    <!-- Container da Viewport Tridimensional com Altura Fixada Concreta -->
+    <div class="viewport-canvas-3d" style="position: relative; width: 100%; height: 450px; background: #070b12; border-radius: 12px; overflow: hidden;">
         
         <!-- Consola de Operações Flutuante -->
-        <div class="consola-controlo-mapa">
+        <div class="consola-controlo-mapa" style="position: absolute; z-index: 10; top: 15px; left: 15px; background: rgba(15, 23, 42, 0.9); padding: 15px; border-radius: 8px; max-width: 280px; border: 1px solid #1e293b;">
             <span style="color: #22c55e; font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; margin-bottom: 4px;">● Sistema Operacional Ativo</span>
             <strong style="color: #fff; font-size: 12.5px; display: block; margin-bottom: 6px;">Visualização Imersiva</strong>
             <p style="color: #94a3b8; font-size: 11px; line-height: 1.4; margin-bottom: 10px;">Use dois dedos ou arraste com o botão direito para inclinar os edifícios e o relevo em 3D.</p>
             <button onclick="focarCentroHuambo()" style="width: 100%; background: #0088cc; color: white; border: none; padding: 8px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;">Recentrar Câmara</button>
         </div>
 
-        <!-- O mapa GL renderiza estritamente aqui -->
-        <div id="mapa_canvas_gl" style="width: 100%; height: 100%;"></div>
+        <!-- O mapa GL renderiza estritamente aqui (Garante a herança total de altura) -->
+        <div id="mapa_canvas_gl" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0;"></div>
     </div>
 </div>
 
@@ -2818,16 +2871,20 @@ mapboxgl.accessToken = 'pk.eyJ1IjoiYXVyZWxpdXNoIiwiYSI6ImNseXo4eDNwZTAxbzIycXF6M
 const engineMapa = new mapboxgl.Map({
     container: 'mapa_canvas_gl',
     style: 'mapbox://styles/mapbox/dark-v11', // Mapa estilo escuro neon de alta resolução
-    center: [15.7392, -12.7711], // [Longitude, Latitude] mestre de Angola
+    center: [15.7392, -12.7711], // [Longitude, Latitude] mestre de Angola (Huambo)
     zoom: 14.5,
     pitch: 62, // Inclinação da câmara para provocar o efeito de profundidade 3D dos prédios
     bearing: -15, // Rotação angular da bússola
     antialias: true // Suaviza as bordas tridimensionais dos blocos
 });
 
+// Força o redimensionamento correto do mapa ao carregar no mobile
+engineMapa.on('load', () => {
+    engineMapa.resize();
+});
+
 // 🟢 MOTOR 4D: Injeta luz solar reativa baseada no horário real do telemóvel
 engineMapa.on('style.load', () => {
-    // Configura a atmosfera e a inclinação da luz solar reativa do dia
     engineMapa.setFog({
         'range': [0.5, 4],
         'color': '#070b12',
@@ -2836,28 +2893,32 @@ engineMapa.on('style.load', () => {
 
     // 🟢 RENDERIZADOR AUTOMÁTICO DE PRÉDIOS E EDIFÍCIOS EM 3D REAL (VETORIAL)
     const camadas = engineMapa.getStyle().layers;
-    const labelLayerId = camadas.find(layer => layer.type === 'symbol' && layer.layout['text-field']).id;
+    const labelLayerId = camadas.find(layer => layer.type === 'symbol' && layer.layout['text-field'])?.id;
 
-    engineMapa.addLayer({
-        'id': 'predios-3d-reais-huambo',
-        'source': 'composite',
-        'source-layer': 'building',
-        'filter': ['==', 'extrude', 'true'],
-        'type': 'fill-extrusion',
-        'minzoom': 13,
-        'paint': {
-            'fill-extrusion-color': '#0d1624', // Cor base cinzenta escura dos edifícios
-            'fill-extrusion-height': ['get', 'height'], // Puxa a altura real do satélite
-            'fill-extrusion-base': ['get', 'min_height'],
-            'fill-extrusion-opacity': 0.85
-        }
-    }, labelLayerId);
+    if (labelLayerId) {
+        engineMapa.addLayer({
+            'id': 'predios-3d-reais-huambo',
+            'source': 'composite',
+            'source-layer': 'building',
+            'filter': ['==', 'extrude', 'true'],
+            'type': 'fill-extrusion',
+            'minzoom': 13,
+            'paint': {
+                'fill-extrusion-color': '#0d1624',
+                'fill-extrusion-height': ['get', 'height'],
+                'fill-extrusion-base': ['get', 'min_height'],
+                'fill-extrusion-opacity': 0.85
+            }
+        }, labelLayerId);
+    }
 });
 
-// 🟢 EXTRACÇÃO E INJEÇÃO AUTOMÁTICA DOS PARCEIROS DO MARIADB NO MAPA VETORIAL
-const pinsDoBanco = <?= json_encode($pontos_mapa_3d) ?>;
+// 🟢 EXTRAÇÃO E INJEÇÃO AUTOMÁTICA DOS PARCEIROS DO MARIADB NO MAPA VETORIAL
+const pinsDoBanco = <?= json_encode($pontos_mapa_3d ?? []) ?>;
 
 pinsDoBanco.forEach(function(unidade) {
+    if(!unidade.lng || !unidade.lat) return;
+
     // Cria um marcador HTML personalizado tridimensional
     const elPino = document.createElement('div');
     elPino.style.width = '32px';
@@ -2872,17 +2933,17 @@ pinsDoBanco.forEach(function(unidade) {
 
     // Cria a janela flutuante popup
     const popupComercial = new mapboxgl.Popup({ offset: 25 }).setHTML(`
-        <div style="text-align: left; font-family: system-ui, sans-serif;">
+        <div style="text-align: left; font-family: system-ui, sans-serif; color: #1e293b;">
             <span style="background: #22c55e; color: #fff; font-size: 9px; font-weight: bold; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; display: inline-block; margin-bottom: 6px;">● ONLINE NO PWA</span>
-            <h4 style="color: #38bdf8; font-size: 13.5px; font-weight: bold; margin: 0;">${unidade.nome}</h4>
-            <p style="color: #cbd5e1; font-size: 11px; margin-top: 5px; line-height: 1.4;">📍 <b>Balcão:</b> ${unidade.endereco}</p>
-            <a href="unitele.php?id_parceiro=${unidade.id}&tipo_parceiro=${unidade.tipo}" style="display: block; margin-top: 10px; background: #00d2ff; color: #070b12; text-decoration: none; text-align: center; font-size: 11px; font-weight: bold; padding: 6px; border-radius: 6px; text-transform: uppercase;">Marcar Atendimento</a>
+            <h4 style="color: #0088cc; font-size: 13.5px; font-weight: bold; margin: 0;">${unidade.nome}</h4>
+            <p style="color: #475569; font-size: 11px; margin-top: 5px; line-height: 1.4;">📍 <b>Balcão:</b> ${unidade.endereco}</p>
+            <a href="unitele.php?id_parceiro=${unidade.id}&tipo_parceiro=${unidade.tipo}" style="display: block; margin-top: 10px; background: #0088cc; color: #fff; text-decoration: none; text-align: center; font-size: 11px; font-weight: bold; padding: 6px; border-radius: 6px; text-transform: uppercase;">Marcar Atendimento</a>
         </div>
     `);
 
-    // Fixa o marcador nas coordenadas geográficas da Barbearia Branca ou Loja
+    // Fixa o marcador nas coordenadas geográficas (Erro "unity =" removido)
     new mapboxgl.Marker(elPino)
-        .setLngLat([unidade.lng, unity = unidade.lat])
+        .setLngLat([parseFloat(unidade.lng), parseFloat(unidade.lat)])
         .setPopup(popupComercial)
         .addTo(engineMapa);
 });
@@ -2895,11 +2956,10 @@ function focarCentroHuambo() {
         pitch: 62,
         bearing: -15,
         essential: true,
-        duration: 2000 // Animação de voo suave de 2 segundos
+        duration: 2000
     });
 }
 </script>
-
 
 
 
@@ -3753,15 +3813,28 @@ function processarEnvioMensagemAlana(origemTela) {
     <!-- Grid de Exibição Dinâmica de Produtos (Mapeamento do Banco de Dados) -->
     <div style="display: grid !important; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important; gap: 20px !important; width: 100% !important; box-sizing: border-box !important;">
         <?php
-        // Conexão direta e estável ao MariaDB local do XAMPP
-        $mysqli = $conexao_link ?? $conexao_aurelius;
-        if (!$mysqli_produtos->connect_error) {
+        // Definição segura da conexão utilizando a instância global ativa
+        $mysqli_produtos = $conexao_link ?? $conexao_aurelius;
+    
+        // Se a conexão não existir ou tiver sido fechada, reabre dinamicamente
+        if (!$mysqli_produtos || @mysqli_ping($mysqli_produtos) === false) {
+            $h_host = getenv('DB_HOST') ?: "altaria.proxy.rlwy.net";
+            $h_port = getenv('DB_PORT') ?: "52030";
+            $h_name = getenv('DB_NAME') ?: "railway";
+            $h_user = getenv('DB_USER') ?: "root";
+            $h_pass = getenv('DB_PASSWORD') ?: "tPzDwXGkyczyyYdcyvLmHLSMmfZmnMIZ";
+            
+            $mysqli_produtos = @mysqli_connect($h_host . ":" . $h_port, $h_user, $h_pass, $h_name);
+        }
+    
+        // Executa as consultas se a conexão estiver 100% operacional
+        if ($mysqli_produtos && !$mysqli_produtos->connect_error) {
             $mysqli_produtos->set_charset("utf8mb4");
-
+    
             // Higieniza filtros passados por URL
             $categoria_filtro = isset($_GET['filtro_cat']) ? $mysqli_produtos->escape_string(trim($_GET['filtro_cat'])) : '';
             $clausula_sql = !empty($categoria_filtro) ? " WHERE `categoria` LIKE '%$categoria_filtro%' " : "";
-
+    
             // Consulta os cosméticos registrados no phpMyAdmin (Tabela: produtos)
             $query_cosmeticos = $mysqli_produtos->query("SELECT * FROM `produtos` " . $clausula_sql . " ORDER BY id DESC LIMIT 8");
             
@@ -3770,8 +3843,6 @@ function processarEnvioMensagemAlana(origemTela) {
                     $preco_prod = number_format((float)($prod['preco_venda'] ?? 0), 2, ',', '.') . " Kz";
                     $imagem_prod = !empty($prod['imagem']) ? "uploads/" . $prod['imagem'] : "OIP (6).webp";
                     ?>
-                    
-                    
                       
                     <?php
                 }
