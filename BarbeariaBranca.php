@@ -1,72 +1,23 @@
 <?php
-// =========================================================================
-// 💈 GATEWAY DE LOGIN UNIFICADO MULTI-TENANT - ECOSSISTEMA AURÉLIUS
-// =========================================================================
-if (session_status() === PHP_SESSION_NONE) { 
-    session_start(); 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 date_default_timezone_set('Africa/Luanda');
 
-/include_once(__DIR__ . "/Conexao.php");
-$conexao_link = $conexao_aurelius;
+// Importa a ligação principal estruturada do ecossistema
+require_once __DIR__ . "/config/Banco.php";
 
-$erro = array(); 
+// Garante o reuso seguro da conexão ativa
+$mysqli = $conexao_link ?? $conexao_aurelius ?? $conexao ?? null;
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email']) && strlen($_POST['email']) > 0) {
+if (!$mysqli || !($mysqli instanceof mysqli) || @mysqli_ping($mysqli) === false) {
+    $db_host = getenv('DB_HOST') ?: "altaria.proxy.rlwy.net";
+    $db_port = getenv('DB_PORT') ?: "52030";
+    $db_name = getenv('DB_NAME') ?: "railway";
+    $db_user = getenv('DB_USER') ?: "root";
+    $db_pass = getenv('DB_PASSWORD') ?: "tPzDwXGkyczyyYdcyvLmHLSMmfZmnMIZ";
     
-    // 🧹 Limpa os dados de sessões antigas para evitar contaminações cruzadas
-    session_unset();
-
-    $email = trim($_POST['email']);
-    $senha_digitada = trim($_POST['senha']);
-
-    try {
-        // Busca o utilizador/parceiro pelo e-mail na tabela unificada 'usuario'
-        $stmt = $mysqli->prepare("SELECT codigo, nome, senha, nivel FROM `usuario` WHERE `email` = ? LIMIT 1");
-        $stmt->bind_param("s", $email);
-        $stmt->execute();
-        $resultado = $stmt->get_result();
-        
-        if ($resultado && $resultado->num_rows > 0) {
-            $dado = $resultado->fetch_assoc();
-            
-            // 🛡️ VALIDAÇÃO CRIPTOGRÁFICA PROFISSIONAL (Suporta hashes seguros e fallback MD5 legados)
-            $senha_valida = false;
-            if (password_verify($senha_digitada, $dado['senha'])) {
-                $senha_valida = true;
-            } elseif (md5($senha_digitada) === $dado['senha'] || $senha_digitada === $dado['senha']) {
-                $senha_valida = true;
-                // [Opcional] No futuro pode atualizar o campo para password_hash aqui para aumentar a segurança
-            }
-
-            if ($senha_valida) {
-                // 🎯 ISOLAMENTO MULTI-TENANT: Grava apenas as informações da empresa ativa
-                $_SESSION['empresa_codigo']      = $dado['codigo'];
-                $_SESSION['nome_usuario']        = $dado['nome'];
-                $_SESSION['tipo_acesso']         = $dado['nivel']; // parceiro_hospedado, admin, etc.
-                
-                // Visto mestre para moderação interna da barbearia logada
-                $_SESSION['gerente_autenticado'] = true; 
-                
-                // Compatibilidade redundante de variáveis do ecossistema SaaS
-                $_SESSION['parceiro_id']         = $dado['codigo'];
-                $_SESSION['parceiro_name']       = $dado['nome']; 
-                
-                session_write_close(); 
-                
-                // Redirecionamento dinâmico e isolado baseado no ID único do banco
-                header("Location: Dashboard.php?id=" . intval($dado['codigo']));
-                exit();
-            } else {
-                $erro[] = "E-mail ou Palavra-passe incorretos no sistema.";
-            }
-        } else {
-            $erro[] = "E-mail ou Palavra-passe incorretos no sistema.";
-        }
-        $stmt->close();
-    } catch (mysqli_sql_exception $e) {
-        $erro[] = "Erro de infraestrutura técnica de dados: " . $e->getMessage();
-    }
+    $mysqli = @mysqli_connect($db_host, $db_user, $db_pass, $db_name, $db_port);
 }
 ?>
 <!DOCTYPE html>
