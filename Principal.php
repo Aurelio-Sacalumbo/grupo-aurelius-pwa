@@ -1103,9 +1103,9 @@ if (isset($mysqli) && !$mysqli->connect_error) {
     $prov_com_parceiros = [];
     
     // Abre conexão única reutilizável para varrer todas as frentes comerciais ativas
-    $mysqli_prov = $conexao_link ?? $conexao_aurelius;
-    if (!$mysqli_prov->connect_error) {
-        $mysqli_prov->set_charset("utf8mb4");
+    $mysqli = $conexao_link ?? $conexao_aurelius;
+    if (!$mysqli->connect_error) {
+        $mysqli->set_charset("utf8mb4");
         
       // 🟢 CORREÇÃO MESTRE: Alinhado com as colunas reais da sua tabela 'usuario'
      // 🟢 CONSULTA MULTI-TENANT: Varre os parceiros hospedados ativos (Ignora os suspensos)
@@ -1114,7 +1114,7 @@ if (isset($mysqli) && !$mysqli->connect_error) {
     ];
     
     foreach ($consultas_enderecos as $sql_query) {
-        $query_botoes = $mysqli_prov->query($sql_query);
+        $query_botoes = $mysqli->query($sql_query);
         if ($query_botoes && $query_botoes->num_rows > 0) {
             while ($p_row = $query_botoes->fetch_assoc()) {
                 if (empty($p_row['endereco'])) continue;
@@ -1141,7 +1141,7 @@ if (isset($mysqli) && !$mysqli->connect_error) {
             }
         }
     }
-        $mysqli_prov->close();
+        $mysqli->close();
     }
     
     // Desenha reativamente apenas os botões das províncias que possuem salões ou lojas registados
@@ -1240,10 +1240,12 @@ function executarFiltragemGeograficaCarrossel(provinciaAlvo, botaoElemento) {
  
              <?php
              // 🔑 CONEXÃO DIRETA À BASE DE DADOS MESTRE
-             $mysqli_prov = $conexao_link ?? $conexao_aurelius;
+             $mysqli = $conexao_link ?? $conexao_aurelius;
+
              if ($mysqli->connect_error) {
                  die("<p style='color:red;'>Erro na ligação: " . $mysqli->connect_error . "</p>");
              }
+             
              $mysqli->set_charset("utf8mb4");
  
              if (isset($mysqli)) {
@@ -3747,7 +3749,7 @@ function processarEnvioMensagemAlana(origemTela) {
     <div style="display: grid !important; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important; gap: 20px !important; width: 100% !important; box-sizing: border-box !important;">
         <?php
         // Conexão direta e estável ao MariaDB local do XAMPP
-        $mysqli_prov = $conexao_link ?? $conexao_aurelius;
+        $mysqli = $conexao_link ?? $conexao_aurelius;
         if (!$mysqli_produtos->connect_error) {
             $mysqli_produtos->set_charset("utf8mb4");
 
