@@ -1,22 +1,19 @@
-
 <?php
 // =========================================================================
 // 🔮 ECOSSISTEMA MESTRE - NÚCLEO OPERACIONAL UNIFICADO (PRINCIPAL.PHP)
 // =========================================================================
-
-// 🟢 1. CONTROLO ABSOLUTO DE SESSÃO (Evita duplicações e Warnings de cabeçalho)
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 date_default_timezone_set('Africa/Luanda');
 
-// 🟢 2. IMPORTAÇÃO DA CONEXÃO CENTRAL MESTRE
+// IMPORTAÇÃO DA CONEXÃO CENTRAL MESTRE
 require_once __DIR__ . "/config/Banco.php";
+include_once __DIR__ . "/Conexao.php";
 
 // Inicialização de segurança contra o Warning da linha 1430
 $cupao_desconto = isset($_SESSION['cupao_ativo']) ? $_SESSION['cupao_ativo'] : "";
 $total_barbearias_real = 0;
-
 // Importa o Conexao.php usando o caminho absoluto correto
 include_once(__DIR__ . "/Conexao.php");
 

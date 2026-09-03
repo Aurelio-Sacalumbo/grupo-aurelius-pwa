@@ -1,6 +1,6 @@
 <?php
-// Ficheiro: index.php (Na raiz do projeto)
-// Faz o salto automático e invisível para a pauta mestre das barbearias
+// Ficheiro: C:\xampp\htdocs\grupo-aurelius-pwa\index.php
+// Redireciona de forma invisível e instantânea para a raiz real do SaaS
 header("Location: Principal.php");
 exit();
 ?>
