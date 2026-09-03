@@ -139,10 +139,10 @@ if ($conexao_link) {
     ?>
         <div id="reel-<?= $id_anuncio_real ?>" class="reel-card-vertical">
         <video controls autoplay muted playsinline loop style="width: 100%; height: 100%; object-fit: cover; background: #000000;">
-    <source src="uploads/<?= htmlspecialchars($reel['imagem']) ?>" type="video/mp4">
-    <source src="uploads/<?= htmlspecialchars($reel['imagem']) ?>" type="video/quicktime">
-    O seu telemóvel não suporta a reprodução deste vídeo.
-</video>
+        <source src="<?= htmlspecialchars($reel['imagem'] ?? $r['imagem']) ?>" type="video/mp4">
+        <source src="<?= htmlspecialchars($reel['imagem'] ?? $r['imagem']) ?>" type="video/quicktime">
+        O seu telemóvel não suporta a reprodução deste vídeo.
+    </video>
             
             <div class="barra-lateral-acoes">
                 <!-- ❤️ BOTÃO GOSTO ASSÍNCRONO -->
@@ -237,10 +237,10 @@ if ($conexao_link) {
     ?>
         <div class="card-video-cinema">
         <video controls autoplay muted playsinline loop style="width: 100%; height: 100%; object-fit: cover; background: #000000;">
-    <source src="uploads/<?= htmlspecialchars($reel['imagem']) ?>" type="video/mp4">
-    <source src="uploads/<?= htmlspecialchars($reel['imagem']) ?>" type="video/quicktime">
-    O seu telemóvel não suporta a reprodução deste vídeo.
-</video>
+        <source src="<?= htmlspecialchars($reel['imagem'] ?? $r['imagem']) ?>" type="video/mp4">
+        <source src="<?= htmlspecialchars($reel['imagem'] ?? $r['imagem']) ?>" type="video/quicktime">
+        O seu telemóvel não suporta a reprodução deste vídeo.
+    </video>
             <h4 style="color: #00d2ff; margin: 12px 0 4px 0; font-size: 14px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="<?= $titulo_v ?>"><?= $titulo_v ?></h4>
             <span style="color: #22c55e; font-size: 11px; display: block; font-weight: bold;">📍 Local: <?= $endereco_loja ?></span>
             <span style="color: #64748b; font-size: 11px; display: block; margin-top: 2px;">🏢 Empresa: <?= htmlspecialchars($reel['nome_loja'] ?? 'Grupo Aurélius') ?></span>
@@ -350,10 +350,10 @@ function criarEstruturaDoCardReel(reel) {
     
     div.innerHTML = `
 
-    <video autoplay loop playsinline muted style="width: 100%; height: 100%; object-fit: cover;">
-    <!-- Vai buscar o nome do ficheiro .mp4 real gravado na coluna 'imagem' -->
-    <source src="uploads/<?php echo htmlspecialchars($r['imagem']); ?>" type="video/mp4">
-    O teu telemóvel não suporta este leitor.
+    <video controls autoplay muted playsinline loop style="width: 100%; height: 100%; object-fit: cover; background: #000000;">
+    <source src="<?= htmlspecialchars($reel['imagem'] ?? $r['imagem']) ?>" type="video/mp4">
+    <source src="<?= htmlspecialchars($reel['imagem'] ?? $r['imagem']) ?>" type="video/quicktime">
+    O seu telemóvel não suporta a reprodução deste vídeo.
 </video>
 
 
