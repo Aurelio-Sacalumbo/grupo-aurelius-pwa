@@ -1,8 +1,8 @@
 <?php
+// Substitua o session_start(); seco por esta trava inteligente:
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-
 // 1. Configuração para o RENDER (Produção)
 if (getenv('DB_HOST')) {
     $db_host = getenv('DB_HOST');

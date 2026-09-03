@@ -1,11 +1,8 @@
 <?php
-// =========================================================================
-// 🔌 INFRAESTRUTURA DE LIGAÇÃO HÍBRIDA BLINDADA - MOTOR MESTRE (BANCO.PHP)
-// =========================================================================
+// Substitua o session_start(); seco por esta trava inteligente:
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-
 // Deteta de forma automática se está no computador local (XAMPP) ou na Nuvem (Render/Railway)
 $is_local_env = ($_SERVER['REMOTE_ADDR'] === '127.0.0.1' || $_SERVER['HTTP_HOST'] === 'localhost' || !getenv('DB_HOST'));
 

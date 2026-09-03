@@ -1,9 +1,12 @@
-
 <?php
+// 🟢 REGRA DE OURO: A sessão só é iniciada se ainda não existir nenhuma ativa
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 date_default_timezone_set('Africa/Luanda');
+
+// Importação das conexões abaixo...
+require_once __DIR__ . "/config/Banco.php";
 
 // Inicialização de segurança contra o Warning da linha 1430
 $cupao_desconto = isset($_SESSION['cupao_ativo']) ? $_SESSION['cupao_ativo'] : "";
@@ -78,7 +81,7 @@ if ($q_contagem) {
 // 🚀 MOTOR DE NOTIFICAÇÕES REATIVO (ESTILO FACEBOOK MOBILE — SEM TRAVA DE DATA)
 // =========================================================================
 if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+  
 }
 
 // Intercepta o clique e ativa o trinco visual para esconder o número da aba selecionada
@@ -144,12 +147,15 @@ $total_notificacoes = $total_vids + $total_ped;
 
 
 
-
 <?php
+// 🟢 REGRA DE OURO: A sessão só é iniciada se ainda não existir nenhuma ativa
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 date_default_timezone_set('Africa/Luanda');
+
+// Importação das conexões abaixo...
+require_once __DIR__ . "/config/Banco.php";
 
 // Inicialização de segurança contra o Warning da linha 1430
 $cupao_desconto = isset($_SESSION['cupao_ativo']) ? $_SESSION['cupao_ativo'] : "";
@@ -249,7 +255,7 @@ $total_notificacoes = $notif_videos + $notif_empregos;
 <?php
 // Certifique-se de que estas são as primeiras linhas do seu Principal.php
 if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+   
 }
 date_default_timezone_set('Africa/Luanda');
 
@@ -541,7 +547,7 @@ if ('serviceWorker' in navigator) {
 // 🎌 CENTRAL DE AUDITORIA: DETEÇÃO DO LÍDER DE MERCADO (TOPO ABSOLUTO)
 // =========================================================================
 if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+    
 }
 
 include_once("Conexao.php");
@@ -837,7 +843,7 @@ try {
 
 <?php
 if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+   
 }
 date_default_timezone_set('Africa/Luanda');
 
