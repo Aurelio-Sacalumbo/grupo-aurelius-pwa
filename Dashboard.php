@@ -9,21 +9,35 @@ date_default_timezone_set('Africa/Luanda');
 
 // IMPORTAÇÃO DA CONEXÃO CENTRAL MESTRE
 require_once __DIR__ . "/config/Banco.php";
-$mysqli = $conexao_link ?? $conexao_aurelius ?? null;
+$mysqli = $conexao_link ?? $conexao_aurelius ?? $mysqli ?? null;
 
-// Fallback de contingência caso a conexão mestre falhe
-if (!$mysqli || @mysqli_ping($mysqli) === false) {
-    $mysqli = @mysqli_connect("altaria.proxy.rlwy.net", "root", "tPzDwXGkyczyyYdcyvLmHLSMmfZmnMIZ", "railway", 52030);
+// 🟢 CORREÇÃO CRÍTICA: Ponte com Porta Separada para Evitar o Erro 2002 (Connection Refused)
+if (!$mysqli || !($mysqli instanceof mysqli) || @mysqli_ping($mysqli) === false) {
+    $db_host = getenv('DB_HOST') ?: "altaria.proxy.rlwy.net";
+    $db_port = getenv('DB_PORT') ?: "52030";
+    $db_user = getenv('DB_USER') ?: "root";
+    $db_pass = getenv('DB_PASSWORD') ?: "tPzDwXGkyczyyYdcyvLmHLSMmfZmnMIZ";
+    $db_name = getenv('DB_NAME') ?: "railway";
+
+    $mysqli = mysqli_init();
+    if (!@mysqli_real_connect($mysqli, $db_host, $db_user, $db_pass, $db_name, (int)$db_port)) {
+        // Fallback secundário para o XAMPP local se estiver a rodar no computador offline
+        $mysqli = @mysqli_connect("127.0.0.1", "root", "", "aurelius_salao");
+    }
+}
+
+if ($mysqli && !mysqli_connect_errno()) {
+    $mysqli->set_charset("utf8mb4");
 }
 
 // Captura e memoriza a intenção de rota do cliente vinda do botão ENTRAR
-if (isset($_GET['acceder_a'])) {
+if (isset($_GET['acceder_a']) && $mysqli) {
     $_SESSION['barbearia_alvo_slug'] = mysqli_real_escape_string($mysqli, trim($_GET['acceder_a']));
 }
 
 $erro = [];
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $mysqli) {
     $email = isset($_POST['email']) ? mysqli_real_escape_string($mysqli, trim($_POST['email'])) : '';
     $senha_raw = isset($_POST['senha']) ? trim($_POST['senha']) : '';
 
@@ -53,34 +67,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // =========================================================================
             if ($dados_cliente['nivel'] === 'cliente') {
                 
-                // Se o usuário veio de uma intenção direta ou clique anterior
                 if (!empty($_SESSION['barbearia_alvo_slug'])) {
                     $barbearia_escolhida = $_SESSION['barbearia_alvo_slug'];
                 } else {
                     $barbearia_escolhida = !empty($_SESSION['barbearia_selecionada']) ? trim($_SESSION['barbearia_selecionada']) : 'Principal';
                 }
                 
-                // Constrói o nome do ficheiro físico (ex: BarbeariaBranca.php ou Principal.php)
                 $ficheiro_destino = $barbearia_escolhida . ".php";
 
-                // 🟢 VERIFICAÇÃO AUTOMÁTICA: O ficheiro existe na pasta do teu projeto?
                 if (file_exists(__DIR__ . "/" . $ficheiro_destino)) {
                     header("Location: " . $ficheiro_destino);
                     exit();
                 } else {
-                    // 🚨 SE NÃO EXISTIR: Manda para a index mestre passando o alerta
                     header("Location: Principal.php?erro_pagina=1&nome_tentado=" . urlencode($barbearia_escolhida));
                     exit();
                 }
                 
             } else {
-                // Rota padrão para Gestores / Donos de Barbearias
-                $destino_admin = !empty($dados_cliente['slug']) ? trim($dados_cliente['slug']) . ".php" : "Principal.php";
+                // Rota padrão para Gestores / Donos de Barbearias (Dashboard.php)
+                $destino_admin = !empty($dados_cliente['slug']) ? trim($dados_cliente['slug']) . ".php" : "Dashboard.php";
                 
                 if (file_exists(__DIR__ . "/" . $destino_admin)) {
                     header("Location: " . $destino_admin);
                 } else {
-                    header("Location: Principal.php?erro_pagina=1");
+                    header("Location: Dashboard.php"); // Fallback seguro para o painel mestre corrigido
                 }
                 exit();
             }
