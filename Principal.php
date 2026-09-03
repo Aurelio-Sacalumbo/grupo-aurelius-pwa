@@ -1,53 +1,60 @@
 <?php
-// 🟢 REGRA DE OURO: A sessão só é iniciada se ainda não existir nenhuma ativa
+// =========================================================================
+// 🔮 ECOSSISTEMA MESTRE - NÚCLEO OPERACIONAL UNIFICADO (PRINCIPAL.PHP)
+// =========================================================================
+
+// 🟢 1. CONTROLO ABSOLUTO DE SESSÃO (Evita duplicações e Warnings de cabeçalho)
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 date_default_timezone_set('Africa/Luanda');
 
-// Importação das conexões abaixo...
+// 🟢 2. IMPORTAÇÃO DA CONEXÃO CENTRAL MESTRE
 require_once __DIR__ . "/config/Banco.php";
 
 // Inicialização de segurança contra o Warning da linha 1430
 $cupao_desconto = isset($_SESSION['cupao_ativo']) ? $_SESSION['cupao_ativo'] : "";
 $total_barbearias_real = 0;
 
+// Importa o Conexao.php usando o caminho absoluto correto
 include_once(__DIR__ . "/Conexao.php");
 
 // Se o arquivo Conexao.php já criou a variável, nós reaproveitamos.
-// Se não criou, puxamos as variáveis de ambiente do Railway/Render ou o local.
-$conexao_link = $conexao_link ?? $conexao_aurelius ?? $conexao ?? null;
+$conexao_link = $conexao_link ?? $conexao_aurelius ?? $conexao ?? $mysqli ?? null;
 
+// 🟢 3. PONTE DE CONEXÃO SAAS COMPATÍVEL COM LOCALHOST E RENDER.COM
 if (!$conexao_link || !($conexao_link instanceof mysqli)) {
-    // Tenta ler o Render, se não existir, usa os dados públicos ativos do Railway
-    $db_host = getenv('DB_HOST') ?: "altaria.proxy.rlwy.net:52030";
+    // Captura os dados de ambiente do Render/Railway. No Linux, separamos o Host da Porta.
+    $db_host = getenv('DB_HOST') ?: "altaria.proxy.rlwy.net";
+    $db_port = getenv('DB_PORT') ?: "52030";
     $db_user = getenv('DB_USER') ?: "root";
     $db_pass = getenv('DB_PASSWORD') ?: "tPzDwXGkyczyyYdcyvLmHLSMmfZmnMIZ";
     $db_name = getenv('DB_NAME') ?: "railway";
     
-    // Efetua a ligação dinâmica com o supressor de avisos @
-    $conexao_link = @new mysqli($db_host, $db_user, $db_pass, $db_name);
+    // Efetua a ligação dinâmica passando a porta de forma isolada para não travar
+    $conexao_link = @mysqli_connect($db_host, $db_user, $db_pass, $db_name, (int)$db_port);
 }
 
-// Garante o charset correto se a ligação foi estabelecida
-if ($conexao_link && !$conexao_link->connect_error) {
-    $conexao_link->set_charset("utf8mb4");
-    $conexao_link->query("SET SESSION sql_mode=''");
-}
-// Se mesmo assim falhar, para o código antes de gerar erros no HTML
-if (!$conexao_link || mysqli_connect_errno()) {
-    die("<div style='padding:20px; background:#ffdddd; color:#aa0000; font-family:sans-serif;'>
-            <strong>Erro de Infraestrutura:</strong> Não foi possível conectar à base de dados.
+// Garante a calibração do Charset e anula o modo rígido de agrupamento do MySQL
+if ($conexao_link && !mysqli_connect_errno()) {
+    mysqli_set_charset($conexao_link, "utf8mb4");
+    mysqli_query($conexao_link, "SET SESSION sql_mode=''");
+} else {
+    // Se mesmo assim falhar, para o código de forma limpa antes de estragar o HTML
+    die("<div style='padding:20px; background:#0f172a; color:#ef4444; font-family:sans-serif; border:1px solid #ef4444; border-radius:12px; margin:20px;'>
+            <strong>Erro de Infraestrutura SaaS:</strong> A base de dados principal está temporariamente inacessível online.
          </div>");
 }
 
-mysqli_set_charset($conexao_link, "utf8mb4");
+// Revalida os clones de segurança para os feeds antigos continuarem a ler a variável
+$mysqli = $conexao_link;
+$conexao_aurelius = $conexao_link;
 
 // =========================================================================
 // 🛡️ MOTOR DE FILTRAGEM & CONTADOR DE PARCEIROS ATIVOS
 // =========================================================================
 $lista_parceiros_ativos = [];
-$listaReels             = []; // Inicializado para segurança caso carregue dados daqui futuramente
+$listaReels             = []; 
 $total_barbearias_real  = 0;
 
 // Puxa apenas parceiros legítimos sem repetições
@@ -75,14 +82,12 @@ $q_contagem = mysqli_query($conexao_link, "
 
 if ($q_contagem) {
     $dados_cont = mysqli_fetch_assoc($q_contagem);
-    $total_barbearias_real = intval($dados_cont['total']); // Exibe exatamente o total correto no ecrã
+    $total_barbearias_real = intval($dados_cont['total']); 
 }
+
 // =========================================================================
-// 🚀 MOTOR DE NOTIFICAÇÕES REATIVO (ESTILO FACEBOOK MOBILE — SEM TRAVA DE DATA)
+// 🚀 MOTOR DE NOTIFICAÇÕES REATIVO (ESTILO FACEBOOK MOBILE)
 // =========================================================================
-if (session_status() === PHP_SESSION_NONE) {
-  
-}
 
 // Intercepta o clique e ativa o trinco visual para esconder o número da aba selecionada
 if (isset($_GET['marcar_lido'])) {
@@ -95,7 +100,7 @@ if (isset($_GET['marcar_lido'])) {
         'vagas'       => 'Vagas.php', 
         'lojas'       => 'Lojas.php', 
         'barbearias'  => 'Principal.php', 
-        'sino'        => 'Video.php' // Redireciona o sino para a tua página de vídeos
+        'sino'        => 'Video.php'
     ];
     
     if (isset($rotas[$seccao])) { 
@@ -104,37 +109,34 @@ if (isset($_GET['marcar_lido'])) {
     }
 }
 
-// 🟢 SEGUNDA CAMADA DE LIMPEZA AUTOMÁTICA POR URL
-// Se o utilizador já estiver fisicamente na página, esconde a bolha automaticamente
+// Camada de limpeza automática baseada na URL atual
 $url_atual = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
 if (strpos($url_atual, 'Principal.php') !== false) { $_SESSION['bloqueio_notif_barbearias'] = true; }
 if (strpos($url_atual, 'Lojas.php') !== false)     { $_SESSION['bloqueio_notif_lojas'] = true; }
 if (strpos($url_atual, 'Vagas.php') !== false)     { $_SESSION['bloqueio_notif_vagas'] = true; }
 if (strpos($url_atual, 'Video.php') !== false)     { $_SESSION['bloqueio_notif_sino'] = true; }
 
-
 // Inicializadores dos contadores de novos registos
 $novasVagas     = 0; 
 $novasLojas     = 0; 
 $novosProdutos  = 0; 
-$total_notificacoes = 0; // Unificado para o sininho
+$total_notificacoes = 0; 
 
-// 📊 Contagem Real - Total de Vagas de Trabalho na Base de Dados
+// Contagem Real - Vagas
 $q_vagas = mysqli_query($conexao_link, "SELECT COUNT(*) as total FROM `vagas_trabalho`");
 $novasVagas = (int)(mysqli_fetch_assoc($q_vagas)['total'] ?? 0);
 
-// 📊 Contagem Real - Total de Lojas Cadastradas
+// Contagem Real - Lojas
 $q_lojas = mysqli_query($conexao_link, "SELECT COUNT(*) as total FROM `usuario` WHERE `nivel` = 'parceiro_hospedado' AND `transacao_status` = 'Confirmado'"); 
-// Nota: Se tiveres uma tabela específica chamada 'lojas', podes mudar para: "SELECT COUNT(*) as total FROM `lojas`"
 $novasLojas = (int)(mysqli_fetch_assoc($q_lojas)['total'] ?? 0);
 
-// 📊 Contagem Real - Total de Produtos
+// Contagem Real - Produtos
 $q_prod = @mysqli_query($conexao_link, "SELECT COUNT(*) as total FROM `produtos` WHERE 1=1");
 if ($q_prod) {
     $novosProdutos = (int)(mysqli_fetch_assoc($q_prod)['total'] ?? 0);
 }
 
-// 🔔 Contagem Real - Sistema do Sino (Vídeos de anúncios + Candidaturas de Emprego)
+// Contagem Real - Sistema do Sino (Vídeos de anúncios + Candidaturas de Emprego)
 $q_vids = mysqli_query($conexao_link, "SELECT COUNT(*) as total FROM `anuncios` WHERE `tipo_media` = 'video'");
 $total_vids = (int)(mysqli_fetch_assoc($q_vids)['total'] ?? 0);
 
@@ -144,7 +146,6 @@ $total_ped = (int)(mysqli_fetch_assoc($q_ped)['total'] ?? 0);
 // O total de notificações unifica os alertas dinâmicos
 $total_notificacoes = $total_vids + $total_ped;
 ?>
-
 
 
 <?php
