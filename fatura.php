@@ -50,7 +50,7 @@ try {
         $atendente_final = $pagamento['profissional'];
     }
 
-    $telefone_cliente_final = $pagamento['cliente_telephone'] ?? ($pagamento['cliente_telefone'] ?? '900000000');
+    $telefone_cliente_final = $pagamento['cliente_telephone'] ?? ($pagamento['cliente_telefone'] ?? '925347372');
     $desconto_kz = floatval($pagamento['desconto']);
     $valor_bruto = floatval($pagamento['valor']);
     $is_premium_cliente = ($desconto_kz > 0);
