@@ -67,10 +67,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['ficheiro_foto'])) {
             $stmt->execute([$id_barbearia, $titulo, $caminho_completo_disco, $tipo_media_db]);
             
             echo "<script>
-                    alert('🎉 Sucesso! O seu ficheiro foi processado e guardado em " . $pasta_destino_final . " e já está ativo no ecossistema!');
-                    window.location.href = 'Dashboard.php';
-                  </script>";
-            exit();
+            alert('🎉 Sucesso! O seu ficheiro foi processado e guardado em " . $pasta_destino_final . " e já está ativo no ecossistema!');
+            window.location.href = 'video.php'; // Empurra o utilizador direto para a pauta de Reels
+          </script>";
+    exit();
             
         } catch (PDOException $e) {
             error_log("Erro de inserção na tabela anuncios: " . $e->getMessage());
