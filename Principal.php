@@ -1514,17 +1514,19 @@ if (isset($mysqli)) {
             // Regista o nome no array para travar futuras repetições
             $parceiros_desenhados[] = $nome_barbearia;
             
-            // 🟢 CARREGAMENTO SEGURO DE IMAGEM DO PARCEIRO
-            $arquivo_logo = trim($row['logo_empresa'] ?? '');
-            
-            if (!empty($arquivo_logo) && file_exists("uploads/" . $arquivo_logo)) {
-                $foto_src = "uploads/" . $arquivo_logo;
-            } elseif (!empty($arquivo_logo) && file_exists($arquivo_logo)) {
-                $foto_src = $arquivo_logo;
-            } else {
-                $foto_src = "OIP (6).webp"; 
-            }
+           // 🟢 SUBSTITUA O BLOCO DE TRATAMENTO DE IMAGEM POR ESTE INTEGRADO:
+$arquivo_logo = trim($row['logo_empresa'] ?? '');
 
+if (!empty($arquivo_logo) && file_exists(__DIR__ . "/upload/" . $arquivo_logo)) {
+    $foto_src = "uploads/" . $arquivo_logo;
+} elseif (!empty($arquivo_logo) && file_exists(__DIR__ . "/guardar-fotos/" . $arquivo_logo)) {
+    $foto_src = "guardar-fotos/" . $arquivo_logo;
+} elseif (!empty($arquivo_logo) && (strpos($arquivo_logo, 'http') === 0 || file_exists($arquivo_logo))) {
+    $foto_src = $arquivo_logo;
+} else {
+    // Fallback de contingência caso o parceiro não tenha enviado imagem de perfil
+    $foto_src = "OIP (6).webp"; 
+}
             // Roteador dinâmico reativo por slug
             $slug_banco = !empty($row['slug']) ? trim($row['slug']) : 'Login';
             $link_destino = $slug_banco . ".php";

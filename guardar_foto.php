@@ -30,12 +30,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['ficheiro_foto'])) {
     $extensoes_fotos = ['jpg', 'jpeg', 'png', 'webp'];
     $extensoes_videos = ['mp4', 'mov', 'avi', 'mpeg'];
     
-    // 🧠 O MOTOR DE DECISÃO: Deteta automaticamente se é vídeo ou foto e define a pasta
-    if (in_array($extensao, $extensoes_videos) || strpos($tipo_mime, 'video/') === 0) {
-        // 📁 ROTA DE VÍDEOS
-        $pasta_destino_final = "guardar-videos/";
-        $tipo_media_db = "video";
-        $novo_nome_ficheiro = "video_" . time() . "_" . uniqid() . "." . $extensao;
+    // Altere as rotas internas do seu motor de decisão para usar a pasta padrão uploads/
+if (in_array($extensao, $extensoes_videos) || strpos($tipo_mime, 'video/') === 0) {
+    $pasta_destino_final = "uploads/";
+    $tipo_media_db = "video";
+    $novo_nome_ficheiro = "video_" . time() . "_" . uniqid() . "." . $extensao;
+} else {
+    $pasta_destino_final = "uploads/";
+    $tipo_media_db = "foto";
+    $novo_nome_ficheiro = "foto_" . time() . "_" . uniqid() . "." . $extensao;
+}
     } else if (in_array($extensao, $extensoes_fotos) || strpos($tipo_mime, 'image/') === 0) {
         // 📁 ROTA DE FOTOS
         $pasta_destino_final = "guardar-fotos/";
@@ -46,12 +50,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['ficheiro_foto'])) {
         exit;
     }
     
-    // ⚙️ VERIFICAÇÃO DE DISCO: Se as pastas não existirem no XAMPP ou Render, cria-as na hora
-    if (!is_dir($pasta_destino_final)) {
-        mkdir($pasta_destino_final, 0777, true);
-    }
-    
-    $caminho_completo_disco = $pasta_destino_final . $novo_nome_ficheiro;
+    // 🟢 CORREÇÃO CRÍTICA DE PERMISSÃO LINUX (COLE NO SEU GUARDAR_FOTO.PHP)
+if (!is_dir($pasta_destino_final)) {
+    // Cria a pasta aplicando a permissão máxima de escrita (0777) de forma recursiva
+    mkdir($pasta_destino_final, 0777, true);
+    // Reforça a permissão caso a pasta já tenha sido criada de forma restrita pelo Git
+    chmod($pasta_destino_final, 0777);
+} else {
+    // Se a pasta já existir (ex: uploads ou guardar-fotos), obriga o Linux a liberar escrita
+    chmod($pasta_destino_final, 0777);
+}
     
     // Move o arquivo temporário do telemóvel para a pasta correta definida pelo motor acima
     if (move_uploaded_file($ficheiro['tmp_name'], $caminho_completo_disco)) {
