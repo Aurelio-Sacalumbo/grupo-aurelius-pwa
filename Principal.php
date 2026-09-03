@@ -3092,57 +3092,67 @@ window.addEventListener('load', function() {
 
 
 
-
 <!-- =================================================================
-     🔮 MÓDULO COMPACTADO (50%), CENTRALIZADA E ULTRA RADIANTE NEON
+     🔮 MÓDULO DE TESTEMUNHOS REATIVO 100% RESPONSIVO PARA SMARTPHONES
      ================================================================= -->
-<div style="width: 100%; display: flex; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; clear: both;">
+<div style="width: 100%; display: flex; justify-content: center; align-items: center; padding: 15px 10px; box-sizing: border-box; clear: both;">
     
-    <div class="seccao-depoimentos" style="background: linear-gradient(135deg, #101f38, #0b1329); border: 2px solid #38bdf8; border-radius: 16px; padding: 25px; width: 100%; max-width: 500px; text-align: left; box-shadow: 0 0 20px rgba(56, 189, 248, 0.35); font-family: 'Segoe UI', Arial, sans-serif; box-sizing: border-box;">
+    <div class="seccao-depoimentos" style="background: linear-gradient(135deg, #101f38, #0b1329); border: 2px solid #38bdf8; border-radius: 16px; padding: 20px 15px; width: 100%; max-width: 500px; text-align: left; box-shadow: 0 0 20px rgba(56, 189, 248, 0.25); font-family: 'Segoe UI', Arial, sans-serif; box-sizing: border-box;">
         
-        <h3 style="color: #38bdf8; font-size: 15px; text-transform: uppercase; margin: 0 0 6px 0; letter-spacing: 0.5px; border-left: 3px solid #38bdf8; padding-left: 8px;">
+        <h3 style="color: #38bdf8; font-size: 12px; text-transform: uppercase; margin: 0 0 6px 0; letter-spacing: 0.5px; border-left: 3px solid #38bdf8; padding-left: 8px;">
             💬 Espaço de Testemunhos e Avaliações
         </h3>
-        <p style="color: #94a3b8; font-size: 12px; margin-bottom: 20px;">Deixe o seu comentário e nota abaixo. Ficheiros do telemóvel são suportados.</p>
+        <p style="color: #94a3b8; font-size: 12px; margin-bottom: 15px;">Deixe o seu comentário e nota abaixo.</p>
     
         <form action="processar_depoimento.php" method="POST" enctype="multipart/form-data" class="formulario-depoimento" onsubmit="return validarFormulario(event)">
-            <!-- 🌟 INVISÍVEL ESSENCIAL: Armazena a nota cromática clicada para salvar no banco -->
+            <!-- 🌟 INVISÍVEL ESSENCIAL: Armazena a nota cronática clicada para salvar no banco -->
             <input type="hidden" name="estrelas" id="inputEstrelas" value="0">
             
             <div class="form-linha" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px;">
-                <input type="text" name="nome" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #070913; color: white; font-size: 13px; outline: none; box-sizing: border-box;" placeholder=" seu nome" required>
+                <input type="text" name="nome" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #070913; color: white; font-size: 13px; outline: none; box-sizing: border-box;" placeholder="O seu nome" required>
                 <input type="file" name="foto_perfil" accept="image/*" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #334155; background: #070913; color: #94a3b8; font-size: 12px; outline: none; box-sizing: border-box;">
             </div>
         
             <!-- SELECIONADOR CROMÁTICO REATIVO DE ESTRELAS -->
-            <div class="estrelas-container" style="display: flex; align-items: center; gap: 6px; margin-bottom: 12px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; border: 1px solid #1e293b; flex-wrap: wrap;">
-                <span style="font-size:10px; font-weight:bold; color:#64748b; text-transform:uppercase;">Sua Nota:</span>
-                <div style="display: inline-flex; gap: 4px;">
-                    <span class="estrela-btn" onclick="definirNota(1)" style="font-size: 20px; color: #334155; cursor: pointer; transition: 0.2s; user-select: none;">★</span>
-                    <span class="estrela-btn" onclick="definirNota(2)" style="font-size: 20px; color: #334155; cursor: pointer; transition: 0.2s; user-select: none;">★</span>
-                    <span class="estrela-btn" onclick="definirNota(3)" style="font-size: 20px; color: #334155; cursor: pointer; transition: 0.2s; user-select: none;">★</span>
-                    <span class="estrela-btn" onclick="definirNota(4)" style="font-size: 20px; color: #334155; cursor: pointer; transition: 0.2s; user-select: none;">★</span>
-                    <span class="estrela-btn" onclick="definirNota(5)" style="font-size: 20px; color: #334155; cursor: pointer; transition: 0.2s; user-select: none;">★</span>
+            <div class="estrelas-container" style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; border: 1px solid #1e293b; flex-wrap: wrap; gap: 8px; box-sizing: border-box; width: 100%;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-size:10px; font-weight:bold; color:#64748b; text-transform:uppercase;">Sua Nota:</span>
+                    <div style="display: inline-flex; gap: 4px;" id="blocoEstrelasMestre">
+                        <span class="estrela-btn" onclick="definirNota(1)" style="font-size: 22px; color: #334155; cursor: pointer; transition: 0.2s; user-select: none;">★</span>
+                        <span class="estrela-btn" onclick="definirNota(2)" style="font-size: 22px; color: #334155; cursor: pointer; transition: 0.2s; user-select: none;">★</span>
+                        <span class="estrela-btn" onclick="definirNota(3)" style="font-size: 22px; color: #334155; cursor: pointer; transition: 0.2s; user-select: none;">★</span>
+                        <span class="estrela-btn" onclick="definirNota(4)" style="font-size: 22px; color: #334155; cursor: pointer; transition: 0.2s; user-select: none;">★</span>
+                        <span class="estrela-btn" onclick="definirNota(5)" style="font-size: 22px; color: #334155; cursor: pointer; transition: 0.2s; user-select: none;">★</span>
+                    </div>
                 </div>
-                <span id="rotuloNota" class="rotulo-nota" style="font-size: 11px; color: #64748b; font-weight: bold; margin-left: 5px; text-transform: uppercase;">Selecione</span>
+                <span id="rotuloNota" class="rotulo-nota" style="font-size: 11px; color: #64748b; font-weight: bold; text-transform: uppercase;">Selecione</span>
                 <input type="hidden" name="cupao_aplicado" value="<?php echo !empty($cupao_desconto) ? htmlspecialchars($cupao_desconto) : ''; ?>">
             </div>
             
-            <textarea name="comentario" style="width: 100%; height: 80px; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #070913; color: white; font-size: 13px; outline: none; resize: vertical; margin-bottom: 12px; box-sizing: border-box;" placeholder="Escreva aqui a sua avaliação ou reclamação para a gerência..." required></textarea>
-            <button type="submit" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #38bdf8, #0284c7); color: #0f172a; border: none; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: 0.3s;">Publicar Testemunho</button>
+            <!-- Contentor Centrador Fluido para Dispositivos Móveis -->
+<div style="width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; box-sizing: border-box;">
+    
+    <!-- Caixa de Texto Compacta e Centralizada -->
+    <textarea name="comentario" style="width: 80%; max-width: 320px; height: 55px; padding: 8px 12px; border-radius: 8px; border: 1px solid #334155; background: #070913; color: white; font-size: 12px; outline: none; resize: none; box-sizing: border-box;" placeholder="Escreva aqui a sua avaliação ou reclamação..." required></textarea>
+    
+    <!-- Botão de Envio Compacto e Centralizado (Ergonómico para o Dedo) -->
+    <button type="submit" style="width: 60%; max-width: 200px; padding: 10px; background: linear-gradient(135deg, #38bdf8, #0284c7); color: white !important; border: none; border-radius: 8px; font-weight: bold; font-size: 11px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: 0.2s; box-shadow: 0 4px 10px rgba(56, 189, 248, 0.15); outline: none;">
+        Publicar
+    </button>
+
+</div>
         </form>
     
         <!-- PASTA RETRÁTIL PARA O CLIENTE VER OS COMENTÁRIOS REAIS -->
-        <div style="width: 100%; margin-top: 20px;">
-            <button type="button" onclick="alternarPastaCliente()" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: #38bdf8; border: 1px solid #334155; padding: 12px 15px; font-size: 12px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center; outline: none;">
+        <div style="width: 100%; margin-top: 15px; box-sizing: border-box;">
+            <button type="button" onclick="alternarPastaCliente()" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: #38bdf8; border: 1px solid #334155; padding: 12px 15px; font-size: 12px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center; outline: none; box-sizing: border-box;">
                 <span>📁 VER TESTEMUNHOS RECENTES</span>
                 <span id="setaPastaCliente" style="font-size: 12px; color: #ffffff; transition: 0.3s;">▼</span>
             </button>
     
-            <div id="conteudoPastaCliente" style="display: none; background: #0f1423; border: 1px solid #334155; border-top: none; padding: 15px; border-radius: 0 0 12px 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5);">
-                <ul id="listaTestemunhos" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px;">
+            <div id="conteudoPastaCliente" style="display: none; background: #0f1423; border: 1px solid #334155; border-top: none; padding: 12px; border-radius: 0 0 12px 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); box-sizing: border-box; width: 100%;">
+                <ul id="listaTestemunhos" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px;">
                     <?php 
-                    // ✂️ EXIBIÇÃO REAL FILTRADA: Mostra apenas os 5 depoimentos mais recentes retornados pelo banco
                     $depoimentos_exibir = [];
                     if (!empty($depoimentos_reais) && is_array($depoimentos_reais)) {
                         $depoimentos_exibir = array_slice(array_reverse($depoimentos_reais), 0, 5);
@@ -3161,131 +3171,109 @@ window.addEventListener('load', function() {
                                 }
                             }
                         ?>
-                            <li class="item-testemunho" style="display: flex; gap: 10px; background: #070913; padding: 12px; border-radius: 8px; border: 1px solid #1e293b; align-items: flex-start;">
-                                <img src="<?php echo htmlspecialchars($imagem_perfil); ?>" style="width: 36px; height: 36px; border-radius: 50%; border: 2px solid #38bdf8; object-fit: cover;" alt="User">
-                                <div class="conteudo-testemunho" style="flex: 1; text-align: left;">
-                                    <div class="meta" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; flex-wrap: wrap;">
-                                        <span style="font-weight: bold; color: #ffffff; font-size: 13px;"><?php echo htmlspecialchars($dep['nome']); ?></span>
+                            <li class="item-testemunho" style="display: flex; gap: 10px; background: #070913; padding: 12px; border-radius: 8px; border: 1px solid #1e293b; align-items: flex-start; box-sizing: border-box; width: 100%;">
+                                <img src="<?php echo htmlspecialchars($imagem_perfil); ?>" style="width: 36px; height: 36px; border-radius: 50%; border: 2px solid #38bdf8; object-fit: cover; flex-shrink: 0;" alt="User">
+                                <div class="conteudo-testemunho" style="flex: 1; text-align: left; min-width: 0;">
+                                    <div class="meta" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; flex-wrap: wrap; gap: 4px;">
+                                        <span style="font-weight: bold; color: #ffffff; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;"><?php echo htmlspecialchars($dep['nome']); ?></span>
                                         <span class="estrelas-fixas" style="color: #eab308; font-size: 11px; letter-spacing: 1px;">
                                             <?php echo str_repeat('★', (int)$dep['estrelas']); ?>
                                         </span>
                                     </div>
-                                    <div class="texto" style="color: #cbd5e1; font-size: 12px; font-style: italic; line-height: 1.5; word-break: break-word;">
-                                        "<?php echo htmlspecialchars($dep['comentario']); ?>"
+                                    <div class="texto" style="color: #cbd5e1; font-size: 12px; font-style: italic; line-height: 1.4; word-break: break-word;">
+                                        <?php echo htmlspecialchars($dep['comentario']); ?>
                                     </div>
-                                    <?php if(!empty($dep['resposta_gerente'])): ?>
-                                        <div class="resposta-gerente" style="margin-top: 8px; padding-left: 10px; border-left: 2px solid #38bdf8; color: #38bdf8; font-size: 11.5px;">
-                                            ↳ <b>Resposta do Gerente:</b> <?php echo htmlspecialchars($dep['resposta_gerente']); ?>
-                                        </div>
-                                    <?php endif; ?>
                                 </div>
                             </li>
                         <?php 
-                        endforeach; 
-                    else: 
+                        endforeach;
+                    else:
                     ?>
-                        <p style="color: #64748b; font-size: 12px; font-style: italic; text-align: center; padding: 10px 0;">Nenhum testemunho disponível por agora.</p>
+                        <p style="color: #64748b; font-size: 12px; text-align: center; padding: 10px; font-style: italic;">Nenhum testemunho publicado de momento.</p>
                     <?php endif; ?>
                 </ul>
             </div>
         </div>
-
     </div>
 </div>
 
-<!-- =================================================================
-     🧠 ENGENHARIA JAVASCRIPT: REATIVIDADE CENTRAL DESTRANCADA
-     ================================================================= -->
-     <script>
-     let notaGlobalSelecionada = 0;
-     const textosNotas = { 
-         1: "★ Péssimo ❌", 
-         2: "★★ Ruim ⚠️", 
-         3: "★★★ Mais ou Menos ⚡", 
-         4: "★★★★ Bom ⭐", 
-         5: "★★★★★ Excelente 👑" 
-     };
- 
-     // 🌟 MOTOR DE ACENDIMENTO AO TOQUE INTERATIVO
-     function definirNota(nota) {
-         notaGlobalSelecionada = nota;
-         const inputEstrelas = document.getElementById('inputEstrelas');
-         
-         if (inputEstrelas) {
-             inputEstrelas.value = nota;
-         }
- 
-         // ── CONTINUAÇÃO DA FUNÇÃO DA NOTA REATIVA ──
-         const estrelas = document.querySelectorAll('.estrela-btn');
-         estrelas.forEach((estrela, indice) => {
-             if (indice < nota) {
-                 estrela.style.color = '#eab308';
-                 estrela.style.textShadow = '0 0 8px #eab308';
-                 estrela.style.transform = 'scale(1.15)';
-             } else {
-                 estrela.style.color = '#334155';
-                 estrela.style.textShadow = 'none';
-                 estrela.style.transform = 'scale(1)';
-             }
-         });
-         
-         const lbl = document.getElementById('rotuloNota');
-         if (lbl) {
-             lbl.innerText = textosNotas[nota];
-             lbl.style.color = (nota >= 4) ? '#4ade80' : ((nota === 3) ? '#facc15' : '#f87171');
-         }
-     }
- 
-     // 🛡️ ESCUDO DE SUBMISSÃO DO FORMULÁRIO DE AVALIAÇÕES
-     function validarFormulario(event) {
-         if (notaGlobalSelecionada === 0) {
-             alert('⚠️ Erro Comercial: Por favor, selecione uma nota de 1 a 5 estrelas antes de publicar!');
-             return false;
-         }
-         return true;
-     }
- 
-     // 📁 MOTOR DE EXPANSÃO DA PASTA RETRÁTIL DO CLIENTE
-     function alternarPastaCliente() {
-         const conteudo = document.getElementById("conteudoPastaCliente");
-         const seta = document.getElementById("setaPastaCliente");
-         
-         if (conteudo && seta) {
-             if (conteudo.style.display === "none" || conteudo.style.display === "") {
-                 conteudo.style.display = "block";
-                 seta.innerText = "▲";
-                 seta.style.color = "#38bdf8";
-             } else {
-                 conteudo.style.display = "none";
-                 seta.innerText = "▼";
-                 seta.style.color = "#ffffff";
-             }
-         }
-     }
- </script>
- 
- <!-- =================================================================
-      🎨 ESTILOS CSS EXTRA VIVOS DE SUPORTE
-      ================================================================= -->
- <style>
-     @keyframes pulsarDepoimentosCompacto {
-         0% { box-shadow: 0 0 10px rgba(56, 189, 248, 0.2); border-color: #0284c7; }
-         100% { box-shadow: 0 0 22px rgba(56, 189, 248, 0.5); border-color: #38bdf8; }
-     }
-     .seccao-depoimentos {
-         animation: pulsarDepoimentosCompacto 4s infinite alternate ease-in-out;
-     }
-     .estrela-btn { 
-         transition: all 0.2s ease; 
-         display: inline-block; 
-     }
-     .estrela-btn:hover { 
-         transform: scale(1.2); 
-         color: #fbbf24; 
-     }
- </style>
+<!-- =========================================================================
+     🕹️ MOTOR LOGÍSTICO AUXILIAR JAVASCRIPT DE TESTEMUNHOS
+     ========================================================================= -->
+<script>
+// =========================================================================
+// 🧠 ENGENHARIA JAVASCRIPT: REATIVIDADE CENTRAL DESTRANCADA (VORTEX NEON)
+// =========================================================================
+let notaGlobalSelecionada = 0;
 
+// Dicionário Estrito de Alta Resolução para Feedback Visual do Cliente
+const textosNotas = { 
+    1: "Péssimo ❌ 😡", 
+    2: "Ruim ⚠️ 🙁", 
+    3: "Regular ⚡ 😐", 
+    4: "Muito Bom ⭐ 🙂", 
+    5: "Excelente 👑 😎" 
+};
 
+// 1. SISTEMA REATIVO DE SELEÇÃO DE ESTRELAS (MÉTODO NEON)
+function definirNota(nota) {
+    // Atualiza as variáveis de controle global e o input oculto para o POST PHP
+    notaGlobalSelecionada = nota;
+    const inputOculto = document.getElementById('inputEstrelas');
+    if (inputOculto) {
+        inputOculto.value = nota;
+    }
+    
+    // Atualiza o rótulo descritivo com os novos textos expandidos e cores neon
+    const rotulo = document.getElementById('rotuloNota');
+    if (rotulo) {
+        rotulo.innerText = textosNotas[nota] || 'Selecione';
+        rotulo.style.color = '#eab308'; // Ouro Radiente
+        rotulo.style.textShadow = '0 0 8px rgba(234, 179, 8, 0.3)';
+    }
+
+    // Varre o bloco de estrelas aplicando a coloração reativa
+    const estrelas = document.querySelectorAll('#blocoEstrelasMestre .estrela-btn');
+    estrelas.forEach((estrela, indice) => {
+        if (indice < nota) {
+            // Estrelas selecionadas ganham brilho dourado e leve pulso
+            estrela.style.color = '#eab308';
+            estrela.style.textShadow = '0 0 10px rgba(234, 179, 8, 0.5)';
+            estrela.style.transform = 'scale(1.1)';
+        } else {
+            // Estrelas apagadas retornam ao cinzento fosco padrão
+            estrela.style.color = '#334155';
+            estrela.style.textShadow = 'none';
+            estrela.style.transform = 'scale(1)';
+        }
+    });
+}
+// 2. CONTROLO RETRÁTIL DA PASTA DE COMENTÁRIOS DO CLIENTE
+function alternarPastaCliente() {
+    const conteudo = document.getElementById('conteudoPastaCliente');
+    const seta = document.getElementById('setaPastaCliente');
+    
+    if (conteudo.style.display === 'none' || conteudo.style.display === '') {
+        conteudo.style.display = 'block';
+        seta.innerText = '▲';
+        seta.style.color = '#38bdf8';
+    } else {
+        conteudo.style.display = 'none';
+        seta.innerText = '▼';
+        seta.style.color = '#ffffff';
+    }
+}
+
+// 3. VALIDAÇÃO DE SEGURANÇA ANTES DE ENVIAR AO BANCO
+function validarFormulario(event) {
+    const notaReal = document.getElementById('inputEstrelas').value;
+    if (parseInt(notaReal) === 0) {
+        alert("⚠️ Por favor, atribua uma nota clicando nas estrelas antes de submeter!");
+        return false;
+    }
+    return true;
+}
+</script>
 
 
 
@@ -3920,11 +3908,6 @@ function processarEnvioMensagemAlana(origemTela) {
 
 
 
-<div style="width: 100%; max-width: 1350px; margin: 40px auto; padding: 0 15px; font-family: 'Segoe UI', Arial, sans-serif; box-sizing: border-box; clear: both !important;">
-    <div style="text-align: left; margin-bottom: 20px; border-left: 4px solid #22c55e; padding-left: 12px;">
-      
-        <p style="color: #334155; font-size: 13px; margin: 4px 0 0 0;">Adquira produtos profissionais com retenção automatizada de taxas e logística de distribuição rápida.</p>
-    </div>
 
     <div style="width: 100%; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 30px;">
     <!-- Links de Filtros por Categoria com Estilo Premium e Fluido -->

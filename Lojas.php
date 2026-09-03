@@ -2,16 +2,31 @@
 // =========================================================================
 // 🌍 CENTRAL DE COMPRAS & MARKETPLACE MULTI-LOJAS SAAS - GRUPO AURÉLIUS (LOJAS.PHP)
 // =========================================================================
-if (!isset($_SESSION)) { 
+if (session_status() === PHP_SESSION_NONE) { 
     session_start(); 
 }
 date_default_timezone_set('Africa/Luanda');
 
-$mysqli = new mysqli("127.0.0.1", "root", "", "aurelius_salao");
-if ($mysqli->connect_error) { 
-    die("Falha na ligação técnica do ecossistema: " . $mysqli->connect_error); 
+// 🟢 CORREÇÃO CRÍTICA: Motor Híbrido Unificado para Localhost e Produção Online
+$h_host = getenv('DB_HOST') ?: "altaria.proxy.rlwy.net";
+$h_port = getenv('DB_PORT') ?: "52030";
+$h_name = getenv('DB_NAME') ?: "railway";
+$h_user = getenv('DB_USER') ?: "root";
+$h_pass = getenv('DB_PASSWORD') ?: "tPzDwXGkyczyyYdcyvLmHLSMmfZmnMIZ";
+
+$mysqli = mysqli_init();
+if (!@mysqli_real_connect($mysqli, $h_host, $h_user, $h_pass, $h_name, (int)$h_port)) {
+    // Fallback de contingência automática para o XAMPP local caso os tokens de nuvem falhem
+    $mysqli = @mysqli_connect("127.0.0.1", "root", "", "aurelius_salao");
 }
-$mysqli->set_charset("utf8");
+
+if (!$mysqli || mysqli_connect_errno()) { 
+    die("<div style='padding:20px; background:#0f172a; color:#ef4444; font-family:sans-serif; border:1px solid #ef4444; border-radius:12px; margin:20px;'>
+            <strong>Erro de Infraestrutura:</strong> O marketplace não conseguiu ligar-se à base de dados centralizada.
+         </div>"); 
+}
+
+$mysqli->set_charset("utf8mb4");
 
 $id_usuario_comprador = isset($_SESSION['codigo_usuario']) ? intval($_SESSION['codigo_usuario']) : 1;
 
