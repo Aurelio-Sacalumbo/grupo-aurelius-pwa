@@ -1465,123 +1465,159 @@ cardsCarrossel.forEach(card => {
          <div class="grid" id="trilho_carrossel_salao" style="display: flex !important; gap: 20px !important; width: max-content !important; transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1); box-sizing: border-box !important; padding: 0 10px;">
  
          <?php
-             // 🔑 CONEXÃO DIRETA E ISOLADA À BASE DE DADOS MESTRE
-             $h_host = getenv('DB_HOST') ?: "altaria.proxy.rlwy.net";
-             $h_port = getenv('DB_PORT') ?: "52030";
-             $h_name = getenv('DB_NAME') ?: "railway";
-             $h_user = getenv('DB_USER') ?: "root";
-             $h_pass = getenv('DB_PASSWORD') ?: "tPzDwXGkyczyyYdcyvLmHLSMmfZmnMIZ";
+// =========================================================================
+// 🔮 ECOSSISTEMA MESTRE - MOTOR SAAS MULTI-TENANT E ROTEADOR (PRINCIPAL.PHP)
+// =========================================================================
 
-             $mysqli = mysqli_init();
-             if (!@mysqli_real_connect($mysqli, $h_host, $h_user, $h_pass, $h_name, $h_port)) {
-                 die("<p style='color:red;'>Erro crítico na ligação do painel: " . mysqli_connect_error() . "</p>");
-             }
-             
-             $mysqli->set_charset("utf8mb4");
- 
-             if (isset($mysqli)) {
-                 
-                 // Motor de filtragem do portal público
-                 $pesquisa_filtro = "";
-                 if (isset($_POST['disparar_busca']) && !empty($_POST['termo_cliente'])) {
-                     $busca = $mysqli->escape_string(trim($_POST['termo_cliente']));
-                     $pesquisa_filtro = " AND (`nome` LIKE '%$busca%' OR `endereco` LIKE '%$busca%' OR `tipos_de_servico` LIKE '%$busca%') ";
-                 }
- 
-                 // 🟢 FILTRAGEM EXECUTIVA ATIVADA: Agora apenas barbearias com status 'Confirmado' aparecem no ecrã público
-                 $query_publica = $mysqli->query("
-                    SELECT * FROM `usuario` 
-                    WHERE `visivel_no_site` = 1 
-                      AND `nivel` = 'parceiro_hospedado'
-                      AND `transacao_status` = 'Confirmado' " . $pesquisa_filtro . " 
-                    ORDER BY `codigo` DESC
-                 ");
-                 
-                 if ($query_publica && $query_publica->num_rows > 0) {
-                     // Cria um array temporário para registar quem já foi desenhado no ecrã
-                     $parceiros_desenhados = [];
-               
-                     while ($row = $query_publica->fetch_assoc()) {
-                         $id_foto = (int)$row['codigo'];
-                         $nome_barbearia = trim($row['nome'] ?? '');
+// 🔑 CONEXÃO DIRETA E ISOLADA À BASE DE DADOS MESTRE
+$h_host = getenv('DB_HOST') ?: "altaria.proxy.rlwy.net";
+$h_port = getenv('DB_PORT') ?: "52030";
+$h_name = getenv('DB_NAME') ?: "railway";
+$h_user = getenv('DB_USER') ?: "root";
+$h_pass = getenv('DB_PASSWORD') ?: "tPzDwXGkyczyyYdcyvLmHLSMmfZmnMIZ";
 
-                         // 🔒 TRAVA ANTI-REPETIÇÃO ANDROID/LOCAL: Se já foi desenhada, salta para a próxima
-                         if (in_array($nome_barbearia, $parceiros_desenhados)) {
-                             continue;
-                         }
-                         // Regista o nome no array para travar futuras repetições
-                         $parceiros_desenhados[] = $nome_barbearia;
-                         
-                         // 🟢 CARREGAMENTO SEGURO DE IMAGEM DO PARCEIRO
-                         $arquivo_logo = trim($row['logo_empresa'] ?? '');
-                         
-                         if (!empty($arquivo_logo) && file_exists("uploads/" . $arquivo_logo)) {
-                             $foto_src = "uploads/" . $arquivo_logo;
-                         } elseif (!empty($arquivo_logo) && file_exists($arquivo_logo)) {
-                             $foto_src = $arquivo_logo;
-                         } else {
-                             $foto_src = "OIP (6).webp"; 
-                         }
+$mysqli = mysqli_init();
+if (!@mysqli_real_connect($mysqli, $h_host, $h_user, $h_pass, $h_name, (int)$h_port)) {
+    die("<p style='color:red; font-family:sans-serif; padding:15px;'>Erro crítico na ligação do painel: " . mysqli_connect_error() . "</p>");
+}
 
-                         // Roteador dinâmico reativo por slug
-                         $slug_banco = !empty($row['slug']) ? trim($row['slug']) : 'Login';
-                         $link_destino = $slug_banco . ".php";
-                         
-                         $endereco_real = !empty($row['endereco']) ? trim($row['endereco']) : "Huambo";
-                         $servico_real = !empty($row['tipos_de_servico']) ? trim($row['tipos_de_servico']) : "Geral";
-                         
-                         // Extração automática do ano de registo
-                         $ano_cadastro = "Membro";
-                         $data_bruta = $row['data'] ?? '';
-                         if (!empty($data_bruta) && $data_bruta !== '0000-00-00') {
-                             $ano_cadastro = "Desde " . date('Y', strtotime($data_bruta));
-                         } else {
-                             if ($id_foto === 237) $ano_cadastro = "Desde 2026";
-                             elseif ($id_foto === 238) $ano_cadastro = "Desde 2025";
-                             else $ano_cadastro = "Desde 2024";
-                         }
-                         ?>
+$mysqli->set_charset("utf8mb4");
+
+if (isset($mysqli)) {
+    
+    // Motor de filtragem do portal público
+    $pesquisa_filtro = "";
+    if (isset($_POST['disparar_busca']) && !empty($_POST['termo_cliente'])) {
+        $busca = $mysqli->escape_string(trim($_POST['termo_cliente']));
+        $pesquisa_filtro = " AND (`nome` LIKE '%$busca%' OR `endereco` LIKE '%$busca%' OR `tipos_de_servico` LIKE '%$busca%') ";
+    }
+
+    // 🟢 FILTRAGEM EXECUTIVA ATIVADA: Agora apenas barbearias com status 'Confirmado' aparecem no ecrã público
+    $query_publica = $mysqli->query("
+       SELECT * FROM `usuario` 
+       WHERE `visivel_no_site` = 1 
+         AND `nivel` = 'parceiro_hospedado'
+         AND `transacao_status` = 'Confirmado' " . $pesquisa_filtro . " 
+       ORDER BY `codigo` DESC
+    ");
+    
+    if ($query_publica && $query_publica->num_rows > 0) {
+        // Cria um array temporário para registar quem já foi desenhado no ecrã
+        $parceiros_desenhados = [];
+  
+        while ($row = $query_publica->fetch_assoc()) {
+            $id_foto = (int)$row['codigo'];
+            $nome_barbearia = trim($row['nome'] ?? '');
+
+            // 🔒 TRAVA ANTI-REPETIÇÃO ANDROID/LOCAL: Se já foi desenhada, salta para a próxima
+            if (in_array($nome_barbearia, $parceiros_desenhados)) {
+                continue;
+            }
+            // Regista o nome no array para travar futuras repetições
+            $parceiros_desenhados[] = $nome_barbearia;
+            
+            // 🟢 CARREGAMENTO SEGURO DE IMAGEM DO PARCEIRO
+            $arquivo_logo = trim($row['logo_empresa'] ?? '');
+            
+            if (!empty($arquivo_logo) && file_exists("uploads/" . $arquivo_logo)) {
+                $foto_src = "uploads/" . $arquivo_logo;
+            } elseif (!empty($arquivo_logo) && file_exists($arquivo_logo)) {
+                $foto_src = $arquivo_logo;
+            } else {
+                $foto_src = "OIP (6).webp"; 
+            }
+
+            // Roteador dinâmico reativo por slug
+            $slug_banco = !empty($row['slug']) ? trim($row['slug']) : 'Login';
+            $link_destino = $slug_banco . ".php";
+            
+            $servico_real = !empty($row['tipos_de_servico']) ? trim($row['tipos_de_servico']) : "Geral";
+            
+            // =========================================================================
+            // 🌍 MÓDULO NOVO: GEOLOCALIZAÇÃO REGIONALIZADA AVANÇADA
+            // =========================================================================
+            $provincia  = !empty($row['provincia']) ? trim($row['provincia']) : "Huambo";
+            $municipio  = !empty($row['municipio']) ? trim($row['municipio']) : "Huambo";
+            $rua_bairro = !empty($row['rua']) ? trim($row['rua']) : (!empty($row['endereco']) ? trim($row['endereco']) : "Centro da Cidade");
+            
+            $endereco_estruturado = "Prov. " . $provincia . ", Mun. " . $municipio . " (" . $rua_bairro . ")";
+
+            // =========================================================================
+            // ☎️ MÓDULO NOVO: MOTOR WHATSAPP COM DISPARO AUTOMÁTICO DE SMS
+            // =========================================================================
+            $telefone_limpo = !empty($row['telefone']) ? preg_replace('/[^0-9]/', '', $row['telefone']) : "920000000";
+            // Acopla o indicativo internacional de Angola se for um número padrão de 9 dígitos
+            $whatsapp_final = (strpos($telefone_limpo, '244') === 0) ? $telefone_limpo : "244" . $telefone_limpo;
+            $texto_whatsapp = urlencode("Olá! Vi o vosso salão no portal do Grupo Aurélius e gostaria de obter mais informações sobre o serviço de " . $servico_real);
+            $link_whatsapp_api = "https://whatsapp.com" . $whatsapp_final . "&text=" . $texto_whatsapp;
+
+            // =========================================================================
+            // ⏰ MÓDULO NOVO: MATRIZ CRONOLÓGICA DE HORÁRIOS & DIAS DE TRABALHO
+            // =========================================================================
+            $hora_abertura = !empty($row['hora_abertura']) ? date('H:i', strtotime($row['hora_abertura'])) : "08:00";
+            $hora_fecho    = !empty($row['hora_fecho']) ? date('H:i', strtotime($row['hora_fecho'])) : "19:00";
+            $horario_funcionamento = $hora_abertura . " às " . $hora_fecho;
+
+            $dias_trabalho = !empty($row['dias_trabalho']) ? trim($row['dias_trabalho']) : "Segunda a Sábado";
+            $dias_folga    = !empty($row['dias_folga']) ? trim($row['dias_folga']) : "Domingos e Feriados";
+
+            // Extração automática do ano de registo
+            $ano_cadastro = "Membro";
+            $data_bruta = $row['data'] ?? '';
+            if (!empty($data_bruta) && $data_bruta !== '0000-00-00') {
+                $ano_cadastro = "Desde " . date('Y', strtotime($data_bruta));
+            } else {
+                if ($id_foto === 237) $ano_cadastro = "Desde 2026";
+                elseif ($id_foto === 238) $ano_cadastro = "Desde 2025";
+                else $ano_cadastro = "Desde 2024";
+            }
+            
+            // 🟢 A partir daqui o PHP fecha o bloco lógico para dar lugar à renderização HTML do seu card/tabela
+            ?>
                           
-                         <!-- 💎 DESIGN PREMIUM: Cartão Pílula Azul Escura Vertical Arredondada -->
-                         <div class="sub-grid" style="width: 175px !important; height: 320px !important; flex-shrink: 0 !important; background: #0b1a30 !important; border: 2px solid #1e293b !important; border-radius: 40px !important; padding: 18px 12px !important; text-align: center !important; box-sizing: border-box !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; box-shadow: 0 8px 16px rgba(0,0,0,0.4) !important;">
-                             
-                             <!-- Nome Fantasia do Salão / Loja -->
-                             <h2 class="h2-sub-grid" style="font-size: 13px !important; font-weight: bold !important; color: #ffffff !important; margin: 0 0 10px 0 !important; font-family: sans-serif !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; text-transform: uppercase !important;" title="<?php echo htmlspecialchars($row['nome']); ?>">
-                                 <?php echo htmlspecialchars($row['nome']); ?>
-                             </h2>
-                             
-                             <!-- Contentor do Logótipo -->
-                             <div class="img-container" style="width: 110px !important; height: 110px !important; border-radius: 16px !important; overflow: hidden !important; margin: 0 auto !important; background: #ffffff !important; display: flex !important; align-items: center !important; justify-content: center !important; border: 1px solid #1e293b !important; box-sizing: border-box;">
-                                 <img class="img-Comidas" src="<?php echo $foto_src; ?>" alt="Logo" style="width: 100% !important; height: 100% !important; object-fit: cover !important;">
-                              </div>
-                              
-                             <!-- Botão ENTRAR Vermelho Original -->
-                             <a href="<?php echo htmlspecialchars($link_destino); ?>" target="_blank" style="text-decoration: none !important; display: block !important; margin-top: 12px !important; width: 100%;">
-                                 <button class="botao-acção" style="width: 100% !important; background: #d32f2f !important; color: #ffffff !important; border: none !important; padding: 7px 0 !important; font-size: 12px !important; font-weight: bold !important; text-transform: uppercase !important; border-radius: 6px !important; cursor: pointer !important; letter-spacing: 0.5px !important; box-shadow: 0 4px 8px rgba(211,47,47,0.2) !important; outline: none;">ENTRAR</button>
-                             </a>
-                              
-                             <!-- Seletor Azul de Informações do Balcão (Fechamento Corrigido) -->
-                             <select style="width: 100% !important; background: #1e293b !important; color: #38bdf8 !important; border: 1px solid #334155 !important; padding: 4px; font-size: 11px; border-radius: 4px; outline: none; cursor: pointer; margin-top: 5px;">
-                                 <option><?php echo $ano_cadastro; ?></option>
-                                 <option>📍 <?php echo $endereco_real; ?></option>
-                                 <option>⚡ <?php echo $servico_real; ?></option>
-                             </select>
-                         </div>
-                     <?php 
-                     } // Fecha o while
-                 } else {
-                     echo "<p style='color: #64748b; padding: 20px; font-style: italic; width:100%; text-align:center;'>Nenhuma barbearia ativa encontrada.</p>";
-                 }
-               
-             } 
-             ?>
-          </div> <!-- Fecha trilho_carrossel_salao -->
-      </div> <!-- Fecha mascara_carrossel_salao -->
- </div> <!-- Fecha a div grad principal -->
+                          <!-- 💎 DESIGN PREMIUM: Cartão Pílula Azul Escura Vertical Arredondada -->
+                          <div class="sub-grid" style="width: 175px !important; height: 320px !important; flex-shrink: 0 !important; background: #0b1a30 !important; border: 2px solid #1e293b !important; border-radius: 40px !important; padding: 18px 12px !important; text-align: center !important; box-sizing: border-box !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; box-shadow: 0 8px 16px rgba(0,0,0,0.4) !important;">
+                               
+                               <!-- Nome Fantasia do Salão / Loja -->
+                               <h2 class="h2-sub-grid" style="font-size: 13px !important; font-weight: bold !important; color: #ffffff !important; margin: 0 0 10px 0 !important; font-family: sans-serif !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; text-transform: uppercase !important;" title="<?php echo htmlspecialchars($row['nome']); ?>">
+                                   <?php echo htmlspecialchars($row['nome']); ?>
+                               </h2>
+                               
+                               <!-- Contentor do Logótipo -->
+                               <div class="img-container" style="width: 110px !important; height: 110px !important; border-radius: 16px !important; overflow: hidden !important; margin: 0 auto !important; background: #ffffff !important; display: flex !important; align-items: center !important; justify-content: center !important; border: 1px solid #1e293b !important; box-sizing: border-box;">
+                                   <img class="img-Comidas" src="<?php echo $foto_src; ?>" alt="Logo" style="width: 100% !important; height: 100% !important; object-fit: cover !important;">
+                                </div>
+                                
+                               <!-- Botão ENTRAR Vermelho Original -->
+                               <a href="<?php echo htmlspecialchars($link_destino); ?>" target="_blank" style="text-decoration: none !important; display: block !important; margin-top: 12px !important; width: 100%;">
+                                   <button class="botao-acção" style="width: 100% !important; background: #d32f2f !important; color: #ffffff !important; border: none !important; padding: 7px 0 !important; font-size: 12px !important; font-weight: bold !important; text-transform: uppercase !important; border-radius: 6px !important; cursor: pointer !important; letter-spacing: 0.5px !important; box-shadow: 0 4px 8px rgba(211,47,47,0.2) !important; outline: none;">ENTRAR</button>
+                               </a>
+                                
+                               <!-- Seletor Azul de Informações do Balcão -->
+                               <select style="width: 100% !important; background: #1e293b !important; color: #38bdf8 !important; border: 1px solid #334155 !important; padding: 4px; font-size: 11px; border-radius: 4px; outline: none; cursor: pointer; margin-top: 5px;">
+                                   <option><?php echo $ano_cadastro; ?></option>
+                                   <!-- Usando as variáveis limpas geradas pelo motor -->
+                                   <option>📍 <?php echo !empty($rua_bairro) ? $rua_bairro : $endereco_real; ?></option>
+                                   <option>⚡ <?php echo $servico_real; ?></option>
+                                   <option>⏰ <?php echo isset($horario_funcionamento) ? $horario_funcionamento : '08:00 - 19:00'; ?></option>
+                               </select>
+                          </div> <!-- Fecha o card individual da barbearia -->
+              
+                          <?php 
+                          // 🟢 REABRE O PHP APENAS AGORA PARA FECHAR OS BLOCOS OPERACIONAIS SEGURAMENTE
+                      } // 1. Fecha o loop 'while' de cada barbearia após o HTML ter sido desenhado
+                  } else {
+                      // Caso a consulta corra bem, mas não existam registos ou não passem no filtro de busca
+                      echo "<p style='color: #94a3b8; padding: 20px; font-style: italic; width:100%; text-align:center;'>Nenhum estabelecimento ativo corresponde aos critérios de pesquisa no Huambo.</p>";
+                  }
+              } // 2. Fecha o 'if ($query_publica...)' que valida os resultados do banco
+              ?>
+              </div> <!-- Fecha trilho_carrossel_salao -->
+              </div> <!-- Fecha mascara_carrossel_salao -->
+              </div> <!-- Fecha a div grad principal -->
 
-<!-- =========================================================================
-     🟩 ENGINE JAVASCRIPT: MOTOR COMPACTO DE MOVIMENTAÇÃO DO TRILHO MULTI-TENANT
-     ========================================================================= -->
+
+
 <script>
 let posicaoDeslocamentoAtual = 0;
 
@@ -2830,7 +2866,7 @@ if (isset($pdo)) {
 }
 ?>
 
-<!-- 📡 SCRIPTS CORE E ARQUITETURA VECTORIAL MAPBOX GL (TECNOLOGIA 3D AVANÇADA) -->
+
 <script src="https://mapbox.com"></script>
 <link href="https://mapbox.com" rel="stylesheet" />
 
@@ -2887,133 +2923,170 @@ if (isset($pdo)) {
 
 
 
-<!-- Seccao Macro de Geolocalizacao -->
+
+
+
+
+<!-- 🟢 INCLUSÃO DE DEPENDÊNCIAS OFICIAIS LEAFLET (ESTÁVEL E LEVE) -->
+<link rel="stylesheet" href="https://unpkg.com" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<style>
+    /* Estilização Responsiva e Ajuste de Margens para Android/PWA */
+    .seccao-macro-geolocalizacao {
+        width: 100%;
+        margin: 20px 0;
+        box-sizing: border-box;
+    }
+    
+    .viewport-canvas-leaflet {
+        position: relative;
+        width: 100%;
+        height: 450px;
+        background: #070b12;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid #1e293b;
+    }
+
+    .consola-controlo-mapa {
+        position: absolute;
+        z-index: 1000; /* Força a consola a ficar acima das camadas do Leaflet */
+        top: 15px;
+        left: 15px;
+        background: rgba(15, 23, 42, 0.95);
+        padding: 15px;
+        border-radius: 8px;
+        max-width: 280px;
+        border: 1px solid #1e293b;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    }
+
+    /* Adaptação e compactação extrema para ecrãs pequenos de Smartphones */
+    @media (max-width: 768px) {
+        .viewport-canvas-leaflet { height: 350px !important; }
+        .consola-controlo-mapa {
+            top: 8px !important;
+            left: 8px !important;
+            right: 8px !important;
+            max-width: 100% !important;
+            padding: 8px 12px !important;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+        .consola-controlo-mapa p, .consola-controlo-mapa span { display: none !important; }
+        .consola-controlo-mapa strong { font-size: 11px !important; margin-bottom: 0 !important; }
+        .consola-controlo-mapa button { width: auto !important; padding: 6px 12px !important; margin-top: 0 !important; font-size: 10px !important; }
+    }
+
+    /* Customização dos Balões Pop-up do Leaflet para o Estilo Escuro/Neon */
+    .leaflet-popup-content-wrapper {
+        background: #ffffff !important;
+        color: #0f172a !important;
+        border-radius: 12px !important;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.4) !important;
+        border: 1px solid #e2e8f0;
+    }
+    .leaflet-popup-tip { background: #ffffff !important; }
+    .leaflet-popup-content { margin: 12px !important; line-height: 1.4; }
+    
+    /* Remove o contorno azul feio ao clicar no mapa */
+    .leaflet-container { outline: 0; }
+</style>
+
+<!-- Secção Macro de Geolocalização -->
 <div class="seccao-macro-geolocalizacao">
-    <div style="text-align: left; margin-bottom: 20px;">
-        <span style="color: #00d2ff; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1.5px; display: block;">🛰️ CENTRAL DE INTELIGÊNCIA GEOGRÁFICA 4D</span>
-        <h2 style="color: #fff; font-size: 22px; font-weight: bold; margin-top: 5px;">Mapeamento Vetorial Tridimensional do Ecossistema</h2>
+    <div style="text-align: left; margin-bottom: 15px;">
+        <span style="color: #00d2ff; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1.5px; display: block;">🛰️ CENTRAL DE INTELIGÊNCIA GEOGRÁFICA</span>
+        <h2 style="color: #fff; font-size: 22px; font-weight: bold; margin-top: 5px;">Mapeamento Vetorial e Logística do Ecossistema</h2>
     </div>
 
-    <!-- Container da Viewport Tridimensional com Altura Fixada Concreta -->
-    <div class="viewport-canvas-3d" style="position: relative; width: 100%; height: 450px; background: #070b12; border-radius: 12px; overflow: hidden;">
+    <!-- Container da Viewport com Altura Fixada Concreta -->
+    <div class="viewport-canvas-leaflet">
         
         <!-- Consola de Operações Flutuante -->
-        <div class="consola-controlo-mapa" style="position: absolute; z-index: 10; top: 15px; left: 15px; background: rgba(15, 23, 42, 0.9); padding: 15px; border-radius: 8px; max-width: 280px; border: 1px solid #1e293b;">
-            <span style="color: #22c55e; font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; margin-bottom: 4px;">● Sistema Operacional Ativo</span>
-            <strong style="color: #fff; font-size: 12.5px; display: block; margin-bottom: 6px;">Visualização Imersiva</strong>
-            <p style="color: #94a3b8; font-size: 11px; line-height: 1.4; margin-bottom: 10px;">Use dois dedos ou arraste com o botão direito para inclinar os edifícios e o relevo em 3D.</p>
-            <button onclick="focarCentroHuambo()" style="width: 100%; background: #0088cc; color: white; border: none; padding: 8px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;">Recentrar Câmara</button>
+        <div class="consola-controlo-mapa">
+            <div>
+                <span style="color: #22c55e; font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; margin-bottom: 2px;">● Sistema Operacional Ativo</span>
+                <strong style="color: #fff; font-size: 12.5px; display: block; margin-bottom: 4px;">Visualização Vetorial</strong>
+            </div>
+            <p style="color: #94a3b8; font-size: 11px; line-height: 1.4; margin-bottom: 10px;">Encontre as barbearias, salões e estoques distribuídos pela província em tempo real.</p>
+            <button type="button" onclick="focarCentroHuambo()" style="width: 100%; background: #0088cc; color: white; border: none; padding: 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; outline: none; margin-top: 2px;">Recentrar Câmara</button>
         </div>
 
-        <!-- O mapa GL renderiza estritamente aqui (Garante a herança total de altura) -->
-        <div id="mapa_canvas_gl" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0;"></div>
+        <!-- O mapa Leaflet renderiza estritamente aqui -->
+        <div id="mapa_canvas_leaflet" style="width: 100%; height: 100%;"></div>
     </div>
 </div>
 
 <script>
-// ⚠️ IMPORTANTE: Substitui esta chave fictícia pelo teu Default Public Token real do Mapbox!
-mapboxgl.accessToken = 'pk.eyJ1IjoiYXVyZWxpdXNoIiwiYSI6ImNseXo4eDNwZTAxbzIycXF6M245dzZ5M2oifQ.A1b2C3d4E5f6G7h8I9j0K1';
+// 1. INICIALIZAÇÃO DO MOTOR: Foca o mapa nas coordenadas do Huambo com zoom confortável
+const engineMapa = L.map('mapa_canvas_leaflet', {
+    zoomControl: false // Desativa os botões padrão (+/-) para não poluir o ecrã do telemóvel
+}).setView([-12.7711, 15.7392], 13.5);
 
-const engineMapa = new mapboxgl.Map({
-    container: 'mapa_canvas_gl',
-    // 🌍 Mudança para o estilo Outdoors de Alta Resolução (ideal para ver estradas, bairros e relevo em Angola)
-    style: 'mapbox://styles/mapbox/outdoors-v12', 
-    center: [15.7392, -12.7711], // Huambo (Ponto mestre)
-    zoom: 13.8,
-    pitch: 55, // Inclinação cinematográfica para ver o relevo e os blocos 3D
-    bearing: -10,
-    antialias: true
-});
+// Injeta os botões de zoom no canto inferior direito para ficar ergonomicamente acessível ao polegar
+L.control.zoom({ position: 'bottomright' }).addTo(engineMapa);
 
-// Força o ajuste do tamanho do mapa em ecrãs móveis
-engineMapa.on('load', () => {
-    engineMapa.resize();
-});
+// 2. ATIVAÇÃO DA CAMADA VISUAL (Design Escuro Premium CartoDB)
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
+    maxZoom: 19
+}).addTo(engineMapa);
 
-engineMapa.on('style.load', () => {
-    // 🟢 1. ATIVAÇÃO DO TERRENO 3D REAL (MONTANHAS E RELEVO GEOGRÁFICO DE ANGOLA)
-    // Adiciona a fonte de elevação global do satélite Mapbox
-    engineMapa.addSource('mapbox-dem-relevo', {
-        'type': 'raster-dem',
-        'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
-        'tileSize': 512
-    });
-    // Injeta o relevo tridimensional no motor gráfico do mapa
-    engineMapa.setTerrain({ 'source': 'mapbox-dem-relevo', 'exaggeration': 1.5 });
-
-    // Adiciona uma atmosfera/névoa realista sobre o horizonte das províncias
-    engineMapa.setFog({
-        'range': [0.8, 5],
-        'color': '#f8fafc',
-        'horizon-blend': 0.2
-    });
-
-    // 🟢 2. ATIVAÇÃO DE ESTRADAS, BAIRROS E EDIFÍCIOS EM 3D
-    const camadas = engineMapa.getStyle().layers;
-    const labelLayerId = camadas.find(layer => layer.type === 'symbol' && layer.layout['text-field'])?.id;
-
-    // Adiciona os blocos tridimensionais dos edifícios urbanos das cidades
-    engineMapa.addLayer({
-        'id': 'predios-3d-reais-angola',
-        'source': 'composite',
-        'source-layer': 'building',
-        'filter': ['==', 'extrude', 'true'],
-        'type': 'fill-extrusion',
-        'minzoom': 12,
-        'paint': {
-            'fill-extrusion-color': '#475569', // Tom cinzento profissional para os edifícios
-            'fill-extrusion-height': ['get', 'height'],
-            'fill-extrusion-base': ['get', 'min_height'],
-            'fill-extrusion-opacity': 0.8
-        }
-    }, labelLayerId);
-});
-
-// 🟢 3. EXTRAÇÃO DINÂMICA DE MARCADORES DO BANCO DE DADOS
+// 3. CAPTURA DOS DADOS DO ARRAY DO PHP
 const pinsDoBanco = <?= json_encode($pontos_mapa_3d ?? []) ?>;
 
-pinsDoBanco.forEach(function(unidade) {
-    if(!unidade.lng || !unidade.lat) return;
+if (Array.isArray(pinsDoBanco)) {
+    pinsDoBanco.forEach(function(unidade) {
+        // Validação de segurança de coordenadas para evitar quebras
+        if (!unidade.lat || !unidade.lng) return;
 
-    // Cria o pino visual customizado
-    const elPino = document.createElement('div');
-    elPino.style.width = '32px';
-    elPino.style.height = '32px';
-    elPino.style.fontSize = '24px';
-    elPino.style.cursor = 'pointer';
-    elPino.style.display = 'flex';
-    elPino.style.alignItems = 'center';
-    elPino.style.justifyContent = 'center';
-    elPino.style.filter = 'drop-shadow(0 4px 6px rgba(0,0,0,0.3))';
-    elPino.innerText = unidade.tipo === 'loja' ? '🛒' : '💈';
+        // Define o ícone/emoji reativo baseado no segmento
+        const emojiIcon = unidade.tipo === 'loja' ? '🛒' : '💈';
 
-    const popupComercial = new mapboxgl.Popup({ offset: 25 }).setHTML(`
-        <div style="text-align: left; font-family: system-ui, sans-serif; color: #0f172a; padding: 2px;">
-            <span style="background: #22c55e; color: #fff; font-size: 9px; font-weight: bold; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; display: inline-block; margin-bottom: 4px;">● ONLINE</span>
-            <h4 style="color: #0284c7; font-size: 13px; font-weight: bold; margin: 0;">${unidade.nome}</h4>
-            <p style="color: #475569; font-size: 11px; margin: 4px 0 0 0; line-height: 1.3;">📍 <b>Local:</b> ${unidade.endereco}</p>
-            <a href="unitele.php?id_parceiro=${unidade.id}&tipo_parceiro=${unidade.tipo}" style="display: block; margin-top: 8px; background: #0284c7; color: #fff; text-decoration: none; text-align: center; font-size: 10px; font-weight: bold; padding: 5px; border-radius: 4px; text-transform: uppercase;">Aceder ao Balcão</a>
-        </div>
-    `);
+        // Criação de um marcador costumizado usando a div nativa do Leaflet
+        const iconeCostumizado = L.divIcon({
+            html: `<div style="font-size: 24px; cursor: pointer; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4));">${emojiIcon}</div>`,
+            className: 'marcador-custom-aurelius',
+            iconSize:,
+            iconAnchor: [15, 15]
+        });
 
-    new mapboxgl.Marker(elPino)
-        .setLngLat([parseFloat(unidade.lng), parseFloat(unidade.lat)])
-        .setPopup(popupComercial)
-        .addTo(engineMapa);
-});
+        // Montagem do balão informativo integrado à rota dinânica SaaS
+        const conteudoPopup = `
+            <div style="text-align: left; font-family: system-ui, sans-serif; padding: 2px; min-width: 160px;">
+                <span style="background: #22c55e; color: #fff; font-size: 9px; font-weight: bold; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; display: inline-block; margin-bottom: 4px;">● ONLINE</span>
+                <h4 style="color: #0284c7; font-size: 13px; font-weight: bold; margin: 0;">${unidade.nome}</h4>
+                <p style="color: #475569; font-size: 11px; margin: 4px 0 0 0; line-height: 1.3;">📍 <b>Local:</b> ${unidade.endereco}</p>
+                <a href="Principal.php?id_parceiro=${unidade.id}#nivel1" style="display: block; margin-top: 8px; background: #0284c7; color: #fff; text-decoration: none; text-align: center; font-size: 10px; font-weight: bold; padding: 6px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.3px;">Aceder ao Balcão</a>
+            </div>
+        `;
 
-function focarCentroHuambo() {
-    engineMapa.flyTo({
-        center: [15.7392, -12.7711],
-        zoom: 14.5,
-        pitch: 55,
-        bearing: -10,
-        essential: true,
-        duration: 2000
+        // Instancia o marcador e adiciona ao mapa
+        L.marker([parseFloat(unidade.lat), parseFloat(unidade.lng)], { icon: iconeCostumizado })
+            .addTo(engineMapa)
+            .bindPopup(conteudoPopup);
     });
 }
-</script>
 
+// 4. FUNÇÃO RECENTRAR CÂMARA MÓVEL
+function focarCentroHuambo() {
+    engineMapa.flyTo([-12.7711, 15.7392], 14, {
+        animate: true,
+        duration: 1.5 // Duração suave da transição em segundos
+    });
+}
+
+// Auto-ajuste de layout após o carregamento completo da página (Essencial para PWA Android)
+window.addEventListener('load', function() {
+    setTimeout(function() {
+        engineMapa.invalidateSize();
+    }, 400);
+});
+</script>
 
 
 

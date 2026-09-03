@@ -17,7 +17,6 @@ if ($conexao_link) {
     // Coordenadas padrão do Huambo para caso não existam coordenadas individuais no banco
     $lat_padrao = -12.7711;
     $lng_padrao = 15.7392;
-    $i = 0;
 
     if ($res_pontos) {
         while ($ponto = mysqli_fetch_assoc($res_pontos)) {
@@ -43,9 +42,9 @@ if ($conexao_link) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mapa do Ecossistema Aurélius</title>
     
-    <!-- 🟢 MOTOR DO MAPA (Leaflet CSS & JS - Gratuito e ultra leve para PWA) -->
-    <link rel="stylesheet" href="https://unpkg.com" />
-    <script src="https://unpkg.com"></script>
+    <!-- 🟢 CORREÇÃO CRÍTICA: Caminhos explícitos e fixos do CDN do Leaflet (Evita travamentos) -->
+    <link rel="stylesheet" href="https://unpkg.com" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -64,9 +63,10 @@ if ($conexao_link) {
         .painel-mapa { max-width: 1100px; margin: 30px auto; padding: 0 20px; }
         .btn-sair { display: inline-block; background: #1e293b; color: white; padding: 10px 20px; border-radius: 30px; text-decoration: none; font-weight: bold; font-size: 12px; border: 1px solid #334155; margin-bottom: 20px; text-transform: uppercase; float: left; }
         
-        /* Estilização dos Balões Pop-up dentro do mapa */
-        .leaflet-popup-content-wrapper { background: #111827 !important; color: #fff !important; border: 1px solid #38bdf8; border-radius: 12px; }
-        .leaflet-popup-tip { background: #111827 !important; }
+        /* Estilização dos Balões Pop-up dentro do mapa para combinar com o tema Dark */
+        .leaflet-popup-content-wrapper { background: #111827 !important; color: #fff !important; border: 1px solid #38bdf8; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        .leaflet-popup-tip { background: #111827 !important; border: 1px solid #38bdf8; }
+        .leaflet-popup-content { margin: 12px !important; line-height: 1.4; }
     </style>
 </head>
 <body>
@@ -87,9 +87,9 @@ if ($conexao_link) {
 // 🟢 2. INICIALIZAÇÃO DO MOTOR: Foca o mapa nas coordenadas centrais do Huambo, Angola
 const mapa = L.map('mapa_aurelius_SaaS').setView([-12.7711, 15.7392], 13);
 
-// Injeta a camada visual de ruas estilo Dark/Noite para combinar com o design premium do seu SaaS
+// 🟢 CORREÇÃO DE SINTAXE: Link corrigido para renderizar o mapa visual Dark do CartoDB de forma limpa
 L.tileLayer('https://{s}://{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; OpenStreetMap &copy; CARTO',
+    attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> &copy; <a href="https://carto.com">CARTO</a>',
     subdomains: 'abcd',
     maxZoom: 20
 }).addTo(mapa);
@@ -106,10 +106,10 @@ pontosRegistados.forEach(function(ponto) {
     
     // Conteúdo HTML vivo que vai aparecer ao clicar no pino
     const conteudoPopup = `
-        <div style="font-family: sans-serif; padding: 5px;">
-            <b style="color: #00d2ff; font-size: 14px;">${emojiIcon} ${ponto.nome}</b>
-            <p style="color: #94a3b8; font-size: 11.5px; margin-top: 5px;">📍 ${ponto.endereco}</p>
-            <span style="display:inline-block; margin-top:8px; background:#22c55e; color:#fff; font-size:10px; padding:2px 6px; font-weight:bold; text-transform:uppercase;">● Disponível no PWA</span>
+        <div style="font-family: sans-serif; padding: 2px; text-align: left;">
+            <b style="color: #00d2ff; font-size: 14px; display: block; margin-bottom: 4px;">${emojiIcon} ${ponto.nome}</b>
+            <p style="color: #cbd5e1; font-size: 12px; margin: 4px 0 8px 0;">📍 ${ponto.endereco}</p>
+            <span style="display:inline-block; background:#22c55e; color:#fff; font-size:10px; padding:3px 8px; font-weight:bold; border-radius:4px; text-transform:uppercase; letter-spacing:0.5px;">● Disponível no PWA</span>
         </div>
     `;
     
