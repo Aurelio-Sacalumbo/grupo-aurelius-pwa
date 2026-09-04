@@ -1517,7 +1517,7 @@ if (isset($mysqli)) {
            // 🟢 SUBSTITUA O BLOCO DE TRATAMENTO DE IMAGEM POR ESTE INTEGRADO:
 $arquivo_logo = trim($row['logo_empresa'] ?? '');
 
-if (!empty($arquivo_logo) && file_exists(__DIR__ . "/upload/" . $arquivo_logo)) {
+if (!empty($arquivo_logo) && file_exists(__DIR__ . "/uploads/" . $arquivo_logo)) {
     $foto_src = "uploads/" . $arquivo_logo;
 } elseif (!empty($arquivo_logo) && file_exists(__DIR__ . "/guardar-fotos/" . $arquivo_logo)) {
     $foto_src = "guardar-fotos/" . $arquivo_logo;

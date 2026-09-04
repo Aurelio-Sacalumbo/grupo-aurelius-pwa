@@ -162,7 +162,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['executar_venda_final'
     <nav>
         <div class="logo" onclick="window.location.href='Dashboard.php'">
             <h1>Aurélius <span>Módulo</span></h1>
-            <h6>Formas de Pagamento para o plano Freemium</h6>
+            <h6>Formas de Pagamento dos Servíoços ja efectuado</h6>
         </div>
     </nav>
 
@@ -191,7 +191,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['executar_venda_final'
             </div>
 
             <div class="campo-grupo">
-                <label>Telefone / BI (Assinatura VIP):</label>
+                <label>Telefone  (Assinatura VIP):</label>
                 <input type="tel" name="cliente_telefone" id="telefone_input" placeholder="Insira o número" required pattern="[0-9]{9,15}">
             </div>
 

@@ -302,7 +302,7 @@ nav {
     border: 1px solid #334155; 
     border-radius: 12px; 
     color: #ffffff; 
-    padding: 12px; 
+    padding: 15px; 
     cursor: pointer; 
     text-align: center; 
     transition: background 0.2s, transform 0.2s; 
@@ -420,7 +420,16 @@ nav {
     margin: 10px auto; 
     display: inline-block; 
 }
-
+/* 🟢 DESIGN DE ALTA PERFORMANCE PARA IMAGENS DOS CORTES */
+.foto-trabalho-dashboard {
+    width: 100% !important;
+    height: 180px !important;    /* Força uma altura fixa e idêntica para todas */
+    object-fit: cover !important; /* Preenche o quadrado completamente sem esticar a imagem */
+    border-radius: 12px !important; /* Arredonda os cantos para um visual PWA Premium */
+    display: block !important;
+    margin: 0 auto 10px auto !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* Adiciona uma sombra leve */
+}
 /* Design de Fatura Neon em Tela */
 #faturaPainelNatural {
     background-color: rgba(11, 26, 48, 0.96) !important;
@@ -645,7 +654,7 @@ nav {
          <!-- Campo 1: Identificação Nominal do Cliente -->
          <div>
              <label style="color: #38bdf8; font-size: 11.5px; display: block; margin-bottom: 6px; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px;">Nome do Cliente:</label>
-             <input type="text" id="inputNomeCliente" placeholder="Nome do Cliente (Obrigatório)" class="input-estilizado" style="width: 100%; background: rgba(7, 11, 18, 0.6); border: 1px solid #334155; border-radius: 8px; color: #fff; padding: 12px; font-weight: 500; outline: none; transition: 0.3s;" onfocus="this.style.borderColor='#00d2ff'; this.style.boxShadow='0 0 8px rgba(0,210,255,0.3)';" onblur="this.style.borderColor='#334155'; this.style.boxShadow='none';" required autocomplete="off">
+             <input type="text" id="inputNomeCliente" placeholder="Nome do Cliente" class="input-estilizado" style="width: 100%; background: rgba(7, 11, 18, 0.6); border: 1px solid #334155; border-radius: 8px; color: #fff; padding: 12px; font-weight: 500; outline: none; transition: 0.3s;" onfocus="this.style.borderColor='#00d2ff'; this.style.boxShadow='0 0 8px rgba(0,210,255,0.3)';" onblur="this.style.borderColor='#334155'; this.style.boxShadow='none';" required autocomplete="off">
          </div>
  
          <!-- Campo 2: Alocação de Profissional Técnico -->
@@ -1110,7 +1119,7 @@ nav {
         ?>
             <div class="aba-item" style="background: #1e293b; padding: 10px; border-radius: 8px; text-align: center;">
                 <!-- O campo 'image_url' deve bater com o nome da coluna da sua tabela de anúncios -->
-                <img src="<?php echo htmlspecialchars($f['image_url']); ?>" style="width: 100%; height: 130px; object-fit: cover; border-radius: 6px;">
+                <img src="<?php echo htmlspecialchars($f['image_url']); ?>" style="width: 100% !important; height: 160px !important; object-fit: cover !important; border-radius: 16px !important; display: block !important; margin-bottom: 8px !important;">
                 <strong style="font-size: 12px; display: block; margin-top: 8px;"><?php echo htmlspecialchars($f['title']); ?></strong>
             </div>
         <?php 
@@ -1755,8 +1764,8 @@ $query_produtos = $mysqli->query("SELECT * FROM `produtos_cosmeticos` WHERE `emp
 <div class="vortex-marketplace-container">
     
     <div style="text-align: left; margin-bottom: 5px;">
-        <span style="color: #00d2ff; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">🛒 PRODUTOS DA FILIAL</span>
-        <h2 style="color: #fff; font-size: 20px; font-weight: bold; margin-top: 4px;">Balcão de Cosméticos — Barbearia Branca</h2>
+        <span style="color: #00d2ff; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">🛒 PRODUTOS  A VENDA</span>
+        <h2 style="color: #fff; font-size: 20px; font-weight: bold; margin-top: 4px;"> Barbearia Branca</h2>
     </div>
 
     <div class="grid-produtos-premium">
@@ -2174,13 +2183,13 @@ Historial da Barbearia Branca
         <!-- Coluna 1: Identidade da Marca -->
         <div>
             <h2 style="font-size: 20px; font-weight: 800; color: #ef4444; margin: 0 0 12px 0; text-transform: uppercase; letter-spacing: 0.5px;">
-                🎌 GRUPO <span style="color: #ffffff;">AURÉLIUS</span>
+                BARBEARIA <span style="color: #ffffff;">BRANCA</span>
             </h2>
             <p style="font-size: 13px; color: #94a3b8; line-height: 1.6; margin: 0 0 15px 0; text-align: justify;">
-                A maior infraestrutura e ecossistema multisserviços de estética, barbearia digital e e-commerce de cosméticos premium da província do Huambo.
+                A infraestrutura do ecossistema multisserviços de estética, barbearia digital e e-commerce de cosméticos premium da província do Huambo.
             </p>
             <span style="background: rgba(202, 138, 4, 0.1); color: #ca8a04; border: 1px solid rgba(202, 138, 4, 0.3); padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">
-                SaaS Platform v2.1
+                SaaS Platform Grupo Aurelius
             </span>
         </div>
 
@@ -2188,10 +2197,10 @@ Historial da Barbearia Branca
         <div>
             <h4 style="font-size: 13px; font-weight: bold; color: #ca8a04; text-transform: uppercase; margin-bottom: 15px; letter-spacing: 0.5px;">Navegação Segura</h4>
             <ul style="list-style: none; padding: 0; margin: 0; font-size: 13px; display: flex; flex-direction: column; gap: 10px;">
-                <li><a href="Principal.php" style="color: #cbd5e1; text-decoration: none; transition: 0.2s;">🏪 Portal de Barbearias</a></li>
-                <li><a href="BrancaCadastar.php" style="color: #cbd5e1; text-decoration: none; transition: 0.2s;">👨🏼‍🦰 Criar Conta de Cliente</a></li>
-                <li><a href="BrancaCadastar.php" style="color: #cbd5e1; text-decoration: none; transition: 0.2s;">🔐 Área Administrativa </a></li>
-                <li><a href="unitel.php" style="color: #cbd5e1; text-decoration: none; transition: 0.2s;">📱 Gateway de Pagamento Móvel</a></li>
+                <li><a href="Principal.php" style=" text-decoration: none; transition: 0.2s; color: #ffff;background: #22c55e;border-radius:12px;  padding:3px;">🏪 Portal de Barbearias</a></li> 
+                <li><a href="BrancaCadastar.php" style=" text-decoration: none; transition: 0.2s; color: #ffff;background: #22c55e;border-radius:12px; padding:3px; ">👨🏼‍🦰 Criar Conta de Cliente</a></li>
+                <li><a href="BrancaCadastar.php" style=" text-decoration: none; transition: 0.2s; color: #ffff;background: #22c55e; border-radius:12px; padding:3px; ">🔐 Área Administrativa </a></li>
+                <li><a href="unitel.php" style=" text-decoration: none; transition: 0.2s; color: #ffff;background: #22c55e;border-radius:12px; padding:3px; ">📱 Gateway de Pagamento Móvel</a></li>
             </ul>
         </div>
 
@@ -2291,7 +2300,7 @@ Historial da Barbearia Branca
 
     <!-- Texto Informativo Otimizado -->
     <div class="banner-texto-bi">
-        <strong style="color: #ca8a04;">Controlo de Auditoria PWA:</strong> O Grupo Aurélius recolhe métricas estatísticas de navegação anonimizadas, escolhas de serviços estéticos e volumetria financeira para otimização da agenda diária, cálculo do ranking mensal de produtividade e monetização regionalizada no Huambo.
+        <strong style="color: #ca8a04;">Controlo de Auditoria PWA:</strong> O Grupo Aurélius recolhe métricas estatísticas de navegação anonimizadas, escolhas de serviços estéticos e volumetria financeira para otimização da agenda diária, cálculo do ranking mensal de produtividade e monetização regionalizada em Angola.
     </div>
     
     <!-- Botão de Ação Redimensionável -->
