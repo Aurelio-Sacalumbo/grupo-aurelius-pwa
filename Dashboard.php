@@ -283,18 +283,20 @@ nav {
 /* =========================================================================
    💇 INTERFACE DE ABAS, SERVIÇOS & EQUIPA
    ========================================================================= */
-.aba-conteudo { 
+   .aba-conteudo { 
     display: none; 
 }
 .aba-conteudo.active { 
     display: block; 
 }
 
+/* Ajustado o tamanho mínimo de 140px para 160px para dar mais destaque em ecrãs pequenos */
 .grid-categorias, .grid-container { 
     display: grid; 
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
-    gap: 12px; 
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); 
+    gap: 16px; 
     margin-top: 15px; 
+    width: 100%;
 }
 
 .aba-item { 
@@ -302,28 +304,40 @@ nav {
     border: 1px solid #334155; 
     border-radius: 12px; 
     color: #ffffff; 
-    padding: 15px; 
+    padding: 12px; /* Reduzido o padding interno para dar mais espaço à imagem */
     cursor: pointer; 
     text-align: center; 
     transition: background 0.2s, transform 0.2s; 
     display: flex;
     flex-direction: column !important;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between; /* Garante que o texto fica sempre abaixo */
+    overflow: hidden;
 }
 .aba-item:hover { 
     background-color: #334155; 
     transform: translateY(-2px);
 }
 
+/* Otimização para as imagens dentro dos cards normais */
 .aba-item img { 
     border-radius: 8px; 
     margin-bottom: 8px; 
     object-fit: cover; 
-    height: 110px; 
+    height: 2000px; /* Aumentado de 110px para 200px para ocupar o painel */
     width: 100%; 
 }
 
+/* 🟢 DESIGN DE ALTA PERFORMANCE PARA IMAGENS DOS CORTES (DASHBOARD) */
+.foto-trabalho-dashboard {
+    width: 100% !important;
+    height: 2200px !important;    /* Aumentado para preencher o painel de forma imponente */
+    object-fit: cover !important; /* Preenche o espaço completamente sem distorcer ou esticar */
+    border-radius: 12px !important; 
+    display: block !important;
+    margin: 0 auto 10px auto !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); 
+}
 /* =========================================================================
    💰 SINALIZADORES DE MONETIZAÇÃO, PLUGINS FREEMIUM & ANÚNCIOS
    ========================================================================= */
@@ -420,16 +434,7 @@ nav {
     margin: 10px auto; 
     display: inline-block; 
 }
-/* 🟢 DESIGN DE ALTA PERFORMANCE PARA IMAGENS DOS CORTES */
-.foto-trabalho-dashboard {
-    width: 100% !important;
-    height: 180px !important;    /* Força uma altura fixa e idêntica para todas */
-    object-fit: cover !important; /* Preenche o quadrado completamente sem esticar a imagem */
-    border-radius: 12px !important; /* Arredonda os cantos para um visual PWA Premium */
-    display: block !important;
-    margin: 0 auto 10px auto !important;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* Adiciona uma sombra leve */
-}
+
 /* Design de Fatura Neon em Tela */
 #faturaPainelNatural {
     background-color: rgba(11, 26, 48, 0.96) !important;
@@ -506,7 +511,7 @@ nav {
     }
     
     .aba-item img { 
-        height: 95px !important; 
+        height: 195px !important; 
     }
 
     .passo-card { 
@@ -514,7 +519,7 @@ nav {
     }
     
     .passo-card img { 
-        height: 90px !important; 
+        height: 190px !important; 
     }
 }
 
@@ -597,9 +602,9 @@ nav {
  
         <!-- 6. Emitir Última Fatura -->
         <li>
-            <a href="./fatura.php" target="_blank" style="display: block; background-color: #d32f2f; color: white; padding: 10px 15px; text-decoration: none; border-radius: 20px; font-size: 13px; font-weight: bold; text-align: center; border: 1px solid #b91c1c; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 4px 6px rgba(0,0,0,0.15); transition: 0.2s;" onmouseover="this.style.backgroundColor='#b91c1c'" onmouseout="this.style.backgroundColor='#d32f2f'">
-                🖨️ Emitir Fatura
-            </a>
+        <a href="./fatura.php?id=<?= intval($row['id'] ?? ($venda['id'] ?? ($f['id'] ?? 118))) ?>" target="_blank" style="display: block; background-color: #d32f2f; color: white; padding: 10px 15px; text-decoration: none; border-radius: 20px; font-size: 13px; font-weight: bold; text-align: center; border: 1px solid #b91c1c; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 4px 6px rgba(0,0,0,0.15); transition: 0.2s;" onmouseover="this.style.backgroundColor='#b91c1c'" onmouseout="this.style.backgroundColor='#d32f2f'">
+        🖨️ Emitir Fatura
+    </a>
         </li>
  
         <!-- 7. Botão Sair -->
