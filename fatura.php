@@ -1,13 +1,22 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
+// =========================================================================
+// 🖨️ EMISSOR DE FATURAS REATIVO SaaS - GRUPO AURÉLIUS (PRODUÇÃO RENDER)
+// =========================================================================
+if (session_status() === PHP_SESSION_NONE) { 
+    session_start(); 
+}
+date_default_timezone_set('Africa/Luanda');
+
+// Importação segura da infraestrutura híbrida centralizada do Banco
 require_once __DIR__ . "/config/Banco.php";
 
-// 1. Captura o ID da URL se alguém clicou em "Reimprimir"
+// 1. Captura o ID da URL se alguém clicou em "Reimprimir" (ex: fatura.php?id=125)
 $id_pagamento = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
-// 2. Se nenhum ID veio na URL, descobre de forma inteligente qual o ID mais recente
+// 2. Se nenhum ID veio na URL (novo atendimento feito na App), força a busca do ÚLTIMO registado
 if ($id_pagamento === 0 && isset($pdo) && $pdo !== null) {
     try {
+        // Tenta descobrir o ID mais alto inserido no segundo anterior para o cliente atual
         $stmt_u = $pdo->query("SELECT id_pagamento FROM `pagamentos` ORDER BY id_pagamento DESC LIMIT 1");
         if (!$stmt_u) { $stmt_u = $pdo->query("SELECT id_venda FROM `pagamentos` ORDER BY id_venda DESC LIMIT 1"); }
         if (!$stmt_u) { $stmt_u = $pdo->query("SELECT id FROM `pagamentos` ORDER BY id DESC LIMIT 1"); }
@@ -16,12 +25,15 @@ if ($id_pagamento === 0 && isset($pdo) && $pdo !== null) {
         if ($ultimo_reg) { 
             $id_pagamento = intval(current($ultimo_reg)); 
         }
-    } catch (PDOException $e) { error_log($e->getMessage()); }
+    } catch (PDOException $e) { 
+        error_log("Falha ao detetar o último ID: " . $e->getMessage()); 
+    }
 }
 
+// Fallback de segurança para o template não quebrar caso o banco esteja limpo
 if ($id_pagamento === 0) { $id_pagamento = 1; }
 
-// 3. Captura os dados do atendimento/pagamento atual
+// 3. Captura os dados completos do atendimento/pagamento atual na base de dados
 $pagamento = [];
 if (isset($pdo) && $pdo !== null) {
     $colunas_id = ['id_pagamento', 'id_venda', 'id'];
@@ -30,12 +42,14 @@ if (isset($pdo) && $pdo !== null) {
             $stmt_p = $pdo->prepare("SELECT * FROM `pagamentos` WHERE $coluna = ? LIMIT 1");
             $stmt_p->execute([$id_pagamento]);
             $pagamento = $stmt_p->fetch(PDO::FETCH_ASSOC);
-            if ($pagamento) { break; }
-        } catch (PDOException $e) { continue; }
+            if ($pagamento) { break; } // Se localizou a linha certa, interrompe o loop
+        } catch (PDOException $e) { 
+            continue; 
+        }
     }
 }
 
-// 🟢 CORREÇÃO DO PROFISSIONAL
+// 🟢 CORREÇÃO CRÍTICA DO PROFISSIONAL: Cruza o ID com a tabela funcionários
 $atendente_final = 'Aurélio';
 if (!empty($pagamento)) {
     $id_func_raw = $pagamento['profissional'] ?? ($pagamento['atendente'] ?? ($pagamento['funcionario_id'] ?? ''));
@@ -57,7 +71,7 @@ if (!empty($pagamento)) {
     }
 }
 
-// 🟢 RESOLVE O NOME DO CLIENTE PARA IMPEDIR O WARNING DA LINHA 94
+// 🟢 RESOLVE O NOME DO CLIENTE DESTINATÁRIO
 $cliente_nome_final = "Consumidor Geral";
 if (!empty($pagamento)) {
     if (!empty($pagamento['nome_candidato'])) {
@@ -71,12 +85,11 @@ if (!empty($pagamento)) {
     }
 }
 
-// 🟢 CORREÇÃO DO TELEFONE DINÂMICO DO CLIENTE (BUSCA DIRETA NA TABELA CLIENTES)
+// 🟢 MAPEA O TELEFONE DO CLIENTE DE FORMA TOTALMENTE DINÂMICA
 $telefone_cliente_final = "Não Registado";
 if (!empty($pagamento)) {
     $telefone_direto = $pagamento['telefone_cliente'] ?? ($pagamento['whatsapp'] ?? ($pagamento['contacto'] ?? ($pagamento['telemovel'] ?? ($pagamento['telefone'] ?? ''))));
     
-    // Se o telefone estiver vazio ou for o do administrador, cruza com a tabela 'clientes' pelo nome
     if (!empty($telefone_direto) && $telefone_direto !== "925347372") {
         $telefone_cliente_final = $telefone_direto;
     } else {
@@ -88,18 +101,23 @@ if (!empty($pagamento)) {
                 if ($cli && !empty($cli['telefone'])) {
                     $telefone_cliente_final = $cli['telefone'];
                 }
-            } catch (Exception $e) { $telefone_cliente_final = "Não Registado"; }
+            } catch (Exception $e) { 
+                $telefone_cliente_final = "Não Registado"; 
+            }
         }
     }
 }
 
-// 🟢 ALINHAMENTO DAS DEMAIS VARIÁVEIS OPERACIONAIS
+// 🟢 ALINHAMENTO DECLARATÓRIO DE VARIÁVEIS OPERACIONAIS (ELIMINA O WARNING DA LINHA 368)
 $id_final_exibicao       = $pagamento['id_pagamento'] ?? ($pagamento['id_venda'] ?? ($pagamento['id'] ?? $id_pagamento));
 $preco_tabela_exibicao   = floatval($pagamento['preco'] ?? ($pagamento['valor'] ?? 1500));
 $desconto_kz             = floatval($pagamento['desconto'] ?? 0);
 $total_final             = $preco_tabela_exibicao - $desconto_kz;
 
-// 🟢 GERADOR DE QR CODE CORRIGIDO E BLINDADO CONTRA ERROS
+// 🌟 FIX DA LINHA 368: Criada a variável exata exigida pelo seu validador HTML VIP
+$is_premium_cliente      = ($desconto_kz > 0);
+
+// 🟢 GERADOR DO ENDPOINT DE AUTENTICAÇÃO DIGITAL QR CODE (GOOGLE CHARTS)
 $dados_qr = "FAC-" . $id_final_exibicao . " | Cliente: " . urlencode($cliente_nome_final) . " | Total: " . $total_final . " AOA";
 $url_qrcode = "https://googleapis.com" . $dados_qr . "&choe=UTF-8";
 ?>

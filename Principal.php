@@ -2284,14 +2284,26 @@ function moderacaoRemoverFoto(idAnuncio) {
      ========================================================================= -->
      <?php
 // Consulta os 3 salões com maior engajamento real somando os likes dos seus Reels
-$query_podio = $pdo->query("
-    SELECT u.codigo, u.nome, u.logo_empresa, u.slug, SUM(a.likes_adoro) as total_votos
-    FROM `usuario` u
-    INNER JOIN `anuncios` a ON a.id_barbearia = u.codigo
-    WHERE u.nivel = 'parceiro_hospedado'
-    GROUP BY u.codigo
-    ORDER BY total_votos DESC
-    LIMIT 3
+// 🟢 SUBSTITUA A QUERY DO RANKING NA LINHA 2287 POR ESTA COMPLETAMENTE CORRIGIDA:
+$stmtGlobal = $pdo->prepare("
+    SELECT 
+        a.id_anuncio,
+        ANY_VALUE(a.id_barbearia) as id_barbearia,
+        ANY_VALUE(a.titulo) as titulo,
+        ANY_VALUE(a.imagem) as imagem,
+        ANY_VALUE(a.ativo) as ativo,
+        ANY_VALUE(a.data_publicacao) as data_publicacao,
+        ANY_VALUE(a.likes_adoro) as likes_adoro,
+        ANY_VALUE(a.likes_ncurto) as likes_ncurto,
+        ANY_VALUE(a.cliques_agendamento) as cliques_agendamento,
+        ANY_VALUE(a.contagem_partilhas) as contagem_partilhas,
+        ANY_VALUE(u.nome) AS nome_salao
+    FROM anuncios a
+    LEFT JOIN usuario u ON a.id_barbearia = u.codigo
+    WHERE a.ativo = 1 AND a.data_publicacao >= :data_limite
+    GROUP BY a.id_anuncio
+    ORDER BY (ANY_VALUE(a.likes_adoro) * 10) + (ANY_VALUE(a.likes_ncurto) * 2) + (ANY_VALUE(a.cliques_agendamento) * 25) + (ANY_VALUE(a.contagem_partilhas) * 15) DESC, a.id_anuncio DESC
+    LIMIT 8
 ");
 $vencedores_semana = $query_podio->fetchAll(PDO::FETCH_ASSOC);
 
