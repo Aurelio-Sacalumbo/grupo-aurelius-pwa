@@ -484,7 +484,7 @@ if ('serviceWorker' in navigator) {
     </html>
     <?php
     exit;
-}
+
 
 // 1. CARREGAMENTO OBRIGATÓRIO DA LIGAÇÃO ANTES DE QUALQUER CONSULTA
 if (file_exists("Conexao.php")) {
