@@ -17,10 +17,21 @@ if (!isset($pdo) || $pdo === null) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['ficheiro_foto'])) {
     
-    // Captura a identidade da barbearia parceira ativa na sessão
+    // Captura a identidade da barbearia parceira activa na sessão
     $id_barbearia = $_SESSION['id_usuario'] ?? ($_SESSION['codigo'] ?? ($_SESSION['loja_id'] ?? 237));
     $titulo = isset($_POST['titulo_foto']) ? trim($_POST['titulo_foto']) : 'Trabalho Aurélius';
     
+    // =========================================================================
+    // ☁️ ROTINA DAS NUVENS: ARQUIVAR AUTOMATICAMENTE MÍDIAS COM MAIS DE 30 DIAS
+    // Muda 'ativo' para 0. Sai da página do cliente, mas fica salvo no banco!
+    // =========================================================================
+    try {
+        $stmt_limpeza = $pdo->prepare("UPDATE `anuncios` SET `ativo` = 0 WHERE `data_publicacao` < DATE_SUB(NOW(), INTERVAL 30 DAY)");
+        $stmt_limpeza->execute();
+    } catch (PDOException $e) {
+        error_log("Aviso: Falha na rotina de arquivamento automático: " . $e->getMessage());
+    }
+
     $ficheiro = $_FILES['ficheiro_foto'];
     $nome_original = $ficheiro['name'];
     $extensao = strtolower(pathinfo($nome_original, PATHINFO_EXTENSION));

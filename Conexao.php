@@ -1,25 +1,43 @@
 <?php
-// Substitua o session_start(); seco por esta trava inteligente:
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-// 1. Configuração para o RENDER (Produção)
+
 if (getenv('DB_HOST')) {
-    $db_host = getenv('DB_HOST');
-    $db_user = getenv('DB_USER');
-    $db_pass = getenv('DB_PASSWORD') ?: "";
-    $db_name = getenv('DB_NAME');
+    // Produção (Render -> Banco na Railway)
+    $db_host = "altaria.proxy.rlwy.net";
+    $db_port = 52030;
+    $db_user = "root";
+    $db_pass = "tPzDwXGkyczyyYdcyvLmHLSMmfZmnMIZ";
+    $db_name = "railway";
+    
+    // Conexão PDO com a porta especificada para o Render
+    try {
+        $pdo = new PDO("mysql:host=$db_host;port=$db_port;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    } catch (PDOException $e) {
+        die("Falha de conexão PDO: " . $e->getMessage());
+    }
+    
+    // Conexão MySQLi tradicional (caso use os dois no projeto)
+    $conexao_aurelius = mysqli_connect($db_host, $db_user, $db_pass, $db_name, $db_port);
+
 } else {
-    // 2. Configuração para o XAMPP (Local)
+    // Ambiente Local (XAMPP)
     $db_host = "127.0.0.1";
     $db_user = "root";
     $db_pass = "";
     $db_name = "aurelius_salao";
+    
+    try {
+        $pdo = new PDO("mysql:host=$db_host;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    } catch (PDOException $e) {
+        die("Falha de conexão PDO Local: " . $e->getMessage());
+    }
+    
+    $conexao_aurelius = mysqli_connect($db_host, $db_user, $db_pass, $db_name);
 }
-
-// PRIMEIRO: Cria a conexão que o Principal.php espera
-$conexao_aurelius = @mysqli_connect($db_host, $db_user, $db_pass, $db_name);
-
 // Fallback caso o XAMPP rejeite o IP 127.0.0.1
 if (!$conexao_aurelius && !getenv('DB_HOST')) {
     $conexao_aurelius = @mysqli_connect("localhost", "root", "", "aurelius_salao");
