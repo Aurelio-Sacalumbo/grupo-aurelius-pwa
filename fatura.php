@@ -35,14 +35,12 @@ if (isset($pdo) && $pdo !== null) {
     }
 }
 
-// 🟢 CORREÇÃO DO PROFISSIONAL: Cruza usando a coluna exata 'id_funcionario' da tabela 'funcionarios'
+// 🟢 CORREÇÃO DO PROFISSIONAL
 $atendente_final = 'Aurélio';
 if (!empty($pagamento)) {
     $id_func_raw = $pagamento['profissional'] ?? ($pagamento['atendente'] ?? ($pagamento['funcionario_id'] ?? ''));
-    
     if (is_numeric($id_func_raw) && isset($pdo)) {
         try {
-            // Alterado stritamente para bater certo com a coluna do seu phpMyAdmin
             $stmt_f = $pdo->prepare("SELECT nome FROM `funcionarios` WHERE id_funcionario = ? LIMIT 1");
             $stmt_f->execute([$id_func_raw]);
             $func = $stmt_f->fetch(PDO::FETCH_ASSOC);
@@ -59,22 +57,33 @@ if (!empty($pagamento)) {
     }
 }
 
-// 🟢 CORREÇÃO DO TELEFONE DO CLIENTE: Puxa o contacto em tempo real da tabela 'clientes'
+// 🟢 RESOLVE O NOME DO CLIENTE PARA IMPEDIR O WARNING DA LINHA 94
+$cliente_nome_final = "Consumidor Geral";
+if (!empty($pagamento)) {
+    if (!empty($pagamento['nome_candidato'])) {
+        $cliente_nome_final = $pagamento['nome_candidato'];
+    } elseif (!empty($pagamento['nome_autor'])) {
+        $cliente_nome_final = $pagamento['nome_autor'];
+    } elseif (!empty($pagamento['cliente'])) {
+        $cliente_nome_final = $pagamento['cliente'];
+    } elseif (!empty($pagamento['nome'])) {
+        $cliente_nome_final = $pagamento['nome'];
+    }
+}
+
+// 🟢 CORREÇÃO DO TELEFONE DINÂMICO DO CLIENTE (BUSCA DIRETA NA TABELA CLIENTES)
 $telefone_cliente_final = "Não Registado";
 if (!empty($pagamento)) {
-    // 1. Tenta varrer se o telefone já veio gravado direto na linha do pagamento
     $telefone_direto = $pagamento['telefone_cliente'] ?? ($pagamento['whatsapp'] ?? ($pagamento['contacto'] ?? ($pagamento['telemovel'] ?? ($pagamento['telefone'] ?? ''))));
     
+    // Se o telefone estiver vazio ou for o do administrador, cruza com a tabela 'clientes' pelo nome
     if (!empty($telefone_direto) && $telefone_direto !== "925347372") {
         $telefone_cliente_final = $telefone_direto;
     } else {
-        // 2. Fallback inteligente: Puxa o nome do cliente destinatário
-        $cliente_nome_busca = $pagamento['cliente'] ?? ($pagamento['nome_candidato'] ?? ($pagamento['nome_autor'] ?? ''));
-        if (!empty($cliente_nome_busca) && isset($pdo)) {
+        if (!empty($cliente_nome_final) && $cliente_nome_final !== "Consumidor Geral" && isset($pdo)) {
             try {
-                // Procura na tabela 'clientes' do seu banco de dados
                 $stmt_c = $pdo->prepare("SELECT telefone FROM `clientes` WHERE nome LIKE ? LIMIT 1");
-                $stmt_c->execute(["%" . $cliente_nome_busca . "%"]);
+                $stmt_c->execute(["%" . $cliente_nome_final . "%"]);
                 $cli = $stmt_c->fetch(PDO::FETCH_ASSOC);
                 if ($cli && !empty($cli['telefone'])) {
                     $telefone_cliente_final = $cli['telefone'];
@@ -88,13 +97,11 @@ if (!empty($pagamento)) {
 $id_final_exibicao       = $pagamento['id_pagamento'] ?? ($pagamento['id_venda'] ?? ($pagamento['id'] ?? $id_pagamento));
 $preco_tabela_exibicao   = floatval($pagamento['preco'] ?? ($pagamento['valor'] ?? 1500));
 $desconto_kz             = floatval($pagamento['desconto'] ?? 0);
-$total_final             = floatval($pagamento['total'] ?? ($pagamento['liquido_pago'] ?? $preco_tabela_exibicao));
-$is_premium_cliente      = ($desconto_kz > 0);
+$total_final             = $preco_tabela_exibicao - $desconto_kz;
 
-$dados_qr = "FAC-" . $id_final_exibicao . " | Cliente: " . $cliente_nome_final . " | Total: " . $total_final . " AOA";
-
-// O link correto precisa de todos estes parâmetros para o Google Charts desenhar a imagem:
-$url_qrcode = "https://googleapis.com" . urlencode($dados_qr) . "&choe=UTF-8";
+// 🟢 GERADOR DE QR CODE CORRIGIDO E BLINDADO CONTRA ERROS
+$dados_qr = "FAC-" . $id_final_exibicao . " | Cliente: " . urlencode($cliente_nome_final) . " | Total: " . $total_final . " AOA";
+$url_qrcode = "https://googleapis.com" . $dados_qr . "&choe=UTF-8";
 ?>
 
 
