@@ -14,28 +14,28 @@ $local_user = "root";
 $local_pass = "";
 $local_name = "aurelius_salao";
 
-echo "<h3>📤 A enviar dados locais (Anúncios) para as Nuvens (Railway)...</h3>";
+echo "<h3>📤 Sincronizando tabelas de faturamento e faturas com a Nuvem...</h3>";
 
-// Conectar ao Banco Local (Origem)
+// Conectar ao Banco Local (Origem dos novos dados)
 $conn_local = mysqli_connect($local_host, $local_user, $local_pass, $local_name);
 if (!$conn_local) { die("🚨 Erro ao ligar ao banco LOCAL: " . mysqli_connect_error()); }
 mysqli_set_charset($conn_local, "utf8mb4");
 
-// Conectar ao Banco Online (Destino)
+// Conectar ao Banco Online (Destino na Railway)
 $conn_online = mysqli_connect($online_host, $online_user, $online_pass, $online_name, $online_port);
 if (!$conn_online) { die("🚨 Erro ao ligar ao banco ONLINE: " . mysqli_connect_error()); }
 mysqli_set_charset($conn_online, "utf8mb4");
 
-// Desativa as travas de segurança na Railway temporariamente para o upload
+// Desativa temporariamente a verificação de integridade no servidor online para o upload
 mysqli_query($conn_online, "SET FOREIGN_KEY_CHECKS = 0");
 
-// A tabela que guarda os produtos/anúncios que vimos no seu código anterior!
-$tabelas = ['anuncios']; 
+// Tabelas dinâmicas que guardam os novos pedidos e o faturamento
+$tabelas = ['pagamentos', 'atendimentos', 'faturamento_parceiros', 'historico_vendas']; 
 
 foreach ($tabelas as $tabela) {
-    echo "Fazendo upload da tabela: <strong>$tabela</strong>...<br>";
+    echo "Fazendo upload dos dados da tabela: <strong>$tabela</strong>...<br>";
     
-    // Puxa os dados do seu computador local
+    // Puxa o histórico atual do seu XAMPP local
     $resultado_local = mysqli_query($conn_local, "SELECT * FROM $tabela");
     
     $linhas_enviadas = 0;
@@ -48,7 +48,7 @@ foreach ($tabelas as $tabela) {
         
         $valores = implode(", ", $valores_escapados);
         
-        // Insere na Railway online. Se já existir o ID, ele ignora para não duplicar
+        // INSERT IGNORE: Envia os novos pedidos do hhhhhhh e do Malaquias sem duplicar os antigos
         $query_insert = "INSERT IGNORE INTO $tabela ($colunas) VALUES ($valores)";
         if (mysqli_query($conn_online, $query_insert)) {
             if (mysqli_affected_rows($conn_online) > 0) {
@@ -56,11 +56,11 @@ foreach ($tabelas as $tabela) {
             }
         }
     }
-    echo "✅ Sucesso! <strong>$linhas_enviadas</strong> novos anúncios enviados para o servidor online.<br><br>";
+    echo "✅ Concluído! <strong>$linhas_enviadas</strong> novos registos enviados para a nuvem em <strong>$tabela</strong>.<br><br>";
 }
 
-// Reativa as travas de segurança na Railway
+// Reativa as verificações de segurança no servidor online
 mysqli_query($conn_online, "SET FOREIGN_KEY_CHECKS = 1");
 
-echo "<h3>🎉 Upload concluído! Os produtos já devem aparecer no Render!</h3>";
+echo "<h3>🎉 Banco de dados sincronizado! O faturamento atual já deve responder no Render!</h3>";
 ?>

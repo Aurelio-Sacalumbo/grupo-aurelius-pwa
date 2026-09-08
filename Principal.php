@@ -2277,14 +2277,44 @@ function moderacaoRemoverFoto(idAnuncio) {
 
 
 
+<?php
+// =========================================================================
+// 🏆 PÓDIO SEMANAL DE PARCEIROS - MOTOR DE ENGAJAMENTO REAL SaaS
+// =========================================================================
+try {
+    // A variável TEM de se chamar $query_podio para a linha 2308 ler sem erro!
+    $query_podio = $pdo->query("
+        SELECT 
+            u.codigo, 
+            ANY_VALUE(u.nome) AS nome, 
+            ANY_VALUE(u.logo_empresa) AS logo_empresa, 
+            ANY_VALUE(u.slug) AS slug, 
+            IFNULL(SUM(a.likes_adoro), 0) AS total_votos
+        FROM `usuario` u
+        INNER JOIN `anuncios` a ON a.id_barbearia = u.codigo
+        WHERE u.nivel = 'parceiro_hospedado'
+        GROUP BY u.codigo
+        ORDER BY total_votos DESC
+        LIMIT 3
+    ");
+} catch (PDOException $e) {
+    error_log("Erro no Pódio: " . $e->getMessage());
+    $query_podio = null;
+}
 
+// 🟢 EXECUTOR DO FETCH DO PÓDIO (Linha 2308 Protegida)
+if (isset($query_podio) && $query_podio !== null) {
+    $vencedores_semana = $query_podio->fetchAll(PDO::FETCH_ASSOC);
+} else {
+    $vencedores_semana = []; // Fallback seguro para não travar a página
+}
 
-<!-- =========================================================================
-     👑 PÓDIO SEMANAL DE PARCEIROS & FILTRO GEOGRÁFICO DE PROVÍNCIAS
-     ========================================================================= -->
-     <?php
-// Consulta os 3 salões com maior engajamento real somando os likes dos seus Reels
-// 🟢 SUBSTITUA A QUERY DO RANKING NA LINHA 2287 POR ESTA COMPLETAMENTE CORRIGIDA:
+// =========================================================================
+// 📈 PREPARAÇÃO DA QUERY DO RANKING GLOBAL (MÉTODO REATIVO VORTEX)
+// =========================================================================
+// 🌟 INJEÇÃO DA VARIÁVEL CRÍTICA: Define que o ranking analisa os últimos 30 dias
+$data_limite = date('Y-m-d', strtotime('-30 days'));
+
 $stmtGlobal = $pdo->prepare("
     SELECT 
         a.id_anuncio,
@@ -2305,23 +2335,11 @@ $stmtGlobal = $pdo->prepare("
     ORDER BY (ANY_VALUE(a.likes_adoro) * 10) + (ANY_VALUE(a.likes_ncurto) * 2) + (ANY_VALUE(a.cliques_agendamento) * 25) + (ANY_VALUE(a.contagem_partilhas) * 15) DESC, a.id_anuncio DESC
     LIMIT 8
 ");
-$vencedores_semana = $query_podio->fetchAll(PDO::FETCH_ASSOC);
-
-// Mapeamento visual das posições do pódio de Angola
-$medalhas = ["🥇 1º LUGAR", "🥈 2º LUGAR", "🥉 3º LUGAR"];
-$cores_medalhas = ["#eab308", "#cbd5e1", "#b45309"]; // Ouro, Prata, Bronze
 ?>
 
 <div style="max-width: 95%; margin: 30px auto; font-family: 'Segoe UI', Arial, sans-serif;">
     
-   
-   
-
-
-
-
-
-   
+<!-- O restante do seu HTML e o Feed do Facebook continuam logo abaixo perfeitamente... -->
 
 <!-- =========================================================================
      🔷 FEED INTERATIVO DE ANÚNCIOS AURELIUS RESPONSIVO (ESTILO FACEBOOK REAL)
@@ -2339,7 +2357,6 @@ $cores_medalhas = ["#eab308", "#cbd5e1", "#b45309"]; // Ouro, Prata, Bronze
      ");
      $feed_produtos = $query_feed_fb->fetchAll(PDO::FETCH_ASSOC);
      ?>
-     
      <!-- Estilos Globais e Regras de Media Queries para Smartphones -->
      <style>
          .feed-container-fb {
