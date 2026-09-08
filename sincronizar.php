@@ -14,72 +14,53 @@ $local_user = "root";
 $local_pass = "";
 $local_name = "aurelius_salao";
 
-echo "<h3>🔄 A iniciar sincronização de dados operacionais e faturamento...</h3>";
+echo "<h3>📤 A enviar dados locais (Anúncios) para as Nuvens (Railway)...</h3>";
 
-// Conectar ao Banco Online
-$conn_online = mysqli_connect($online_host, $online_user, $online_pass, $online_name, $online_port);
-if (!$conn_online) { 
-    die("🚨 Erro ao ligar ao banco ONLINE: " . mysqli_connect_error()); 
-}
-mysqli_set_charset($conn_online, "utf8mb4");
-
-// Conectar ao Banco Local
+// Conectar ao Banco Local (Origem)
 $conn_local = mysqli_connect($local_host, $local_user, $local_pass, $local_name);
-if (!$conn_local) { 
-    die("🚨 Erro ao ligar ao banco LOCAL: " . mysqli_connect_error()); 
-}
+if (!$conn_local) { die("🚨 Erro ao ligar ao banco LOCAL: " . mysqli_connect_error()); }
 mysqli_set_charset($conn_local, "utf8mb4");
 
-// Desativa temporariamente as travas de chaves estrangeiras para evitar erros fatais
-mysqli_query($conn_local, "SET FOREIGN_KEY_CHECKS = 0");
+// Conectar ao Banco Online (Destino)
+$conn_online = mysqli_connect($online_host, $online_user, $online_pass, $online_name, $online_port);
+if (!$conn_online) { die("🚨 Erro ao ligar ao banco ONLINE: " . mysqli_connect_error()); }
+mysqli_set_charset($conn_online, "utf8mb4");
 
-// Lista Completa das tabelas necessárias para reconstruir os recibos e faturas
-$tabelas = [
-    'clientes', 
-    'funcionarios', 
-    'profissionais', 
-    'servicos', 
-    'agendamentos', 
-    'atendimentos', 
-    'pagamentos', 
-    'faturamento_parceiros', 
-    'historico_vendas'
-]; 
+// Desativa as travas de segurança na Railway temporariamente para o upload
+mysqli_query($conn_online, "SET FOREIGN_KEY_CHECKS = 0");
+
+// A tabela que guarda os produtos/anúncios que vimos no seu código anterior!
+$tabelas = ['anuncios']; 
 
 foreach ($tabelas as $tabela) {
-    echo "Sincronizando dados atuais da tabela: <strong>$tabela</strong>...<br>";
+    echo "Fazendo upload da tabela: <strong>$tabela</strong>...<br>";
     
-    // Puxa os dados mais recentes do servidor online
-    $resultado = mysqli_query($conn_online, "SELECT * FROM $tabela");
-    if (!$resultado) {
-        echo "⚠️ Tabela $tabela não encontrada no online ou vazia. Avançando...<br><br>";
-        continue;
-    }
+    // Puxa os dados do seu computador local
+    $resultado_local = mysqli_query($conn_local, "SELECT * FROM $tabela");
     
-    $linhas_inseridas = 0;
-    while ($linha = mysqli_fetch_assoc($resultado)) {
+    $linhas_enviadas = 0;
+    while ($linha = mysqli_fetch_assoc($resultado_local)) {
         $colunas = implode(", ", array_keys($linha));
         
-        // Trata strings e valores nulos adequadamente para o SQL
-        $valores_escapados = array_map(function($val) use ($conn_local) {
-            return is_null($val) ? "NULL" : "'" . mysqli_real_escape_string($conn_local, $val) . "'";
+        $valores_escapados = array_map(function($val) use ($conn_online) {
+            return is_null($val) ? "NULL" : "'" . mysqli_real_escape_string($conn_online, $val) . "'";
         }, array_values($linha));
         
         $valores = implode(", ", $valores_escapados);
         
-        // INSERT IGNORE: Garante inserção rápida sem duplicar chaves primárias existentes
+        // Insere na Railway online. Se já existir o ID, ele ignora para não duplicar
         $query_insert = "INSERT IGNORE INTO $tabela ($colunas) VALUES ($valores)";
-        if (mysqli_query($conn_local, $query_insert)) {
-            if (mysqli_affected_rows($conn_local) > 0) {
-                $linhas_inseridas++;
+        if (mysqli_query($conn_online, $query_insert)) {
+            if (mysqli_affected_rows($conn_online) > 0) {
+                $linhas_enviadas++;
             }
         }
     }
-    echo "✅ Concluído! <strong>$linhas_inseridas</strong> novos registos sincronizados em $tabela.<br><br>";
+    echo "✅ Sucesso! <strong>$linhas_enviadas</strong> novos anúncios enviados para o servidor online.<br><br>";
 }
 
-// Reativa as verificações de segurança do banco local
-mysqli_query($conn_local, "SET FOREIGN_KEY_CHECKS = 1");
+// Reativa as travas de segurança na Railway
+mysqli_query($conn_online, "SET FOREIGN_KEY_CHECKS = 1");
 
-echo "<h3>🎉 Todos os pedidos, serviços e profissionais foram atualizados com sucesso!</h3>";
+echo "<h3>🎉 Upload concluído! Os produtos já devem aparecer no Render!</h3>";
 ?>

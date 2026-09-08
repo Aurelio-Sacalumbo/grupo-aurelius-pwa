@@ -2,100 +2,102 @@
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 require_once __DIR__ . "/config/Banco.php";
 
-// 1. Tenta capturar o ID enviado via URL (ex: fatura.php?id=12)
+// 1. Captura o ID da URL se alguém clicou em "Reimprimir"
 $id_pagamento = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
-// 2. Se não veio ID na URL, força o banco a trazer o ÚLTIMO pedido inserido agora mesmo!
-if ($id_pagamento === 0) {
-    // Usa o motor PDO que confirmamos que está ativo no seu ecossistema
+// 2. Se nenhum ID veio na URL, descobre de forma inteligente qual o ID mais recente
+if ($id_pagamento === 0 && isset($pdo) && $pdo !== null) {
     try {
-        $stmt_u = $pdo->query("SELECT id FROM `pagamentos` ORDER BY id DESC LIMIT 1");
-        $ultimo_reg = $stmt_u->fetch(PDO::ATTR_ASSOC);
-        if ($ultimo_reg) {
-            $id_pagamento = intval($ultimo_reg['id']);
+        $stmt_u = $pdo->query("SELECT id_pagamento FROM `pagamentos` ORDER BY id_pagamento DESC LIMIT 1");
+        if (!$stmt_u) { $stmt_u = $pdo->query("SELECT id_venda FROM `pagamentos` ORDER BY id_venda DESC LIMIT 1"); }
+        if (!$stmt_u) { $stmt_u = $pdo->query("SELECT id FROM `pagamentos` ORDER BY id DESC LIMIT 1"); }
+        
+        $ultimo_reg = $stmt_u->fetch(PDO::FETCH_ASSOC);
+        if ($ultimo_reg) { 
+            $id_pagamento = intval(current($ultimo_reg)); 
         }
-    } catch (PDOException $e) {
-        error_log("Erro ao buscar último ID: " . $e->getMessage());
-    }
+    } catch (PDOException $e) { error_log($e->getMessage()); }
 }
 
-// Se mesmo assim falhar, define 1 para não quebrar a página
 if ($id_pagamento === 0) { $id_pagamento = 1; }
 
-// =========================================================================
-// A SUA CONSULTA DEVE USAR A VARIÁVEL $id_pagamento LOGO ABAIXO:
-// =========================================================================
-// Exemplo: $stmt = $pdo->prepare("SELECT * FROM pagamentos WHERE id = ?");
-// $stmt->execute([$id_pagamento]);
+// 3. Captura os dados do atendimento/pagamento atual
+$pagamento = [];
+if (isset($pdo) && $pdo !== null) {
+    $colunas_id = ['id_pagamento', 'id_venda', 'id'];
+    foreach ($colunas_id as $coluna) {
+        try {
+            $stmt_p = $pdo->prepare("SELECT * FROM `pagamentos` WHERE $coluna = ? LIMIT 1");
+            $stmt_p->execute([$id_pagamento]);
+            $pagamento = $stmt_p->fetch(PDO::FETCH_ASSOC);
+            if ($pagamento) { break; }
+        } catch (PDOException $e) { continue; }
+    }
+}
 
-try {
-    // 🧠 TENTATIVA 1: Procura na tabela ativa onde estão guardados os dados recentes
-    $sql_atendimentos = "SELECT * FROM `atendimentos` WHERE `id` = $id_pagamento LIMIT 1";
-    $query_fatura = $mysqli->query($sql_atendimentos);
-
-    if ($query_fatura && $query_fatura->num_rows > 0) {
-        $pagamento = $query_fatura->fetch_assoc();
-        
-        // Normaliza as colunas de atendimentos para o padrão do emissor
-        $pagamento['cliente'] = $pagamento['cliente'] ?? $pagamento['nome_cliente'];
-        $pagamento['funcionario'] = $pagamento['funcionario'] ?? $pagamento['profissional'];
-        $pagamento['servico'] = $pagamento['servico'] ?? $pagamento['tipo_servico'];
-        $pagamento['valor'] = $pagamento['valor'] ?? $pagamento['preco'];
-        $pagamento['data_venda'] = $pagamento['data_venda'] ?? ($pagamento['data'] ?? ($pagamento['data_hora'] ?? ''));
-    } else {
-        // TENTATIVA 2: Fallback na tabela secundária de 'servicos' caso o ID venha de lá
-        $query_servicos = $mysqli->query("SELECT * FROM `servicos` WHERE `id` = $id_pagamento LIMIT 1");
-        if ($query_servicos && $query_servicos->num_rows > 0) {
-            $pagamento = $query_servicos->fetch_assoc();
-            $pagamento['valor'] = $pagamento['valor'] ?? $pagamento['preco'];
-            $pagamento['data_venda'] = $pagamento['data_venda'] ?? $pagamento['data_cadastro'];
-        } else {
-            // TENTATIVA 3: Fallback na tabela 'historico_vendas'
-            $query_historico = $mysqli->query("SELECT * FROM `historico_vendas` WHERE `id` = $id_pagamento LIMIT 1");
-            if ($query_historico && $query_historico->num_rows > 0) {
-                $pagamento = $query_historico->fetch_assoc();
+// 🟢 CORREÇÃO DO PROFISSIONAL: Cruza usando a coluna exata 'id_funcionario' da tabela 'funcionarios'
+$atendente_final = 'Aurélio';
+if (!empty($pagamento)) {
+    $id_func_raw = $pagamento['profissional'] ?? ($pagamento['atendente'] ?? ($pagamento['funcionario_id'] ?? ''));
+    
+    if (is_numeric($id_func_raw) && isset($pdo)) {
+        try {
+            // Alterado stritamente para bater certo com a coluna do seu phpMyAdmin
+            $stmt_f = $pdo->prepare("SELECT nome FROM `funcionarios` WHERE id_funcionario = ? LIMIT 1");
+            $stmt_f->execute([$id_func_raw]);
+            $func = $stmt_f->fetch(PDO::FETCH_ASSOC);
+            if ($func && !empty($func['nome'])) {
+                $atendente_final = $func['nome'];
+            } else {
+                $atendente_final = "Profissional #" . $id_func_raw;
             }
+        } catch (Exception $e) {
+            $atendente_final = "Profissional #" . $id_func_raw;
+        }
+    } elseif (!empty($id_func_raw)) {
+        $atendente_final = $id_func_raw;
+    }
+}
+
+// 🟢 CORREÇÃO DO TELEFONE DO CLIENTE: Puxa o contacto em tempo real da tabela 'clientes'
+$telefone_cliente_final = "Não Registado";
+if (!empty($pagamento)) {
+    // 1. Tenta varrer se o telefone já veio gravado direto na linha do pagamento
+    $telefone_direto = $pagamento['telefone_cliente'] ?? ($pagamento['whatsapp'] ?? ($pagamento['contacto'] ?? ($pagamento['telemovel'] ?? ($pagamento['telefone'] ?? ''))));
+    
+    if (!empty($telefone_direto) && $telefone_direto !== "925347372") {
+        $telefone_cliente_final = $telefone_direto;
+    } else {
+        // 2. Fallback inteligente: Puxa o nome do cliente destinatário
+        $cliente_nome_busca = $pagamento['cliente'] ?? ($pagamento['nome_candidato'] ?? ($pagamento['nome_autor'] ?? ''));
+        if (!empty($cliente_nome_busca) && isset($pdo)) {
+            try {
+                // Procura na tabela 'clientes' do seu banco de dados
+                $stmt_c = $pdo->prepare("SELECT telefone FROM `clientes` WHERE nome LIKE ? LIMIT 1");
+                $stmt_c->execute(["%" . $cliente_nome_busca . "%"]);
+                $cli = $stmt_c->fetch(PDO::FETCH_ASSOC);
+                if ($cli && !empty($cli['telefone'])) {
+                    $telefone_cliente_final = $cli['telefone'];
+                }
+            } catch (Exception $e) { $telefone_cliente_final = "Não Registado"; }
         }
     }
-} catch (Exception $e) {
-    error_log("Falha no rastreio da fatura: " . $e->getMessage());
 }
 
-// Se encontrou dados legítimos no banco, desliga a contingência estática!
-// 📁 CAMADA DE CONTINGÊNCIA: Se o banco falhar ou estiver vazio localmente, injeta dados padrão
-if (empty($pagamento)) {
-    $pagamento = [
-        'id' => $id_pagamento,
-        'nome_salao' => 'Barbearia Branca',
-        'funcionario' => 'Aurélio',
-        'cliente_telefone' => '925347372',
-        'valor' => 5000,
-        'desconto' => 0,
-        'valor_liquido' => 5000,
-        'data_venda' => date('Y-m-d H:i:s')
-    ];
-}
-// 3. RESOLVE O NOME DO PROFISSIONAL SEM MOSTRAR O NÚMERO 1
-$atendente_final = "Não Alocado";
-if (!empty($pagamento['nome_funcionario_real'])) {
-    $atendente_final = $pagamento['nome_funcionario_real'];
-} elseif (!empty($pagamento['funcionario']) && !is_numeric($pagamento['funcionario'])) {
-    $atendente_final = $pagamento['funcionario'];
-} elseif (!empty($pagamento['profissional']) && !is_numeric($pagamento['profissional'])) {
-    $atendente_final = $pagamento['profissional'];
-}
+// 🟢 ALINHAMENTO DAS DEMAIS VARIÁVEIS OPERACIONAIS
+$id_final_exibicao       = $pagamento['id_pagamento'] ?? ($pagamento['id_venda'] ?? ($pagamento['id'] ?? $id_pagamento));
+$preco_tabela_exibicao   = floatval($pagamento['preco'] ?? ($pagamento['valor'] ?? 1500));
+$desconto_kz             = floatval($pagamento['desconto'] ?? 0);
+$total_final             = floatval($pagamento['total'] ?? ($pagamento['liquido_pago'] ?? $preco_tabela_exibicao));
+$is_premium_cliente      = ($desconto_kz > 0);
 
-$telefone_cliente_final = $pagamento['cliente_telephone'] ?? ($pagamento['cliente_telefone'] ?? '925347372');
-$desconto_kz = floatval($pagamento['desconto'] ?? 0);
-$valor_bruto = floatval($pagamento['valor'] ?? 0);
-$is_premium_cliente = ($desconto_kz > 0);
-$total_final = (isset($pagamento['valor_liquido']) && $pagamento['valor_liquido'] > 0) ? floatval($pagamento['valor_liquido']) : $valor_bruto;
-$preco_tabela_exibicao = $is_premium_cliente ? ($total_final + $desconto_kz) : $total_final;
+$dados_qr = "FAC-" . $id_final_exibicao . " | Cliente: " . $cliente_nome_final . " | Total: " . $total_final . " AOA";
 
-// 4. API DO QR CODE GOOGLE CHARTS ENDPOINT (Corrigido para renderizar o quadrado perfeito)
-$texto_qrcode = "Aurelius - Fatura: #FAC-" . $id_pagamento . " | Atendente: " . $atendente_final . " | Total: " . number_format($total_final, 0, '', '') . " AOA";
-$url_qrcode = "https://googleapis.com" . urlencode($texto_qrcode) . "&choe=UTF-8";
+// O link correto precisa de todos estes parâmetros para o Google Charts desenhar a imagem:
+$url_qrcode = "https://googleapis.com" . urlencode($dados_qr) . "&choe=UTF-8";
 ?>
+
+
 <!DOCTYPE html>
 <html lang="pt-PT">
 <head>
