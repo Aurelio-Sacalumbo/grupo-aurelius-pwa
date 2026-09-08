@@ -8,7 +8,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Tranca de segurança: Se não existir a sessão ativa, barra o acesso
 if (!isset($_SESSION['admin_logado']) || $_SESSION['admin_logado'] !== true) {
-    header("Location: Login.php");
+    header("Location: Login.php"); // ← Alterado estritamente para L maiúsculo
     exit;
 }
 
@@ -46,9 +46,8 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Tranca de segurança: Se não existir a sessão ativa, barra o acesso
 if (!isset($_SESSION['admin_logado']) || $_SESSION['admin_logado'] !== true) {
-    header("Location: Login.php");
+    header("Location: Login.php"); // ← Alterado estritamente para L maiúsculo
     exit;
 }
 
@@ -103,9 +102,8 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Tranca de segurança: Se não existir a sessão ativa, barra o acesso
 if (!isset($_SESSION['admin_logado']) || $_SESSION['admin_logado'] !== true) {
-    header("Location: Login.php");
+    header("Location: Login.php"); // ← Alterado estritamente para L maiúsculo
     exit;
 }
 
@@ -150,9 +148,8 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Tranca de segurança: Se não existir a sessão ativa, barra o acesso
 if (!isset($_SESSION['admin_logado']) || $_SESSION['admin_logado'] !== true) {
-    header("Location: Login.php");
+    header("Location: Login.php"); // ← Alterado estritamente para L maiúsculo
     exit;
 }
 
@@ -240,9 +237,8 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Tranca de segurança: Se não existir a sessão ativa, barra o acesso
 if (!isset($_SESSION['admin_logado']) || $_SESSION['admin_logado'] !== true) {
-    header("Location: Login.php");
+    header("Location: Login.php"); // ← Alterado estritamente para L maiúsculo
     exit;
 }
 
@@ -354,9 +350,8 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Tranca de segurança: Se não existir a sessão ativa, barra o acesso
 if (!isset($_SESSION['admin_logado']) || $_SESSION['admin_logado'] !== true) {
-    header("Location: login.php");
+    header("Location: Login.php"); // ← Alterado estritamente para L maiúsculo
     exit;
 }
 

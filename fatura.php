@@ -49,7 +49,7 @@ if (isset($pdo) && $pdo !== null) {
     }
 }
 
-// 🟢 CORREÇÃO CRÍTICA DO PROFISSIONAL: Cruza o ID com a tabela funcionários
+// 🟢 CORREÇÃO DO PROFISSIONAL: Cruza o ID com a tabela funcionários
 $atendente_final = 'Aurélio';
 if (!empty($pagamento)) {
     $id_func_raw = $pagamento['profissional'] ?? ($pagamento['atendente'] ?? ($pagamento['funcionario_id'] ?? ''));
@@ -108,7 +108,7 @@ if (!empty($pagamento)) {
     }
 }
 
-// 🟢 ALINHAMENTO DECLARATÓRIO DE VARIÁVEIS OPERACIONAIS (ELIMINA O WARNING DA LINHA 368)
+// 🟢 ALINHAMENTO DECLARATÓRIO DE VARIÁVEIS OPERACIONAIS
 $id_final_exibicao       = $pagamento['id_pagamento'] ?? ($pagamento['id_venda'] ?? ($pagamento['id'] ?? $id_pagamento));
 $preco_tabela_exibicao   = floatval($pagamento['preco'] ?? ($pagamento['valor'] ?? 1500));
 $desconto_kz             = floatval($pagamento['desconto'] ?? 0);
@@ -121,6 +121,7 @@ $is_premium_cliente      = ($desconto_kz > 0);
 $dados_qr = "FAC-" . $id_final_exibicao . " | Cliente: " . urlencode($cliente_nome_final) . " | Total: " . $total_final . " AOA";
 $url_qrcode = "https://googleapis.com" . $dados_qr . "&choe=UTF-8";
 ?>
+
 
 
 <!DOCTYPE html>
