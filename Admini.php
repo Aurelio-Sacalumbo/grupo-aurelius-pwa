@@ -1,38 +1,19 @@
-
-
-
-
-
-
-
-
-
-
-
 <?php
-// Admini.php - Triagem de Pauta Operacional Aurelius
-include_once("Conexao.php");
+// 🔴 DEVE SER A PRIMEIRA LINHA ABSOLUTA DO FICHEIRO ADMINI.PHP:
+ob_start(); 
 
-$hoje_sql = date('Y-m-d');
-$id_empresa_ativa = 242; // ID Padrão Só Tranças
-
-// 🟢 ACTION: PROCESSA A VALIDAÇÃO DO SERVIÇO CONCLUÍDO
-if (isset($_GET['acao_auditoria']) && isset($_GET['id_pagamento'])) {
-    $id_p = intval($_GET['id_pagamento']);
-    $metodo = $_GET['acao_auditoria']; // 'pwa' ou 'fisico'
-    
-    if ($metodo === 'fisico') {
-        // Encerra direto como Concluído via caixa físico
-        $stmt_f = $pdo->prepare("UPDATE `pagamentos` SET `status_trabalho` = 'Concluído', `tipo_pagamento` = 'Físico' WHERE `id_pagamento` = ?");
-        $stmt_f->execute([$id_p]);
-        echo "<script>alert('✓ Serviço validado via Caixa Físico com Sucesso!'); window.location.href='Admini.php';</script>";
-    } elseif ($metodo === 'pwa') {
-        // Redireciona o cliente para efetuar o pagamento obrigatório via Unitel Money para colher os dados
-        header("Location: unitelPagamentos.php?id_pagamento_obrigatorio=" . $id_p . "&checkout_forced=1");
-        exit();
-    }
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
+// Tranca de segurança: Se não existir a sessão ativa, barra o acesso
+if (!isset($_SESSION['admin_logado']) || $_SESSION['admin_logado'] !== true) {
+    header("Location: login.php");
+    exit;
+}
+
+// Importa a conexão estruturada do ecossistema
+include_once("Conexao.php");
 // ⏳ LISTA 1: PENDENTES (Hoje não compareceu até 5 dias OU agendamentos futuros)
 $stmt_pendentes = $pdo->prepare("
     SELECT *, DATEDIFF(?, data_servico) as dias_atraso 
@@ -57,13 +38,21 @@ $stmt_concluidos->execute([$id_empresa_ativa, $hoje_sql]);
 $lista_concluidos = $stmt_concluidos->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
-
 <?php
-// admini.php - TOPO DO ARQUIVO: Forçar Captura Total Sem Filtros Ocultos
+// 🔴 DEVE SER A PRIMEIRA LINHA ABSOLUTA DO FICHEIRO ADMINI.PHP:
+ob_start(); 
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Tranca de segurança: Se não existir a sessão ativa, barra o acesso
+if (!isset($_SESSION['admin_logado']) || $_SESSION['admin_logado'] !== true) {
+    header("Location: login.php");
+    exit;
+}
+
+// Importa a conexão estruturada do ecossistema
 include_once("Conexao.php");
 
 // Garante o alinhamento da variável com o seu arquivo de conexão MySQLi
@@ -106,16 +95,22 @@ if ($conexao_link) {
 }
 ?>
 
-
 <?php
-include_once("Conexao.php");
-if (session_status() === PHP_SESSION_NONE) { 
-    session_start(); 
+// 🔴 DEVE SER A PRIMEIRA LINHA ABSOLUTA DO FICHEIRO ADMINI.PHP:
+ob_start(); 
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
-// 🔑 CAPTURA REAL DA IDENTIDADE DO PARCEIRO (BARBEARIA BRANCA ID 20)
-$id_salao_logado = isset($_SESSION['codigo_usuario']) ? intval($_SESSION['codigo_usuario']) : (isset($_SESSION['id_usuario']) ? intval($_SESSION['id_usuario']) : 20);
+// Tranca de segurança: Se não existir a sessão ativa, barra o acesso
+if (!isset($_SESSION['admin_logado']) || $_SESSION['admin_logado'] !== true) {
+    header("Location: login.php");
+    exit;
+}
 
+// Importa a conexão estruturada do ecossistema
+include_once("Conexao.php");
 $mensagem_vaga = "";
 
 // 📢 PROCESSAR LANÇAMENTO DE NOVA VAGA DE TRABALHO
@@ -147,13 +142,22 @@ try {
 ?>
 
 
-
 <?php
-// admini.php - TOPO ABSOLUTO CORRIGIDO COM CONTROLO DE SEGURANÇA, CONEXÃO E LOGOUT
+// 🔴 DEVE SER A PRIMEIRA LINHA ABSOLUTA DO FICHEIRO ADMINI.PHP:
+ob_start(); 
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
+// Tranca de segurança: Se não existir a sessão ativa, barra o acesso
+if (!isset($_SESSION['admin_logado']) || $_SESSION['admin_logado'] !== true) {
+    header("Location: login.php");
+    exit;
+}
+
+// Importa a conexão estruturada do ecossistema
+include_once("Conexao.php");
 
 // 🔑 DEFINIÇÃO DAS CREDENCIAIS MESTRE DA GERÊNCIA
 define('ADMIN_USER', 'Admin');
@@ -228,12 +232,21 @@ if ($conexao_link && isset($_POST['publicar_nova_vaga'])) {
 
 
 
-
 <?php
-// Admini.php - TOPO DO ARQUIVO: Processador Corrigido Alinhado ao phpMyAdmin
+// 🔴 DEVE SER A PRIMEIRA LINHA ABSOLUTA DO FICHEIRO ADMINI.PHP:
+ob_start(); 
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
+// Tranca de segurança: Se não existir a sessão ativa, barra o acesso
+if (!isset($_SESSION['admin_logado']) || $_SESSION['admin_logado'] !== true) {
+    header("Location: login.php");
+    exit;
+}
+
+// Importa a conexão estruturada do ecossistema
 include_once("Conexao.php");
 
 $conexao_link = $conexao_aurelius ?? $conexao ?? $link ?? null;
@@ -264,21 +277,35 @@ if ($conexao_link && isset($_POST['publicar_nova_vaga'])) {
 }
 ?>
 
-
 <?php
-// =========================================================================
-// 💼 BACKOFFICE: PROCESSADOR DE LANÇAMENTO DE VAGAS EM TEMPO REAL
-// =========================================================================
+// 🔴 DEVE SER A PRIMEIRA LINHA ABSOLUTA DO FICHEIRO ADMINI.PHP:
+ob_start(); 
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$mensagemVagaStatus = "";
+// Tranca de segurança: Se não existir a sessão ativa, barra o acesso
+if (getenv('DB_HOST')) {
+    // Se estiver online no Render, busca as variáveis da Railway com a porta correta
+    $db_host = getenv('DB_HOST') ?: "altaria.proxy.rlwy.net";
+    $db_port = getenv('DB_PORT') ?: "52030";
+    $db_user = getenv('DB_USER') ?: "root";
+    $db_pass = getenv('DB_PASSWORD') ?: "tPzDwXGkyczyyYdcyvLmHLSMmfZmnMIZ";
+    $db_name = getenv('DB_NAME') ?: "railway";
+    
+    $mysqli = mysqli_init();
+    if (!@mysqli_real_connect($mysqli, $db_host, $db_user, $db_pass, $db_name, (int)$db_port)) {
+        $mysqli = $conexao_link ?? null; // Fallback se a variável global já existir
+    }
+} else {
+    // Se estiver no seu computador (XAMPP), usa a ligação padrão do Localhost
+    $mysqli = @mysqli_connect("127.0.0.1", "root", "", "aurelius_salao");
+}
 
-// Estabelece ligação estável ao MariaDB local
-$mysqli_vagas = @new mysqli("127.0.0.1", "root", "", "aurelius_salao");
-if (!$mysqli_vagas->connect_error) {
-    $mysqli_vagas->set_charset("utf8mb4");
+if ($mysqli) {
+    $mysqli->set_charset("utf8mb4");
+}
 
     // Interceta o clique no botão de publicação
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['disparar_publicacao_vaga'])) {
@@ -319,12 +346,22 @@ if (!$mysqli_vagas->connect_error) {
 
 
 
-
-
 <?php
-// Topo do ficheiro Admini.php
-include_once("Conexao.php");
+// 🔴 DEVE SER A PRIMEIRA LINHA ABSOLUTA DO FICHEIRO ADMINI.PHP:
+ob_start(); 
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Tranca de segurança: Se não existir a sessão ativa, barra o acesso
+if (!isset($_SESSION['admin_logado']) || $_SESSION['admin_logado'] !== true) {
+    header("Location: login.php");
+    exit;
+}
+
+// Importa a conexão estruturada do ecossistema
+include_once("Conexao.php");
 date_default_timezone_set('Africa/Luanda');
 
 try {
