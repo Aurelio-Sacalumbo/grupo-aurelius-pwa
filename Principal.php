@@ -1,7 +1,9 @@
-<?php
-// =========================================================================
-// 🔮 ECOSSISTEMA MESTRE - NÚCLEO OPERACIONAL UNIFICADO (PRINCIPAL.PHP)
-// =========================================================================
+<<?php
+// 🟢 SUBSTITUA O TOPO ANTERIOR POR ESTE CORRIGIDO:
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL); // ← Correção aqui
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
