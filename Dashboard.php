@@ -293,10 +293,11 @@ nav {
 /* Ajustado o tamanho mínimo de 140px para 160px para dar mais destaque em ecrãs pequenos */
 .grid-categorias, .grid-container { 
     display: grid; 
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); 
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
     gap: 16px; 
     margin-top: 15px; 
     width: 100%;
+  
 }
 
 .aba-item { 
@@ -324,7 +325,7 @@ nav {
     border-radius: 8px; 
     margin-bottom: 8px; 
     object-fit: cover; 
-    height: 2000px; /* Aumentado de 110px para 200px para ocupar o painel */
+    height: 200px; /* Aumentado de 110px para 200px para ocupar o painel */
     width: 100%; 
 }
 
@@ -955,7 +956,7 @@ nav {
     const horaAtualStr = String(agora.getHours()).padStart(2, '0') + ":" + String(agora.getMinutes()).padStart(2, '0');
 
     // 🟢 2. GRADE HORÁRIA COMPLETA DA BARBEARIA BRANCA
-    const slotsHorasGeral = ['01:00', '08:00', '09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
+    const slotsHorasGeral = ['01:00', '08:00', '09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00', '19:00', '20:00', '21:00', '22:00'];
 
     slotsHorasGeral.forEach(hora => {
         const nomeChave = nome.trim();
@@ -992,7 +993,7 @@ nav {
                 relatorio += `📊 Carga de Trabalho Hoje: ${totalReservasMestre} Cadeiras Ocupadas\n`;
                 relatorio += `-------------------------------------------\n`;
                 relatorio += `❌ ESTADO DA VAGA: BLOQUEADO\n\n`;
-                relatorio += `🔒 Informação: Este período já possui um agendamento faturado no sistema. Por motivos de segurança comercial, a identidade do cliente é estritamente confidencial.`;
+                relatorio += `🔒 Informação: Este período já possui um agendamento. Por motivos de segurança comercial, a identidade do cliente é estritamente confidencial.`;
                 
                 alert(relatorio);
             };
@@ -1072,7 +1073,7 @@ nav {
 
                         <!-- BOTÕES DE VALIDAÇÃO OPERACIONAL -->
                         <div style="margin-top: 12px; display: flex; gap: 8px; border-top: 1px dashed #1f2937; padding-top: 10px;">
-                            <a href="unitelPagamentos.php?id_pagamento_obrigatorio=<?= $p['id_pagamento'] ?>&checkout_forced=1" style="flex: 1; background: #22c55e; color: #000; text-decoration: none; text-align: center; padding: 8px 0; font-size: 11px; font-weight: bold; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">📱 Pagar via PWA</a>
+                            <a href="unitelPagamentos.php?id_pagamento_obrigatorio=<?= $p['id_pagamento'] ?>&checkout_forced=1" style="flex: 1; background: #22c55e; color: #000; text-decoration: none; text-align: center; padding: 8px 0; font-size: 11px; font-weight: bold; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">📱 Pagar via Cache</a>
                             <a href="Dashboard.php?acao_auditoria=fisico&id_pagamento=<?= $p['id_pagamento'] ?>" onclick="return confirm('Confirmar recebimento físico em dinheiro manual direto no balcão?')" style="flex: 1; background: #1f2937; color: #cbd5e1; text-decoration: none; text-align: center; padding: 7px 0; font-size: 11px; font-weight: bold; border-radius: 4px; text-transform: uppercase; border: 1px solid #374151;">💵 Caixa Físico</a>
                         </div>
                     </div>
@@ -1385,7 +1386,7 @@ function abrirPautaVisual(nome, status) {
 <div id="nivel1">
     <div class="grid-categorias">
         <button class="aba-item" onclick="mostrarNivel2('cortes')">
-            <img src="1776692284530.jpg" alt=""> Cortes de Cabelo
+            <img src="images (31) - Cópia.png" alt=""> Cortes de Cabelo
         </button>
         <button class="aba-item" onclick="mostrarNivel2('pinturas')"> 
             <img src="1777986415454.jpg" alt=""> Pinturas de Cabelo
@@ -1397,7 +1398,7 @@ function abrirPautaVisual(nome, status) {
             <img src="54.jpg" alt=""> Maquilhagens
         </button>
         <button class="aba-item" onclick="mostrarNivel2('tratamentos')"> 
-            <img src="24509.jpg" alt=""> Tratamentos Capilares
+            <img src="24509.jpg" alt=""> Tranças
         </button>
         <button class="aba-item" onclick="mostrarNivel2('manicure')"> 
     <img src="1750281718295.jpg" alt=""> Manicure
@@ -1444,9 +1445,16 @@ function abrirPautaVisual(nome, status) {
 
     <!-- Sub-grupo: Tratamentos (Inicia oculto) -->
     <div id="sub-tratamentos" class="grid-container sub-grupo hidden">
-        <button class="aba-item" onclick="exibirPrecoFinal('Hidratação Profunda', '5.500 kz')"><div class="img-wrapper"><img src="1777298458880.jpg"></div>Hidratação Profunda</button>
-        <button class="aba-item" onclick="exibirPrecoFinal('Queratina / Selagem', '9.000 kz')"><div class="img-wrapper"><img src="1777298458880.jpg"></div>Queratina / Selagem</button>
-        <button class="aba-item" onclick="exibirPrecoFinal('Tratamento Capilar', '8.000 kz')"><div class="img-wrapper"><img src="1777298458880.jpg"></div>Tratamento Antiqueda</button>
+        <button class="aba-item" onclick="exibirPrecoFinal('Hidratação Profunda', '5.500 kz')"><div class="img-wrapper"><img src="1777298458880.jpg"></div>Bob americano</button>
+        <button class="aba-item" onclick="exibirPrecoFinal('Hidratação Profunda', '7.500 kz')"><div class="img-wrapper"><img src="1777298458880.jpg"></div>Bob Frances</button>
+        <button class="aba-item" onclick="exibirPrecoFinal('Hidratação Profunda', '3.500 kz')"><div class="img-wrapper"><img src="1777298458880.jpg"></div>Virada torta</button>
+        <button class="aba-item" onclick="exibirPrecoFinal('Hidratação Profunda', '8.500 kz')"><div class="img-wrapper"><img src="1777298458880.jpg"></div>Mapunga umbundo</button>
+        <button class="aba-item" onclick="exibirPrecoFinal('Queratina / Selagem', '9.000 kz')"><div class="img-wrapper"><img src="1777298458880.jpg"></div>tranças comprida</button>
+        <button class="aba-item" onclick="exibirPrecoFinal('Tratamento Capilar', '8.000 kz')"><div class="img-wrapper"><img src="1777298458880.jpg"></div>Bob angolano</button>
+        <button class="aba-item" onclick="exibirPrecoFinal('Tratamento Capilar', '12.000 kz')"><div class="img-wrapper"><img src="1777298458880.jpg"></div>Mapunga</button>
+        <button class="aba-item" onclick="exibirPrecoFinal('Tratamento Capilar', '11.000 kz')"><div class="img-wrapper"><img src="1777298458880.jpg"></div>Dreid Lox</button>
+        <button class="aba-item" onclick="exibirPrecoFinal('Tratamento Capilar', '8.600 kz')"><div class="img-wrapper"><img src="1777298458880.jpg"></div>Tranças Chuas</button>
+        <button class="aba-item" onclick="exibirPrecoFinal('Tratamento Capilar', '8.650 kz')"><div class="img-wrapper"><img src="1777298458880.jpg"></div>Virada</button>
     </div>
 
     <!-- Sub-grupo: Manicure (Inicia oculto) -->
