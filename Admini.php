@@ -48,7 +48,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Tranca de segurança: Se não existir a sessão ativa, barra o acesso
 if (!isset($_SESSION['admin_logado']) || $_SESSION['admin_logado'] !== true) {
-    header("Location: login.php");
+    header("Location: Login.php");
     exit;
 }
 
@@ -105,7 +105,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Tranca de segurança: Se não existir a sessão ativa, barra o acesso
 if (!isset($_SESSION['admin_logado']) || $_SESSION['admin_logado'] !== true) {
-    header("Location: login.php");
+    header("Location: Login.php");
     exit;
 }
 
@@ -152,7 +152,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Tranca de segurança: Se não existir a sessão ativa, barra o acesso
 if (!isset($_SESSION['admin_logado']) || $_SESSION['admin_logado'] !== true) {
-    header("Location: login.php");
+    header("Location: Login.php");
     exit;
 }
 
@@ -242,7 +242,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Tranca de segurança: Se não existir a sessão ativa, barra o acesso
 if (!isset($_SESSION['admin_logado']) || $_SESSION['admin_logado'] !== true) {
-    header("Location: login.php");
+    header("Location: Login.php");
     exit;
 }
 
