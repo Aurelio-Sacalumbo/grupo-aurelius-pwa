@@ -1617,37 +1617,37 @@ if (!empty($arquivo_logo) && file_exists(__DIR__ . "/uploads/" . $arquivo_logo))
               </div> <!-- Fecha a div grad principal -->
 
 
-
-<script>
-let posicaoDeslocamentoAtual = 0;
-
-function moverCarrosselSalores(direcao) {
-    const trilho = document.getElementById('trilho_carrossel_salao');
-    const mascara = document.getElementById('mascara_carrossel_salao');
-    
-    if (!trilho || !mascara) return;
-    
-    const larguraMascaraVisivel = mascara.offsetWidth;
-    const larguraTotalTrilho = trilho.scrollWidth;
-    
-    // Distância de salto padrão ao clicar nas setas (largura de um cartão + gap)
-    const larguraSaltoCartao = 195; 
-
-    if (direcao === 'direita') {
-        // Impede que o carrossel corra infinitamente para o vazio
-        if (Math.abs(posicaoDeslocamentoAtual) + larguraMascaraVisivel < larguraTotalTrilho) {
-            posicaoDeslocamentoAtual -= larguraSaltoCartao;
-        }
-    } else if (direcao === 'esquerda') {
-        if (posicaoDeslocamentoAtual < 0) {
-            posicaoDeslocamentoAtual += larguraSaltoCartao;
-        }
-    }
-
-    // Aplica o movimento fluido no hardware do telemóvel/computador
-    trilho.style.transform = `translateX(${posicaoDeslocamentoAtual}px)`;
-}
-</script>
+              <script>
+              // 🟢 Alterado o nome da variável para evitar conflito global com a linha 1185
+              let posicaoDeslocamentoSalores = 0;
+              
+              function moverCarrosselSalores(direcao) {
+                  const trilho = document.getElementById('trilho_carrossel_salao');
+                  const mascara = document.getElementById('mascara_carrossel_salao');
+                  
+                  if (!trilho || !mascara) return;
+                  
+                  const larguraMascaraVisivel = mascara.offsetWidth;
+                  const larguraTotalTrilho = trilho.scrollWidth;
+                  
+                  // Distância de salto padrão ao clicar nas setas (largura de um cartão + gap)
+                  const larguraSaltoCartao = 195; 
+              
+                  if (direcao === 'direita') {
+                      // Impede que o carrossel corra infinitamente para o vazio
+                      if (Math.abs(posicaoDeslocamentoSalores) + larguraMascaraVisivel < larguraTotalTrilho) {
+                          posicaoDeslocamentoSalores -= larguraSaltoCartao;
+                      }
+                  } else if (direcao === 'esquerda') {
+                      if (posicaoDeslocamentoSalores < 0) {
+                          posicaoDeslocamentoSalores += larguraSaltoCartao;
+                      }
+                  }
+              
+                  // Aplica o movimento fluido no hardware do telemóvel/computador
+                  trilho.style.transform = `translateX(${posicaoDeslocamentoSalores}px)`;
+              }
+              </script>
 
 
 

@@ -1,45 +1,32 @@
 <?php
-// =========================================================================
-// 🖨️ EMISSOR DE FATURAS PREMIUM - ECOSSISTEMA AURÉLIUS SAAS (EDER CORE v3)
-// =========================================================================
-header("Access-Control-Allow-Origin: *");
-header('Content-Type: text/html; charset=utf-8');
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
+require_once __DIR__ . "/config/Banco.php";
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-date_default_timezone_set('Africa/Luanda');
+// 1. Tenta capturar o ID enviado via URL (ex: fatura.php?id=12)
+$id_pagamento = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
-// =========================================================================
-// 🟢 CONEXÃO CENTRAL ADAPTADA DIRETAMENTE DA CONFIGURAÇÃO DO SISTEMA
-// =========================================================================
-if (file_exists("config/Banco.php")) {
-    include_once("config/Banco.php");
-} elseif (file_exists("Conexao.php")) {
-    include_once("Conexao.php");
-} elseif (file_exists("conexao.php")) {
-    include_once("conexao.php");
+// 2. Se não veio ID na URL, força o banco a trazer o ÚLTIMO pedido inserido agora mesmo!
+if ($id_pagamento === 0) {
+    // Usa o motor PDO que confirmamos que está ativo no seu ecossistema
+    try {
+        $stmt_u = $pdo->query("SELECT id FROM `pagamentos` ORDER BY id DESC LIMIT 1");
+        $ultimo_reg = $stmt_u->fetch(PDO::ATTR_ASSOC);
+        if ($ultimo_reg) {
+            $id_pagamento = intval($ultimo_reg['id']);
+        }
+    } catch (PDOException $e) {
+        error_log("Erro ao buscar último ID: " . $e->getMessage());
+    }
 }
 
-// Ativa a ponte inteligente caso a variável venha com outro nome do Banco.php
-$mysqli = $conexao_link ?? $conexao_aurelius ?? $mysqli ?? null;
+// Se mesmo assim falhar, define 1 para não quebrar a página
+if ($id_pagamento === 0) { $id_pagamento = 1; }
 
-// Se mesmo assim não encontrar no XAMPP local, faz o fallback de emergência:
-if (!$mysqli) {
-    $mysqli = @mysqli_connect("127.0.0.1", "root", "", "aurelius_salao");
-}
-
-if (!isset($mysqli) || !$mysqli) {
-    die("<h3 style='text-align:center; font-family:sans-serif; margin-top:50px; color:#dc3545;'>Falha de Conexão: O motor de base de dados \$mysqli não está ativo.</h3>");
-}
-
-$mysqli->set_charset("utf8mb4");
-
-// 🟢 MÓDULO ADICIONADO: CAPTURA E INICIALIZAÇÃO DA CONSULTA DA FATURA
-// Resgata o ID da fatura/pagamento vindo da URL (ex: fatura.php?id=12) ou assume o último por segurança
-$id_pagamento = isset($_GET['id']) ? intval($_GET['id']) : (isset($_SESSION['ultimo_pagamento_id']) ? intval($_SESSION['ultimo_pagamento_id']) : 1);
-
-$pagamento = [];
+// =========================================================================
+// A SUA CONSULTA DEVE USAR A VARIÁVEL $id_pagamento LOGO ABAIXO:
+// =========================================================================
+// Exemplo: $stmt = $pdo->prepare("SELECT * FROM pagamentos WHERE id = ?");
+// $stmt->execute([$id_pagamento]);
 
 try {
     // 🧠 TENTATIVA 1: Procura na tabela ativa onde estão guardados os dados recentes
