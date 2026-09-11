@@ -105,21 +105,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $mysqli) {
 
 <?php
 // =========================================================================
-// 🚀 MOTOR DE EXTRAÇÃO CRONOLÓGICA — FILTRO RIGOROSO CONTRA O PASSADO
+// 🚀 MOTOR DE EXTRAÇÃO DINÂMICA BLINDADO CONTRA DUPLICAÇÕES (GROUP BY)
 // =========================================================================
 $lista_pedidos = [];
 
 if (isset($pdo)) {
     try {
-        // Captura a data atual de Angola no formato SQL (AAAA-MM-DD)
         $data_hoje_angola = date('Y-m-d');
 
-        // ✨ BIOMESTRE SQL: Filtra estritamente para que a data do serviço seja MAIOR ou IGUAL a HOJE
+        // ✨ A SOLUÇÃO: Adicionado 'GROUP BY p.id_pagamento' para esmagar registos repetidos na nuvem
         $stmt_ativos = $pdo->prepare("
             SELECT 
                 p.`id_pagamento`, 
                 p.`servico`, 
-                p.`valor`, 
+                p.`valor` AS preco_registo, 
                 p.`valor_liquido`,
                 p.`desconto`,
                 p.`data_servico`, 
@@ -129,22 +128,24 @@ if (isset($pdo)) {
                 p.`cliente_telefone`,
                 f.`nome` AS nome_profissional_real,
                 p.`profissional` AS prof_bruto,
-                IFNULL(c.`saldo_acumulado`, 0.00) AS troco_carteira_acumulado
+                IFNULL(c.`saldo_acumulado`, 0.00) AS troco_carteira_acumulado,
+                s.`preco` AS preco_original_servico
             FROM `pagamentos` p
             LEFT JOIN `funcionarios` f ON p.`profissional` = f.`id_funcionario`
             LEFT JOIN `carteira_saldos_clientes` c ON p.`cliente_telefone` = c.`telefone_cliente`
+            LEFT JOIN `servicos` s ON p.`servico` = s.`nome`
             WHERE p.`status_atendimento` != 'Cancelado'
               AND p.`data_servico` >= ? 
+            GROUP BY p.`id_pagamento`
             ORDER BY p.`data_servico` ASC, p.`hora_servico` ASC
         ");
         $stmt_ativos->execute([$data_hoje_angola]);
         $lista_pedidos = $stmt_ativos->fetchAll(PDO::FETCH_ASSOC);
 
     } catch (PDOException $e) {
-        // Fallback de contingência caso o fuso horário ou estrutura sofra oscilações
+        // Fallback de segurança agrupado
         try {
-            $stmt_fallback = $pdo->prepare("SELECT * FROM `pagamentos` WHERE `data_servico` >= ? ORDER BY id_pagamento DESC");
-            $stmt_fallback->execute([date('Y-m-d')]);
+            $stmt_fallback = $pdo->query("SELECT * FROM `pagamentos` GROUP BY id_pagamento ORDER BY id_pagamento DESC");
             $lista_pedidos = $stmt_fallback->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $ex) {
             $lista_pedidos = [];
@@ -152,7 +153,6 @@ if (isset($pdo)) {
     }
 }
 ?>
-
 
 <html lang="pt-PT">
 <head>
