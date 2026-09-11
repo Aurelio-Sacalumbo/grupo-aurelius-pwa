@@ -1,9 +1,9 @@
 FROM php:8.2-apache
 
-# Instala as dependências necessárias para o PostgreSQL e limpa resíduos
+# Instala as extensões oficiais e necessárias para o MySQL / MariaDB
 RUN apt-get update && apt-get install -y \
-    libpq-dev \
-    && docker-php-ext-install pdo pdo_pgsql \
+    libmariadb-dev \
+    && docker-php-ext-install mysqli pdo pdo_mysql \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Ativa o módulo de reescrita do Apache
