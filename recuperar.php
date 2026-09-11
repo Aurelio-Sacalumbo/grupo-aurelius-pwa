@@ -47,7 +47,13 @@ if (isset($_POST['recuperar'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Recuperar Credenciais - Grupo Aurélius</title>
+   <!-- Na barra de navegação e instalação do PWA -->
+<title>BarbeariasAngola — Rede de Distribuição & Estética</title>
+
+<!-- No cabeçalho principal do seu menu Slate -->
+<h4 style="color: #eab308; text-transform: uppercase; font-weight: bold; font-size: 14px; letter-spacing: 0.5px;">
+    🎯 BarbeariasAngola • Painel Operacional
+</h4>
     <style>
         html, body { width: 100% !important; max-width: 100% !important; overflow-x: hidden !important; margin: 0 !important; padding: 0 !important; box-sizing: border-box !important; }
         body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #0b0f19; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 15px !important; }

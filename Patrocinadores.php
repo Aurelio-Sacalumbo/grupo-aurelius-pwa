@@ -4,7 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Document</title>
+   <!-- Na barra de navegação e instalação do PWA -->
+<title>BarbeariasAngola — Rede de Distribuição & Estética</title>
+
+<!-- No cabeçalho principal do seu menu Slate -->
+<h4 style="color: #eab308; text-transform: uppercase; font-weight: bold; font-size: 14px; letter-spacing: 0.5px;">
+    🎯 BarbeariasAngola • Painel Operacional
+</h4>
 </head>
 <body>
     

@@ -87,7 +87,13 @@ if ($conexao_link) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aurelius Reels &amp; Pedestal Mestre</title>
+   <!-- Na barra de navegação e instalação do PWA -->
+<title>BarbeariasAngola — Rede de Distribuição & Estética</title>
+
+<!-- No cabeçalho principal do seu menu Slate -->
+<h4 style="color: #eab308; text-transform: uppercase; font-weight: bold; font-size: 14px; letter-spacing: 0.5px;">
+    🎯 BarbeariasAngola • Painel Operacional
+</h4>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: #070b12; color: #fff; font-family: system-ui, sans-serif; overflow-x: hidden; }

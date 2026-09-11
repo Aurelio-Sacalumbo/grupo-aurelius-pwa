@@ -337,7 +337,13 @@ if ('serviceWorker' in navigator) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Aurelius - Capa</title>
+    <!-- Na barra de navegação e instalação do PWA -->
+<title>BarbeariasAngola — Rede de Distribuição & Estética</title>
+
+<!-- No cabeçalho principal do seu menu Slate -->
+<h4 style="color: #eab308; text-transform: uppercase; font-weight: bold; font-size: 14px; letter-spacing: 0.5px;">
+    🎯 BarbeariasAngola • Painel Operacional
+</h4>
     
     <style>
         /* =========================================================================
@@ -1197,7 +1203,13 @@ if (isset($mysqli) && !$mysqli->connect_error) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Painel de Negócios - Grupo Aurelius</title>
+   <!-- Na barra de navegação e instalação do PWA -->
+<title>BarbeariasAngola — Rede de Distribuição & Estética</title>
+
+<!-- No cabeçalho principal do seu menu Slate -->
+<h4 style="color: #eab308; text-transform: uppercase; font-weight: bold; font-size: 14px; letter-spacing: 0.5px;">
+    🎯 BarbeariasAngola • Painel Operacional
+</h4>
     <style>
         /* ESTILOS DE BASE (OTIMIZADO PARA IFRAME) */
         /* ESTILOS GERAIS DA PÁGINA (Para encaixar perfeitamente no iframe) */
