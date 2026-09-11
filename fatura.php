@@ -119,7 +119,22 @@ $is_premium_cliente      = ($desconto_kz > 0);
 
 // 🟢 GERADOR DO ENDPOINT DE AUTENTICAÇÃO DIGITAL QR CODE (GOOGLE CHARTS)
 $dados_qr = "FAC-" . $id_final_exibicao . " | Cliente: " . urlencode($cliente_nome_final) . " | Total: " . $total_final . " AOA";
-$url_qrcode = "https://googleapis.com" . $dados_qr . "&choe=UTF-8";
+$texto_qr = "https://onrender.com"; // Altere pelo link dinâmico da sua fatura
+// 1. Defina o texto ou link que o QR Code deve conter (Exemplo com o ID da fatura dinâmico)
+$id_fatura = 126; // Pode substituir pela sua variável ex: $dados['id_pagamento']
+$link_autenticacao = "https://onrender.com" . $id_fatura;
+// 1. Deteta automaticamente se o site está a rodar no Localhost ou no Render
+$protocolo = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
+$dominio_atual = $_SERVER['HTTP_HOST'];
+
+// 2. Pega a referência da fatura atual (ex: FAC-127) de forma dinâmica
+$fatura_ref = $fatura_ref ?? "FAC-127"; 
+
+// 3. Monta o link correto baseado em onde o sistema está a rodar
+$link_autenticacao = $protocolo . $dominio_atual . "/fatura.php?ref=" . $fatura_ref;
+
+// 4. Gera o QR Code com a API moderna que roda em qualquer servidor
+$url_qrcode = "https://qrserver.com" . urlencode($link_autenticacao);
 ?>
 
 
@@ -393,11 +408,25 @@ $url_qrcode = "https://googleapis.com" . $dados_qr . "&choe=UTF-8";
             <strong style="font-size: 16px; color: #eab308;"><?= number_format($total_final, 2, ',', '.') ?> AOA</strong>
         </div>
 
-        <!-- Autenticidade QR Code Google Charts -->
-        <div style="text-align: center; margin-top: 25px; background: #f8fafc; padding: 18px; border: 1px dashed #cbd5e1; border-radius: 8px; box-sizing: border-box; width: 100%;">
-            <img src="<?= $url_qrcode ?>" alt="Autenticação Digital QR" style="display: block; margin: 0 auto 10px auto; width: 130px; height: 130px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border: 1px solid #ddd; padding: 4px; background: #fff;">
-            <span style="font-size: 10px; color: #64748b; display: block; font-family: sans-serif; line-height: 1.4;">Passe a câmara do telemóvel para auditar a autenticidade deste cupão único da rede.</span>
-        </div>
+        <!-- Autenticidade QR Code Tratado -->
+<div style="text-align: center; margin-top: 25px; background: #f8fafc; padding: 18px; border: 1px dashed #cbd5e1; border-radius: 8px; box-sizing: border-box; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+    
+<?php if (!empty($url_qrcode)): ?>
+    <img src="<?= htmlspecialchars($url_qrcode) ?>" 
+         alt="QR Code" 
+         style="display: block; width: 130px; height: 130px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border: 1px solid #ddd; padding: 4px; background: #fff; margin-bottom: 10px;"
+         onerror="this.style.display='none'; document.getElementById('qr-erro').style.display='block';">
+<?php endif; ?>
+
+<!-- Bloco de contingência caso a imagem falhe no Render -->
+<div id="qr-erro" style="display: none; padding: 15px; background: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; border-radius: 6px; font-size: 11px; font-weight: bold; margin-bottom: 10px;">
+    ⚠️ Erro ao carregar QR Code dinâmico no servidor.
+</div>
+
+<span style="font-size: 10px; color: #64748b; display: block; font-family: sans-serif; line-height: 1.4; max-width: 250px; margin: 0 auto;">
+    Passe a câmara do telemóvel para auditar a autenticidade deste cupão único da rede.
+</span>
+</div>
 
         <div class="linha-pontilhada"></div>
         

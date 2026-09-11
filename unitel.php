@@ -1,19 +1,29 @@
 <?php
-// unitel.php - Módulo de Gateway de Pagamento Móvel e Descontos VIP
-include_once("config/Banco.php"); // Conector Mestre Local do XAMPP
+// =========================================================================
+// 🚀 ECOSSISTEMA MESTRE - unitel.php (MÓDULO DE CHECKOUT E GATEWAY REATIVO)
+// =========================================================================
+include_once("config/Banco.php"); // Conector Mestre Central do Ecossistema
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 date_default_timezone_set('Africa/Luanda');
 
-// 🟢 AJAX REATIVO: PESQUISA SE O CLIENTE EXISTE COM FATURA PENDENTE E SE É VIP
+// =========================================================================
+// 🟢 FLUXO 1: AJAX REATIVO — BUSCA AUTOMÁTICA DE FATURA ATIVA & STATUS VIP
+// =========================================================================
 if (isset($_GET['pesquisa_automatica_cliente'])) {
     $nome_busca = trim($_GET['nome']);
     $data_hoje_com_hora = date('Y-m-d H:i:s');
     
-    // 1. Procura a ÚLTIMA FATURA PENDENTE deste cliente na tabela pagamentos
-    $stmt_fatura = $pdo->prepare("SELECT id_pagamento, valor, servico, id_parceiro, tipo_parceiro FROM `pagamentos` WHERE `cliente` = ? AND `status_atendimento` = 'Pendente' ORDER BY id_pagamento DESC LIMIT 1");
+    // 1. Localiza a última fatura com estado 'Pendente' associada a este cliente
+    $stmt_fatura = $pdo->prepare("
+        SELECT id_pagamento, valor, servico, id_parceiro, tipo_parceiro 
+        FROM `pagamentos` 
+        WHERE `cliente` = ? AND `status_atendimento` = 'Pendente' 
+        ORDER BY id_pagamento DESC 
+        LIMIT 1
+    ");
     $stmt_fatura->execute([$nome_busca]);
     $fatura = $stmt_fatura->fetch(PDO::FETCH_ASSOC);
 
@@ -22,23 +32,33 @@ if (isset($_GET['pesquisa_automatica_cliente'])) {
         $preco_servico = floatval($fatura['valor']);
         $nome_servico = $fatura['servico'];
         
-        // 2. Verifica se este cliente possui uma assinatura VIP ATIVA para aplicar o desconto
-        // A busca cruza os dados para encontrar o telefone associado a esta fatura
-        $check_vip = $pdo->prepare("SELECT id_assinatura, telefone_express FROM `assinaturas` WHERE `cliente` = ? AND `status` = 'Ativo' AND `data_fim` >= ? LIMIT 1");
+        // 2. Auditoria de Assinatura VIP: Valida se o cliente possui desconto ativo
+        $check_vip = $pdo->prepare("
+            SELECT id_assinatura, telefone_express 
+            FROM `assinaturas` 
+            WHERE `cliente` = ? AND `status` = 'Ativo' AND `data_fim` >= ? 
+            LIMIT 1
+        ");
         $check_vip->execute([$nome_busca, $data_hoje_com_hora]);
         $assinatura = $check_vip->fetch(PDO::FETCH_ASSOC);
         
         $is_vip = $assinatura ? true : false;
         $telefone_cliente = $assinatura ? $assinatura['telefone_express'] : '';
 
-        // 3. Procura se este cliente já tem saldo guardado na carteira virtual de trocos anteriores
+        // 3. Carteira Virtual: Resgata saldos ou trocos acumulados em sessões passadas
         $saldo_carteira = 0.00;
         if (!empty($telefone_cliente)) {
-            $stmt_saldo = $pdo->prepare("SELECT saldo_acumulado FROM `carteira_saldos_clientes` WHERE `telefone_cliente` = ? LIMIT 1");
+            $stmt_saldo = $pdo->prepare("
+                SELECT saldo_acumulado 
+                FROM `carteira_saldos_clientes` 
+                WHERE `telefone_cliente` = ? 
+                LIMIT 1
+            ");
             $stmt_saldo->execute([$telefone_cliente]);
             $saldo_carteira = (float)$stmt_saldo->fetchColumn();
         }
 
+        // Retorna o JSON limpo para o motor JavaScript injetar nos inputs do ecrã
         echo json_encode([
             'status' => 'encontrado',
             'id_pagamento' => $id_pag_encontrado,
@@ -54,15 +74,20 @@ if (isset($_GET['pesquisa_automatica_cliente'])) {
     exit();
 }
 
-// 🟢 MOTOR DE GRAVAÇÃO DO CHECKOUT COM ATUALIZAÇÃO DA FATURA EXISTENTE
+// =========================================================================
+// 🟢 FLUXO 2: PROCESSAMENTO DE CAIXA — CONFIRMAÇÃO E DEDUÇÃO DE VALORES
+// =========================================================================
+// =========================================================================
+// 🟢 FLUXO 2: PROCESSAMENTO DE CAIXA CORRIGIDO — SINCRONISMO DE CAIXA REAL
+// =========================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['executar_venda_final'])) {
     $id_pagamento_real = intval($_POST['id_pagamento_real']);
     $cliente_nome = trim($_POST['nome_cliente']);
     $cliente_telefone = trim($_POST['cliente_telefone']);
     $valor_entregue = floatval($_POST['valor_entregue']);
-    $metodo_pagamento = htmlspecialchars($_POST['metodo_gateway']);
+    $metodo_pagamento = htmlspecialchars($_POST['metodo_gateway']); 
 
-    // Busca novamente a fatura para recalcular de forma segura contra fraudes
+    // Revalida a fatura original contra fraudes
     $stmt_check = $pdo->prepare("SELECT valor, servico, id_parceiro, tipo_parceiro FROM `pagamentos` WHERE `id_pagamento` = ?");
     $stmt_check->execute([$id_pagamento_real]);
     $fatura_real = $stmt_check->fetch();
@@ -70,38 +95,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['executar_venda_final'
     if ($fatura_real) {
         $preco_base = floatval($fatura_real['valor']);
         
-        // Verifica se é VIP para aplicar o desconto de 20%
+        // Validação VIP (Desconto Cortesia)
         $data_com_hora = date('Y-m-d H:i:s');
         $stmt_vip_check = $pdo->prepare("SELECT COUNT(*) FROM `assinaturas` WHERE `telefone_express` = ? AND `status` = 'Ativo' AND `data_fim` >= ?");
         $stmt_vip_check->execute([$cliente_telefone, $data_com_hora]);
         $is_vip = ($stmt_vip_check->fetchColumn() > 0);
 
-        $desconto_vip = $is_vip ? ($preco_base * 0.20) : 0.00;
+        $desconto_vip = $is_vip ? ($preco_base * 0.2) : 0.00;
         $total_liquido_cliente = $preco_base - $desconto_vip;
 
-        // Repasse e Taxas da plataforma Aurelius (10%)
-        $taxa_plataforma = $total_liquido_cliente * 0.10;
+        // Taxas administrativas SaaS (10%)
+        $taxa_plataforma = $total_liquido_cliente * 0.2;
         $liquido_parceiro = $total_liquido_cliente - $taxa_plataforma;
 
+        // Gestão de saldos e trocos na carteira virtual
         if ($metodo_pagamento === 'SALDO_INTERNO') {
-            // Deduz direto da carteira interna
             $pdo->prepare("UPDATE `carteira_saldos_clientes` SET `saldo_acumulado` = `saldo_acumulado` - ? WHERE `telefone_cliente` = ?")->execute([$total_liquido_cliente, $cliente_telefone]);
         } else {
-            // Se pagou por Unitel Money / Express e enviou dinheiro a mais, guarda a sobra na carteira
             $sobra_troco = $valor_entregue - $total_liquido_cliente;
             if ($sobra_troco > 0) {
                 $check_c = $pdo->prepare("SELECT COUNT(*) FROM `carteira_saldos_clientes` WHERE `telefone_cliente` = ?");
                 $check_c->execute([$cliente_telefone]);
+                
                 if ($check_c->fetchColumn() > 0) {
                     $pdo->prepare("UPDATE `carteira_saldos_clientes` SET `saldo_acumulado` = `saldo_acumulado` + ? WHERE `telefone_cliente` = ?")->execute([$sobra_troco, $cliente_telefone]);
                 } else {
                     $pdo->prepare("INSERT INTO `carteira_saldos_clientes` (telefone_cliente, nome_cliente, saldo_acumulado) VALUES (?, ?, ?)")->execute([$cliente_telefone, $cliente_nome, $sobra_troco]);
                 }
-                echo "<script>alert('💰 Sobra de " . number_format($sobra_troco, 2, ',', '.') . " Kz detetada e guardada na sua carteira virtual!');</script>";
             }
         }
 
-        // ⚡ ATUALIZA A FATURA EXISTENTE: Muda de 'Pendente' para 'Confirmado' e anexa o método de pagamento
+        // ✨ A CORREÇÃO: Força status_atendimento = 'Confirmado' E status_trabalho = 'concluido'
+        // Isso muda a Cadeira de 'NÃO PAGO' para 'PAGO' ou 'ADIANTADO' instantaneamente!
         $servico_atualizado_nome = $fatura_real['servico'] . " (" . $metodo_pagamento . ")";
         
         $update_pag = $pdo->prepare("UPDATE `pagamentos` SET 
@@ -111,20 +136,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['executar_venda_final'
             `desconto` = ?, 
             `valor_liquido` = ?, 
             `status_atendimento` = 'Confirmado', 
+            `status_trabalho` = 'concluido', 
+            `tipo_pagamento` = ?,
             `visto_admin` = 0 
             WHERE `id_pagamento` = ?");
         
         $update_pag->execute([
-            $cliente_telefone, $servico_atualizado_nome, $total_liquido_cliente, $desconto_vip, $liquido_parceiro, $id_pagamento_real
+            $cliente_telefone, $servico_atualizado_nome, $preco_base, $desconto_vip, $liquido_parceiro, $metodo_pagamento, $id_pagamento_real
         ]);
 
         echo "<script>alert('⚡ Transação Sincronizada e Paga com Sucesso!'); window.location.href='Dashboard.php';</script>";
         exit();
     } else {
-        die("<script>alert('Erro crítico de integridade: Fatura não localizada.'); window.history.back();</script>");
+        die("<script>alert('Erro: Fatura não localizada.'); window.history.back();</script>");
     }
 }
 ?>
+
+
+
+
 <!DOCTYPE html>
 <html lang="pt-PT">
 <head>
@@ -179,43 +210,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['executar_venda_final'
             <strong style="display:block; color:#fff; font-size:15px; margin-top:3px;" id="txt_lbl_servico">---</strong>
         </div>
 
-        <form id="form_unitel_real" method="POST" action="">
-            <input type="hidden" name="executar_venda_final" value="1">
-            <input type="hidden" name="id_pagamento_real" id="id_pagamento_real" value="0">
-            <input type="hidden" name="metodo_gateway" id="txt_gateway_metodo" value="Unitel Money">
+        <form id="form_unitel_real" method="POST" action="unitel.php">
+    
+    <!-- ✨ A CORREÇÃO: O name correto que o motor do unitel.php espera para ativar o POST -->
+    <input type="hidden" name="executar_venda_final" value="1">
+    <input type="hidden" name="id_pagamento_real" id="id_pagamento_real" value="0">
+    <input type="hidden" name="metodo_gateway" id="txt_gateway_metodo" value="Unitel Money">
 
-            <div class="campo-grupo">
-                <label>Nome do Cliente (Deve bater certo com a marcação):</label>
-                <!-- O input monitoriza a escrita para procurar faturas reais no banco -->
-                <input type="text" name="nome_cliente" id="nome_input" placeholder="Insira o nome exato do agendamento" onkeyup="sincronizarFaturaPorNome(this.value)" required autocomplete="off">
-            </div>
+    <div class="campo-grupo">
+        <label>Nome do Cliente (Deve bater certo com a marcação):</label>
+        <input type="text" name="nome_cliente" id="nome_input" placeholder="Insira o nome exato do agendamento" onkeyup="sincronizarFaturaPorNome(this.value)" required autocomplete="off">
+    </div>
 
-            <div class="campo-grupo">
-                <label>Telefone  (Assinatura VIP):</label>
-                <input type="tel" name="cliente_telefone" id="telefone_input" placeholder="Insira o número" required pattern="[0-9]{9,15}">
-            </div>
+    <div class="campo-grupo">
+        <label>Telefone (Assinatura VIP):</label>
+        <input type="tel" name="cliente_telefone" id="telefone_input" placeholder="Insira o número" required pattern="[0-9]{9,15}">
+    </div>
 
-            <div class="campo-grupo" id="wrapper_valor_pago">
-                <label>Valor Entregue / Pago (AKZ):</label>
-                <input type="number" step="0.01" name="valor_entregue" id="valor_entregue_input" value="0.00" min="0" required oninput="calcularTrocoMesa(this.value)">
-            </div>
+    <div class="campo-grupo" id="wrapper_valor_pago">
+        <label>Valor Entregue / Pago (AKZ):</label>
+        <input type="number" step="0.01" name="valor_entregue" id="valor_entregue_input" value="0.00" min="0" required oninput="calcularTrocoMesa(this.value)">
+    </div>
 
-            <div class="fatura-box">
-                <div class="linha-fatura"><span>Valor do Serviço (AKZ):</span><span id="f_servico">0,00 AKZ</span></div>
-                <div class="linha-fatura"><span>Subtotal Base:</span><span id="f_subtotal">0,00 AKZ</span></div>
-                <div class="linha-fatura" id="linha_desconto_vip" style="display:none; color:#eab308;"><span>Desconto VIP Aplicado (20%):</span><span id="txt_desc_vip">0,00 AKZ</span></div>
-                <div class="linha-fatura" style="color:#64748b;"><span>Desconto Cortesia (Taxa App 10%):</span><span id="f_taxa">-0,00 AKZ</span></div>
-                <div class="linha-fatura" id="linha_troco_caixa" style="display:none; color:#4ade80;"><span>Troco a Devolver / Guardar:</span><span id="lbl_troco_caixa">0,00 AKZ</span></div>
-                <div class="linha-fatura total-row"><span>Total Líquido a Pagar:</span><span id="txt_total_liquido">0,00 AKZ</span></div>
-            </div>
+    <div class="fatura-box">
+        <div class="linha-fatura"><span>Valor do Serviço (AKZ):</span><span id="f_servico">0,00 AKZ</span></div>
+        <div class="linha-fatura"><span>Subtotal Base:</span><span id="f_subtotal">0,00 AKZ</span></div>
+        <div class="linha-fatura" id="linha_desconto_vip" style="display:none; color:#eab308;"><span>Desconto VIP Aplicado (20%):</span><span id="txt_desc_vip">0,00 AKZ</span></div>
+        <div class="linha-fatura" style="color:#64748b;"><span>Desconto Cortesia (Taxa App 2%):</span><span id="f_taxa">-0,00 AKZ</span></div>
+        <div class="linha-fatura" id="linha_troco_caixa" style="display:none; color:#4ade80;"><span>Troco a Devolver / Guardar:</span><span id="lbl_troco_caixa">0,00 AKZ</span></div>
+        <div class="linha-fatura total-row"><span>Total Líquido a Pagar:</span><span id="txt_total_liquido">0,00 AKZ</span></div>
+    </div>
 
-            <div class="botoes-pagamento" id="gateways_externos_bloco">
-                <button type="submit" class="btn-pagar btn-unitel" onclick="setGateway('Unitel Money')">Unitel Money</button>
-                <button type="submit" class="btn-pagar btn-express" onclick="setGateway('MCX Express')">MCX Express</button>
-            </div>
+    <!-- MÉTODOS DE REDE MÓVEL / REFERÊNCIA -->
+    <div class="botoes-pagamento" id="gateways_externos_bloco">
+        <button type="button" class="btn-pagar btn-unitel" onclick="processarEnvioGateway('Unitel Money')" style="margin-bottom: 10px;">Unitel Money</button>
+        <button type="button" class="btn-pagar btn-express" onclick="processarEnvioGateway('MCX Express')">MCX Express</button>
+    </div>
 
-            <button type="submit" class="btn-pagar btn-saldo-interno" id="btn_carteira_click" style="display:none;" onclick="setGateway('SALDO_INTERNO')">⚡ Confirmar Pagamento com Saldo Guardado</button>
-        </form>
+    <!-- SALDO INTERNO / CRÉDITO ACUMULADO -->
+    <button type="button" class="btn-pagar btn-saldo-interno" id="btn_carteira_click" style="display:none; width: 100%; margin-top: 10px;" onclick="processarEnvioGateway('SALDO_INTERNO')">⚡ Confirmar Pagamento com Saldo Guardado</button>
+</form>
+
+<!-- =========================================================================
+     🟩 ENGINE JAVASCRIPT: CONTROLO DE SUBMISSÃO REATIVO
+     ========================================================================= -->
+<script>
+function processarEnvioGateway(metodo) {
+    // 1. Atualiza o input hidden com o método correto selecionado pelo operador
+    document.getElementById('txt_gateway_metodo').value = metodo;
+    
+    // 2. Captura o ID da fatura para garantir que não vai a zeros
+    const idFatura = document.getElementById('id_pagamento_real').value;
+    if(idFatura == 0 || idFatura == "") {
+        alert("⚠️ Selecione primeiro um cliente válido com fatura pendente!");
+        return;
+    }
+    
+    // 3. Executa a submissão física do formulário para o unitel.php
+    document.getElementById('form_unitel_real').submit();
+}
+</script>
     </div>
 
     <!-- 🟢 ENGINE BANCÁRIO REATIVO -->
@@ -249,7 +303,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['executar_venda_final'
                     if (data.vip || data.saldo_interno > 0) {
                         msgBox.style.display = 'block';
                         let htmlAlert = '';
-                        if (data.vip) htmlAlert += '👑 ASSINATURA VIP ATIVA (20% OFF)! ';
+                        if (data.vip) htmlAlert += '👑 ASSINATURA VIP ATIVA (2% OFF)! ';
                         if (data.saldo_interno > 0) htmlAlert += '💰 Saldo Guardado: ' + data.saldo_interno.toLocaleString('pt-PT', {minimumFractionDigits: 2}) + ' Kz';
                         msgBox.innerHTML = htmlAlert;
 
@@ -291,9 +345,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['executar_venda_final'
     }
 
     function recalcularFaturamentoInterface() {
-        const desconto = clientePossuiVip ? (precoOriginalServico * 0.20) : 0;
+        const desconto = clientePossuiVip ? (precoOriginalServico * 0.2) : 0;
         totalComDescontoVip = precoOriginalServico - desconto;
-        const taxaApp = totalComDescontoVip * 0.10;
+        const taxaApp = totalComDescontoVip * 0.2;
 
         document.getElementById('f_servico').innerText = precoOriginalServico.toLocaleString('pt-PT', {minimumFractionDigits: 2}) + ' AKZ';
         document.getElementById('f_subtotal').innerText = precoOriginalServico.toLocaleString('pt-PT', {minimumFractionDigits: 2}) + ' AKZ';

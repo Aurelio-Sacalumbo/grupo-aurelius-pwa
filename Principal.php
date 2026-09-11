@@ -1,4 +1,51 @@
 <?php
+// =========================================================================
+// 🔒 TRANCA DE SEGURANÇA INTEGRADA (COLOQUE NO TOPO DO FICHEIRO QUE JÁ EXISTE)
+// =========================================================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirmar_reserva_pwa'])) {
+    
+    $cliente_nome      = trim($_POST['cliente_nome'] ?? 'Cliente Visitante');
+    $cliente_telefone  = trim($_POST['cliente_telefone'] ?? '');
+    $id_profissional   = trim($_POST['profissional_id'] ?? ''); 
+    $servico_escolhido = trim($_POST['servico_nome'] ?? '');
+    $data_reserva      = trim($_POST['data_reserva'] ?? date('Y-m-d'));
+    $hora_reserva      = trim($_POST['hora_reserva'] ?? '');
+
+    try {
+        // 1. Verifica se alguém reservou a vaga 1 milissegundo antes
+        $stmt_trava = $pdo->prepare("
+            SELECT COUNT(*) FROM `pagamentos` 
+            WHERE `profissional` = ? AND `data_servico` = ? AND `hora_servico` = ? AND `status_atendimento` != 'Cancelado'
+        ");
+        $stmt_trava->execute([$id_profissional, $data_reserva, $hora_reserva]);
+        
+        if ($stmt_trava->fetchColumn() > 0) {
+            echo "<script>alert('⚠️ Vaga ocupada por outro cliente! Escolha outro horário.'); window.history.back();</script>";
+            exit();
+        }
+
+        // 2. Busca o preço dinâmico na tabela de serviços
+        $stmt_servico = $pdo->prepare("SELECT `preco` FROM `servicos` WHERE `nome` = ? LIMIT 1");
+        $stmt_servico->execute([$servico_escolhido]);
+        $preco_tabela = floatval($stmt_servico->fetchColumn() ?? 1500.00);
+
+        // 3. Faz o INSERT direto na tabela pagamentos
+        $stmt_insert = $pdo->prepare("
+            INSERT INTO `pagamentos` (`cliente`, `cliente_telefone`, `profissional`, `servico`, `valor`, `data_servico`, `hora_servico`, `status_atendimento`, `status_trabalho`, `visto_admin`) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'Pendente', 'Pendente', 0)
+        ");
+        $stmt_insert->execute([$cliente_nome, $cliente_telefone, $id_profissional, $servico_escolhido, $preco_tabela, $data_reserva, $hora_reserva]);
+
+        // Redireciona para o Dashboard para ver a vaga entrar em tempo real
+        header("Location: Dashboard.php");
+        exit();
+
+    } catch (PDOException $e) {
+        die("Erro no agendamento: " . $e->getMessage());
+    }
+}
+?>
+<?php
 // 🔴 DEVE SER A PRIMEIRA LINHA ABSOLUTA DO FICHEIRO (LINHA 1):
 ob_start(); 
 
@@ -2459,116 +2506,114 @@ $stmtGlobal = $pdo->prepare("
      </style>
      
      <h4 style="color: #38bdf8; text-transform: uppercase; font-weight: bold; font-size: 13px; margin-bottom: 20px; border-left: 4px solid #1877f2; padding-left: 10px; letter-spacing: 0.5px;">
-            🛍️ Podes também comprar a partir daqui • Sugestões para Si
-         </h4>
-     
-         <?php if (!empty($feed_produtos)): ?>
-             <?php foreach ($feed_produtos as $post): 
-                 $id_post = intval($post['id']);
-                 
-                 $data_registo_bruta = isset($post['data_cadastro']) ? $post['data_cadastro'] : ''; 
-                 $tempo_exibicao = "Publicado Recentemente";
-
-                 if (!empty($data_registo_bruta) && $data_registo_bruta !== '0000-00-00 00:00:00') {
-                    $timestamp_post = strtotime($data_registo_bruta);
-                    $timestamp_atual = time();
-                    $diferenca_segundos = $timestamp_atual - $timestamp_post;
-                
-                    if ($diferenca_segundos < 60) { $tempo_exibicao = "Agora mesmo"; }
-                    elseif ($diferenca_segundos < 3600) { $minutos = floor($diferenca_segundos / 60); $tempo_exibicao = "Há " . $minutos . " min"; }
-                    elseif ($diferenca_segundos < 86400) { $horas = floor($diferenca_segundos / 3600); $tempo_exibicao = "Há " . $horas . " h"; }
-                    elseif ($diferenca_segundos < 604800) { $dias = floor($diferenca_segundos / 86400); $tempo_exibicao = "Há " . $dias . " d"; }
-                    elseif ($diferenca_segundos < 1209600) { $semanas = floor($diferenca_segundos / 604800); $tempo_exibicao = "Há " . $semanas . " sem"; }
-                 }
-
-                 // 📊 CONTADORES DINÂMICOS GERADOS POR PRODUTO (NUNCA ZERADOS)
-                 $likes_iniciais = ($id_post * 13) % 120 + 24;
-                 $comentarios_totais = ($id_post * 4) % 18 + 3;
-                 $partilhas_totais = ($id_post * 3) % 11 + 2;
-
-                 // Captura segura com fallbacks dos campos do seu PHPMyAdmin
-                 $loja_nome    = htmlspecialchars(!empty($post['nome_loja']) ? $post['nome_loja'] : 'Barbearia Branca');
-                 $produto_nome = htmlspecialchars(!empty($post['nome_produto']) ? $post['nome_produto'] : (!empty($post['nome']) ? $post['nome'] : 'Artigo Comercial Premium'));
-                 $stock_total  = (int)(!empty($post['stock_atual']) ? $post['stock_atual'] : (!empty($post['stock']) ? $post['stock'] : rand(3, 12)));
-                 $preco_real   = number_format(!empty($post['preco']) ? $post['preco'] : (!empty($post['preco_venda']) ? $post['preco_venda'] : rand(5000, 45000)), 2, ',', '.');
-                 $link_compra  = !empty($link_checkout_fb) ? $link_checkout_fb : 'unitele.php?id_parceiro=' . ($post['usuario_id'] ?? '');
-
-                 // 🟢 CORREÇÃO MESTRE DA IMAGEM: Puxa dinamicamente a coluna certa da sua tabela de produtos
-                 $nome_imagem_banco = !empty($post['imagem']) ? trim($post['imagem']) : (!empty($post['logo_empresa']) ? trim($post['logo_empresa']) : '');
-                 if (!empty($nome_imagem_banco) && file_exists("uploads/" . $nome_imagem_banco)) {
-                     $img_post = "uploads/" . $nome_imagem_banco;
-                 } elseif (!empty($nome_imagem_banco) && file_exists($nome_imagem_banco)) {
-                     $img_post = $nome_imagem_banco;
-                 } else {
-                     $img_post = 'OIP (6).webp'; // Fallback padrão caso não encontre nenhuma
-                 }
-
-                 // 🟢 FOTO DE PERFIL DINÂMICA DA BARBEARIA/LOJA
-                 $foto_perfil_loja = "OIP (6).webp";
-                 if (!empty($post['logo_empresa']) && file_exists("uploads/" . $post['logo_empresa'])) {
-                     $foto_perfil_loja = "uploads/" . $post['logo_empresa'];
-                 }
-                 ?>
-
-                 <!-- 🟦 CAIXA PRINCIPAL DO CARD (ESTILO REDE SOCIAL) -->
-                 <div id="post_fb_<?php echo $id_post; ?>" class="post-card-fb" style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.25); margin-bottom: 24px; font-family: 'Segoe UI', -apple-system, sans-serif; width: 100%; box-sizing: border-box;">
-    
-                     <!-- 👤 CABEÇALHO DA LOJA DINÂMICO -->
-                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-                         <div style="width: 36px; height: 36px; background: #0f172a; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1.5px solid #1877f2; overflow: hidden; flex-shrink: 0;">
-                             <img src="<?php echo $foto_perfil_loja; ?>" style="width: 100%; height: 100%; object-fit: cover;">
-                         </div>
-                         <div style="min-width: 0; flex: 1;">
-                             <strong style="color: #ffffff; font-size: 13.5px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600;"><?php echo $loja_nome; ?></strong>
-                             <span style="color: #94a3b8; font-size: 11.5px; display: flex; align-items: center; gap: 4px;">
-                                 <?php echo $tempo_exibicao; ?> • 🌍 Angola • 👤 Gestor
-                             </span>
-                         </div>
-                     </div>
-
-                     <!-- 📝 TEXTO DO POST -->
-                     <p style="color: #e2e8f0; font-size: 13px; line-height: 1.5; margin: 0 0 12px 0;">
-                         ⚡ Grande Oportunidade! Adquira já o produto <b style="color: #38bdf8; font-weight: 600;"><?php echo $produto_nome; ?></b> diretamente no nosso balcão. Stock limitado de apenas <b style="color: #f87171; font-weight: 600;"><?php echo $stock_total; ?></b> unidades!
-                     </p>
-
-                     <!-- 🖼️ CONTAINER DE IMAGEM DO FEED (CORRIGIDO) -->
-                     <div class="img-container-fb" style="width: 100%; height: 250px; border-radius: 8px; overflow: hidden; background: #0f172a; border: 1px solid #334155; display: flex; align-items: center; justify-content: center; margin-bottom: 12px;">
-                         <img src="<?php echo $img_post; ?>" 
-                              alt="<?php echo $produto_nome; ?>" 
-                              style="width: 100%; height: 100%; object-fit: cover;"
-                              onerror="this.src='OIP (6).webp';">
-                     </div>
-
-                     <!-- 💰 EMBALAGEM DE PREÇO -->
-                     <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid #334155; margin-bottom: 8px;">
-                         <span style="color: #94a3b8; font-size: 12px;">Preço Comercial:</span>
-                         <strong style="color: #22c55e; font-size: 16px; font-weight: 700;"><?php echo $preco_real; ?> Kz</strong>
-                     </div>
-
-                     <!-- 📊 INDICADORES SOCIAIS -->
-                     <div style="display: flex; justify-content: space-between; align-items: center; color: #94a3b8; font-size: 11px; padding: 2px 4px 6px 4px;">
-                         <div style="display: flex; align-items: center; gap: 4px;">
-                             <span style="background: #1877f2; border-radius: 50%; width: 14px; height: 14px; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; color: white;">👍</span>
-                             <span id="likes_count_<?php echo $id_post; ?>" style="font-weight: 500;"><?php echo $likes_iniciais; ?></span>
-                         </div>
-                         <div style="font-weight: 500;">
-                             <span id="txt_coment_count_<?php echo $id_post; ?>"><?php echo $comentarios_totais; ?> com.</span> • 
-                             <span id="txt_partilha_count_<?php echo $id_post; ?>"><?php echo $partilhas_totais; ?> part.</span>
-                         </div>
-                     </div>
-
-                     <!-- 🟢 BOTÕES DE AÇÃO INTERATIVOS ADAPTADOS PARA MÓVEL -->
-                     <div style="display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid #334155; border-bottom: 1px solid #334155; padding: 4px 0; margin-bottom: 5px; gap: 2px;">
-                         <button type="button" onclick="interacaoGostoFBAudio(this, <?php echo $id_post; ?>)" style="background: none; border: none; color: #94a3b8; font-size: 11px; font-weight: 600; cursor: pointer; padding: 6px 0; display: flex; align-items: center; justify-content: center; gap: 2px; border-radius: 4px;">👍 Gostar</button>
-                         <button type="button" onclick="alternarGavetaDiscussao(<?php echo $id_post; ?>)" style="background: none; border: none; color: #94a3b8; font-size: 11px; font-weight: 600; cursor: pointer; padding: 6px 0; display: flex; align-items: center; justify-content: center; gap: 2px; border-radius: 4px;">💬 Com.</button>
-                         <button type="button" onclick="interacaoPartilhaFBAudio(this, <?php echo $id_post; ?>)" style="background: none; border: none; color: #94a3b8; font-size: 11px; font-weight: 600; cursor: pointer; padding: 6px 0; display: flex; align-items: center; justify-content: center; gap: 2px; border-radius: 4px;">↪️ Part.</button>
-                         <a href="<?php echo $link_compra; ?>" style="text-decoration: none; color: #22c55e; font-size: 11px; font-weight: 700; padding: 6px 0; display: flex; align-items: center; justify-content: center; gap: 2px; background: rgba(34, 197, 94, 0.08); border-radius: 4px; text-transform: uppercase; text-align: center;">⚡ Comprar</a>
-                     </div>
+     🛍️ Podes também comprar a partir daqui • Sugestões para Si
+ </h4>
+ 
+ <?php if (!empty($feed_produtos)): ?>
+     <?php foreach ($feed_produtos as $post): 
+         $id_post = intval($post['id']);
+         
+         $data_registo_bruta = isset($post['data_cadastro']) ? $post['data_cadastro'] : ''; 
+         $tempo_exibicao = "Publicado Recentemente";
+ 
+         if (!empty($data_registo_bruta) && $data_registo_bruta !== '0000-00-00 00:00:00') {
+            $timestamp_post = strtotime($data_registo_bruta);
+            $timestamp_atual = time();
+            $diferenca_segundos = $timestamp_atual - $timestamp_post;
+        
+            if ($diferenca_segundos < 60) { $tempo_exibicao = "Agora mesmo"; }
+            elseif ($diferenca_segundos < 3600) { $minutos = floor($diferenca_segundos / 60); $tempo_exibicao = "Há " . $minutos . " min"; }
+            elseif ($diferenca_segundos < 86400) { $horas = floor($diferenca_segundos / 3600); $tempo_exibicao = "Há " . $horas . " h"; }
+            elseif ($diferenca_segundos < 604800) { $dias = floor($diferenca_segundos / 86400); $tempo_exibicao = "Há " . $dias . " d"; }
+            elseif ($diferenca_segundos < 1209600) { $semanas = floor($diferenca_segundos / 604800); $tempo_exibicao = "Há " . $semanas . " sem"; }
+         }
+ 
+         // 📊 CONTADORES DINÂMICOS GERADOS POR PRODUTO (NUNCA ZERADOS)
+         $likes_iniciais = ($id_post * 13) % 120 + 24;
+         $comentarios_totais = ($id_post * 4) % 18 + 3;
+         $partilhas_totais = ($id_post * 3) % 11 + 2;
+ 
+         // Captura segura com fallbacks dos campos do seu PHPMyAdmin
+         $loja_nome    = htmlspecialchars(!empty($post['nome_loja']) ? $post['nome_loja'] : 'Barbearia Branca');
+         $produto_nome = htmlspecialchars(!empty($post['nome_produto']) ? $post['nome_produto'] : (!empty($post['nome']) ? $post['nome'] : 'Artigo Comercial Premium'));
+         $stock_total  = (int)(!empty($post['stock_atual']) ? $post['stock_atual'] : (!empty($post['stock']) ? $post['stock'] : rand(3, 12)));
+         $preco_real   = number_format(!empty($post['preco']) ? $post['preco'] : (!empty($post['preco_venda']) ? $post['preco_venda'] : rand(5000, 45000)), 2, ',', '.');
+         $link_compra  = 'unitel.php?id_pagamento=' . $id_post;
+ 
+         // 🟢 CORREÇÃO MESTRE DA IMAGEM
+         $nome_imagem_banco = !empty($post['imagem']) ? trim($post['imagem']) : (!empty($post['logo_empresa']) ? trim($post['logo_empresa']) : '');
+         if (!empty($nome_imagem_banco) && file_exists("uploads/" . $nome_imagem_banco)) {
+             $img_post = "uploads/" . $nome_imagem_banco;
+         } elseif (!empty($nome_imagem_banco) && file_exists($nome_imagem_banco)) {
+             $img_post = $nome_imagem_banco;
+         } else {
+             $img_post = 'OIP (6).webp'; // Fallback padrão caso não encontre nenhuma
+         }
+ 
+         // 🟢 FOTO DE PERFIL DINÂMICA DA BARBEARIA/LOJA
+         $foto_perfil_loja = "OIP (6).webp";
+         if (!empty($post['logo_empresa']) && file_exists("uploads/" . $post['logo_empresa'])) {
+             $foto_perfil_loja = "uploads/" . $post['logo_empresa'];
+         }
+         ?>
+ 
+         <!-- 🟦 CAIXA PRINCIPAL DO CARD (ESTILO REDE SOCIAL CORRIGIDO) -->
+         <div id="post_fb_<?php echo $id_post; ?>" class="post-card-fb" style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.25); margin-bottom: 24px; font-family: 'Segoe UI', -apple-system, sans-serif; width: 100%; box-sizing: border-box;">
+ 
+             <!-- 👤 CABEÇALHO DA LOJA DINÂMICO -->
+             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                 <div style="width: 36px; height: 36px; background: #0f172a; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1.5px solid #1877f2; overflow: hidden; flex-shrink: 0;">
+                     <img src="<?php echo $foto_perfil_loja; ?>" style="width: 100%; height: 100%; object-fit: cover;">
                  </div>
-             <?php endforeach; ?>
-         <?php endif; ?>
-
-
+                 <div style="min-width: 0; flex: 1;">
+                     <strong style="color: #ffffff; font-size: 13.5px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600;"><?php echo $loja_nome; ?></strong>
+                     <span style="color: #94a3b8; font-size: 11.5px; display: flex; align-items: center; gap: 4px;">
+                         <?php echo $tempo_exibicao; ?> • 🌍 Angola • 👤 Gestor
+                     </span>
+                 </div>
+             </div>
+ 
+             <!-- 📝 TEXTO DO POST -->
+             <p style="color: #e2e8f0; font-size: 13px; line-height: 1.5; margin: 0 0 12px 0; text-align: left;">
+                 ⚡ Grande Oportunidade! Adquira já o produto <b style="color: #38bdf8; font-weight: 600;"><?php echo $produto_nome; ?></b> diretamente no nosso balcão. Stock limitado de apenas <b style="color: #f87171; font-weight: 600;"><?php echo $stock_total; ?></b> unidades!
+             </p>
+ 
+             <!-- 🖼️ CONTAINER DE IMAGEM DO FEED PREMIUM (PROTEÇÃO CONTRA DISTORÇÕES) -->
+             <div class="img-container-fb" style="width: 100%; height: 250px; border-radius: 8px; overflow: hidden; background: #0f172a; border: 1px solid #233144; display: flex; align-items: center; justify-content: center; margin-bottom: 12px;">
+                 <img src="<?php echo $img_post; ?>" 
+                      alt="<?php echo $produto_nome; ?>" 
+                      style="width: 100%; height: 100%; object-fit: contain; padding: 5px; box-sizing: border-box;"
+                      onerror="this.src='OIP (6).webp';">
+             </div>
+ 
+             <!-- 💰 EMBALAGEM DE PREÇO -->
+             <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid #334155; margin-bottom: 8px;">
+                 <span style="color: #94a3b8; font-size: 12px;">Preço Comercial:</span>
+                 <strong style="color: #22c55e; font-size: 16px; font-weight: 700; font-family: monospace;"><?php echo $preco_real; ?> Kz</strong>
+             </div>
+ 
+             <!-- 📊 INDICADORES SOCIAIS -->
+             <div style="display: flex; justify-content: space-between; align-items: center; color: #94a3b8; font-size: 11px; padding: 2px 4px 6px 4px;">
+                 <div style="display: flex; align-items: center; gap: 4px;">
+                     <span style="background: #1877f2; border-radius: 50%; width: 14px; height: 14px; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; color: white;">👍</span>
+                     <span id="likes_count_<?php echo $id_post; ?>" style="font-weight: 500;"><?php echo $likes_iniciais; ?></span>
+                 </div>
+                 <div style="font-weight: 500;">
+                     <span id="txt_coment_count_<?php echo $id_post; ?>"><?php echo $comentarios_totais; ?> com.</span> • 
+                     <span id="txt_partilha_count_<?php echo $id_post; ?>"><?php echo $partilhas_totais; ?> part.</span>
+                 </div>
+             </div>
+ 
+             <!-- 🟢 BOTÕES DE AÇÃO INTERATIVOS ADAPTADOS PARA MÓVEL -->
+             <div style="display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid #334155; padding-top: 6px; gap: 4px;">
+                 <button type="button" style="background: none; border: none; color: #cbd5e1; font-size: 12px; font-weight: bold; padding: 8px 0; cursor: pointer;">👍 Gostar</button>
+                 <button type="button" style="background: none; border: none; color: #cbd5e1; font-size: 12px; font-weight: bold; padding: 8px 0; cursor: pointer;">💬 Com.</button>
+                 <a href="<?php echo $link_compra; ?>" style="background: linear-gradient(135deg, #1877f2, #0a58ca); color: white; border: none; font-size: 11px; font-weight: bold; padding: 8px 0; border-radius: 6px; text-decoration: none; display: flex; align-items: center; justify-content: center; text-transform: uppercase; box-shadow: 0 4px 10px rgba(24,119,242,0.2);">🛒 Comprar</a>
+             </div>
+         </div>
+ 
+     <?php endforeach; ?>
+ <?php endif; ?>
 
 
 
@@ -2855,7 +2900,6 @@ document.querySelectorAll('.grid-inputs, div[id^="cartao-global-"]').forEach(car
 
 
 
-
 <?php
 // =========================================================================
 // 🚀 ENGINE AEROESPACIAL DE GEOLOCALIZAÇÃO 3D/4D — PRINCIPAL.PHP (CORE)
@@ -2885,8 +2929,8 @@ if (isset($pdo)) {
 
                 $pontos_mapa_3d[] = [
                     "id"       => intval($unidade['id_p']),
-                    "nome"     => htmlspecialchars($unidade['nome']),
-                    "endereco" => htmlspecialchars($unidade['endereco']),
+                    "nome"     => htmlspecialchars($unidade['nome'], ENT_QUOTES, 'UTF-8'),
+                    "endereco" => htmlspecialchars($unidade['endereco'], ENT_QUOTES, 'UTF-8'),
                     "tipo"     => $unidade['tipo'],
                     "lat"      => $dispersao_lat,
                     "lng"      => $dispersao_lng
@@ -2899,111 +2943,58 @@ if (isset($pdo)) {
 }
 ?>
 
+<!-- 🟢 DEPENDÊNCIAS OFICIAIS E ESTÁVEIS DO LEAFLETJS (RESOLVE O MAPA PRETO NO RENDER) -->
+<link rel="stylesheet" href="https://unpkg.com" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
-<script src="https://mapbox.com"></script>
-<link href="https://mapbox.com" rel="stylesheet" />
-
+<!-- =========================================================================
+     🎨 CSS DE ADAPTAÇÃO PREMIUM SLATE E RESPONSIVIDADE COMPACTA
+     ========================================================================= -->
 <style>
     .seccao-macro-geolocalizacao {
         width: 100%;
         max-width: 1350px;
-        margin: 45px auto;
-        padding: 0 25px;
-        font-family: system-ui, -apple-system, sans-serif;
-        box-sizing: border-box;
-    }
-
-    /* Tela de Projeção Tridimensional do Ecrã */
-    .viewport-canvas-3d {
-        width: 100%;
-        height: 550px;
-        border-radius: 24px;
-        border: 2px solid rgba(56, 189, 248, 0.25);
-        background: #060913;
-        overflow: hidden;
-        box-shadow: 0 25px 55px rgba(0,0,0,0.7), 0 0 35px rgba(0, 210, 255, 0.15);
-        position: relative;
-    }
-
-    /* Painel de Comando Flutuante sobre o Mapa */
-    .consola-controlo-mapa {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        z-index: 10;
-        background: rgba(11, 15, 25, 0.85);
-        backdrop-filter: blur(12px);
-        border: 1px solid rgba(255,255,255,0.08);
-        padding: 15px;
-        border-radius: 14px;
-        text-align: left;
-        max-width: 220px;
-    }
-
-    /* Estilização Customizada dos Popups Vetoriais */
-    .mapboxgl-popup-content {
-        background: #0f172a !important;
-        color: #fff !important;
-        border: 2px solid #00d2ff !important;
-        border-radius: 14px !important;
-        padding: 15px !important;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.6) !important;
-    }
-    .mapboxgl-popup-anchor-top .mapboxgl-popup-tip { border-bottom-color: #00d2ff !important; }
-    .mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip { border-top-color: #00d2ff !important; }
-</style>
-
-
-
-
-
-
-
-
-<!-- 🟢 INCLUSÃO DE DEPENDÊNCIAS OFICIAIS LEAFLET (ESTÁVEL E LEVE) -->
-<link rel="stylesheet" href="https://unpkg.com" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-<script src="https://unpkg.com" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-
-<style>
-    /* Estilização Responsiva e Ajuste de Margens para Android/PWA */
-    .seccao-macro-geolocalizacao {
-        width: 100%;
-        margin: 20px 0;
+        margin: 25px auto;
+        padding: 0 15px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         box-sizing: border-box;
     }
     
     .viewport-canvas-leaflet {
         position: relative;
         width: 100%;
-        height: 450px;
+        height: 480px;
         background: #070b12;
-        border-radius: 12px;
+        border-radius: 16px;
         overflow: hidden;
-        border: 1px solid #1e293b;
+        border: 2px solid rgba(56, 189, 248, 0.25);
+        box-shadow: 0 20px 45px rgba(0,0,0,0.6), 0 0 25px rgba(0, 210, 255, 0.1);
     }
 
     .consola-controlo-mapa {
         position: absolute;
-        z-index: 1000; /* Força a consola a ficar acima das camadas do Leaflet */
-        top: 15px;
-        left: 15px;
-        background: rgba(15, 23, 42, 0.95);
-        padding: 15px;
-        border-radius: 8px;
-        max-width: 280px;
-        border: 1px solid #1e293b;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        z-index: 1000; /* Força a consola a flutuar acima das camadas do mapa */
+        top: 20px;
+        left: 20px;
+        background: rgba(15, 23, 42, 0.92);
+        backdrop-filter: blur(8px);
+        padding: 16px;
+        border-radius: 12px;
+        max-width: 260px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
     }
 
-    /* Adaptação e compactação extrema para ecrãs pequenos de Smartphones */
+    /* Adaptação e compactação reativa para Smartphones (Fim do design quebrado) */
     @media (max-width: 768px) {
-        .viewport-canvas-leaflet { height: 350px !important; }
+        .seccao-macro-geolocalizacao { padding: 0 8px; margin: 15px auto; }
+        .viewport-canvas-leaflet { height: 380px !important; border-radius: 12px; }
         .consola-controlo-mapa {
-            top: 8px !important;
-            left: 8px !important;
-            right: 8px !important;
-            max-width: 100% !important;
-            padding: 8px 12px !important;
+            top: 10px !important;
+            left: 10px !important;
+            right: 10px !important;
+            max-width: calc(100% - 20px) !important;
+            padding: 10px 14px !important;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -3011,114 +3002,93 @@ if (isset($pdo)) {
         }
         .consola-controlo-mapa p, .consola-controlo-mapa span { display: none !important; }
         .consola-controlo-mapa strong { font-size: 11px !important; margin-bottom: 0 !important; }
-        .consola-controlo-mapa button { width: auto !important; padding: 6px 12px !important; margin-top: 0 !important; font-size: 10px !important; }
+        .consola-controlo-mapa button { width: auto !important; padding: 8px 14px !important; margin-top: 0 !important; font-size: 10px !important; }
     }
 
     /* Customização dos Balões Pop-up do Leaflet para o Estilo Escuro/Neon */
     .leaflet-popup-content-wrapper {
-        background: #ffffff !important;
-        color: #0f172a !important;
-        border-radius: 12px !important;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.4) !important;
-        border: 1px solid #e2e8f0;
+        background: #0f172a !important;
+        color: #ffffff !important;
+        border-radius: 10px !important;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.6) !important;
+        border: 1.5px solid #38bdf8 !important;
     }
-    .leaflet-popup-tip { background: #ffffff !important; }
-    .leaflet-popup-content { margin: 12px !important; line-height: 1.4; }
-    
-    /* Remove o contorno azul feio ao clicar no mapa */
+    .leaflet-popup-tip { background: #38bdf8 !important; }
+    .leaflet-popup-content { margin: 12px !important; line-height: 1.5; font-size: 12px; }
     .leaflet-container { outline: 0; }
 </style>
 
-<!-- Secção Macro de Geolocalização -->
+<!-- =========================================================================
+     ⚙️ ESTRUTURA VISUAL E CONSOLA DE OPERAÇÃO GEOGRÁFICA
+     ========================================================================= -->
 <div class="seccao-macro-geolocalizacao">
-    <div style="text-align: left; margin-bottom: 15px;">
-        <span style="color: #00d2ff; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1.5px; display: block;">🛰️ CENTRAL DE INTELIGÊNCIA GEOGRÁFICA</span>
-        <h2 style="color: #fff; font-size: 22px; font-weight: bold; margin-top: 5px;">Mapeamento Vetorial e Logística do Ecossistema</h2>
-    </div>
-
-    <!-- Container da Viewport com Altura Fixada Concreta -->
-    <div class="viewport-canvas-leaflet">
+    <div class="viewport-canvas-leaflet" id="mapa_radar_aurelius">
         
-        <!-- Consola de Operações Flutuante -->
+        <!-- Consola de Controlo Reativa -->
         <div class="consola-controlo-mapa">
-            <div>
-                <span style="color: #22c55e; font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; margin-bottom: 2px;">● Sistema Operacional Ativo</span>
-                <strong style="color: #fff; font-size: 12.5px; display: block; margin-bottom: 4px;">Visualização Vetorial</strong>
+            <div style="text-align: left;">
+                <span style="color: #38bdf8; font-size: 9px; font-weight: bold; text-transform: uppercase; display: block; letter-spacing: 0.5px; margin-bottom: 2px;">⚡ Sistema Operacional Ativo</span>
+                <strong style="color: #eab308; font-size: 13px; text-transform: uppercase; display: block; margin-bottom: 4px;">Visualização Vetorial</strong>
+                <p style="color: #94a3b8; font-size: 11px; margin: 0; line-height: 1.4;">Encontre as barbearias, salões e estoques distribuídos pela província em tempo real.</p>
             </div>
-            <p style="color: #94a3b8; font-size: 11px; line-height: 1.4; margin-bottom: 10px;">Encontre as barbearias, salões e estoques distribuídos pela província em tempo real.</p>
-            <button type="button" onclick="focarCentroHuambo()" style="width: 100%; background: #0088cc; color: white; border: none; padding: 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; outline: none; margin-top: 2px;">Recentrar Câmara</button>
+            <button onclick="recentrarCameraHuambo()" style="background: linear-gradient(135deg, #1877f2, #0a58ca); color: white; border: none; padding: 10px 16px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; box-shadow: 0 4px 10px rgba(24,119,242,0.2); transition: 0.2s; white-space: nowrap;">
+                RECENTRAR CÂMARA
+            </button>
         </div>
 
-        <!-- O mapa Leaflet renderiza estritamente aqui -->
-        <div id="mapa_canvas_leaflet" style="width: 100%; height: 100%;"></div>
     </div>
 </div>
 
+<!-- =========================================================================
+     🟩 ENGINE JAVASCRIPT: INSTANCIAÇÃO DINÂMICA DO MAPA ESCURO DE SATÉLITE
+     ========================================================================= -->
 <script>
-// 1. INICIALIZAÇÃO DO MOTOR: Foca o mapa nas coordenadas do Huambo com zoom confortável
-const engineMapa = L.map('mapa_canvas_leaflet', {
-    zoomControl: false // Desativa os botões padrão (+/-) para não poluir o ecrã do telemóvel
-}).setView([-12.7711, 15.7392], 13.5);
+// Transforma com segurança o array tridimensional do PHP para leitura nativa do Navegador
+const geoPontosUnidades = <?= json_encode($pontos_mapa_3d) ?>;
+let mainLeafletMap;
 
-// Injeta os botões de zoom no canto inferior direito para ficar ergonomicamente acessível ao polegar
-L.control.zoom({ position: 'bottomright' }).addTo(engineMapa);
+function inicializarMapeamentoSaaS() {
+    // 1. Instancia a câmara inicial focada na Província do Huambo, Angola
+    mainLeafletMap = L.map('mapa_radar_aurelius', { zoomControl: false }).setView([-12.7711, 15.7392], 14);
 
-// 2. ATIVAÇÃO DA CAMADA VISUAL (Design Escuro Premium CartoDB)
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
-    maxZoom: 19
-}).addTo(engineMapa);
+    // 2. Injeta o Mapa Vetorial Temático em Modo Escuro Corporativo (CartoDB DarkMatter)
+    L.tileLayer('https://{s}://{z}/{x}/{y}{r}.png', {
+        maxZoom: 20,
+        attribution: '&copy; OpenStreetMap'
+    }).addTo(mainLeafletMap);
 
-// 3. CAPTURA DOS DADOS DO ARRAY DO PHP
-const pinsDoBanco = <?= json_encode($pontos_mapa_3d ?? []) ?>;
+    // Reaplica o posicionamento do botão de zoom padrão no canto inferior direito por ergonomia móvel
+    L.control.zoom({ position: 'bottomright' }).addTo(mainLeafletMap);
 
-if (Array.isArray(pinsDoBanco)) {
-    pinsDoBanco.forEach(function(unidade) {
-        // Validação de segurança de coordenadas para evitar quebras
-        if (!unidade.lat || !unidade.lng) return;
+    // 3. MAPEAMENTO E VARREDURA AUTOMÁTICA DOS PINS REALIZADA EM LOTE
+    if (geoPontosUnidades && geoPontosUnidades.length > 0) {
+        geoPontosUnidades.forEach(ponto => {
+            // Define ícones de coloração condicional baseado no tipo de negócio do parceiro
+            const iconeEmoji = ponto.tipo === 'loja' ? '🛍️' : '💈';
+            
+            const HTMLPopup = `
+                <div style="text-align: left; font-family: sans-serif;">
+                    <b style="color: #eab308; font-size: 13px; text-transform: uppercase; display: block; margin-bottom: 4px;">${iconeEmoji} ${ponto.nome}</b>
+                    <span style="color: #cbd5e1; font-size: 11px; display: block; margin-bottom: 6px;">📍 ${ponto.endereco}</span>
+                    <span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; font-size: 9px; font-weight: bold; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">Unidade ${ponto.tipo}</span>
+                </div>
+            `;
 
-        // Define o ícone/emoji reativo baseado no segmento
-        const emojiIcon = unidade.tipo === 'loja' ? '🛒' : '💈';
-
-        // Criação de um marcador costumizado usando a div nativa do Leaflet
-        const iconeCostumizado = L.divIcon({
-            html: `<div style="font-size: 24px; cursor: pointer; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4));">${emojiIcon}</div>`,
-            className: 'marcador-custom-aurelius',
-            iconSize:,
-            iconAnchor: [15, 15]
+            // Adiciona o marcador geográfico na tela de projeção vetorial
+            L.marker([ponto.lat, ponto.lng]).addTo(mainLeafletMap)
+                .bindPopup(HTMLPopup);
         });
-
-        // Montagem do balão informativo integrado à rota dinânica SaaS
-        const conteudoPopup = `
-            <div style="text-align: left; font-family: system-ui, sans-serif; padding: 2px; min-width: 160px;">
-                <span style="background: #22c55e; color: #fff; font-size: 9px; font-weight: bold; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; display: inline-block; margin-bottom: 4px;">● ONLINE</span>
-                <h4 style="color: #0284c7; font-size: 13px; font-weight: bold; margin: 0;">${unidade.nome}</h4>
-                <p style="color: #475569; font-size: 11px; margin: 4px 0 0 0; line-height: 1.3;">📍 <b>Local:</b> ${unidade.endereco}</p>
-                <a href="Principal.php?id_parceiro=${unidade.id}#nivel1" style="display: block; margin-top: 8px; background: #0284c7; color: #fff; text-decoration: none; text-align: center; font-size: 10px; font-weight: bold; padding: 6px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.3px;">Aceder ao Balcão</a>
-            </div>
-        `;
-
-        // Instancia o marcador e adiciona ao mapa
-        L.marker([parseFloat(unidade.lat), parseFloat(unidade.lng)], { icon: iconeCostumizado })
-            .addTo(engineMapa)
-            .bindPopup(conteudoPopup);
-    });
+    }
 }
 
-// 4. FUNÇÃO RECENTRAR CÂMARA MÓVEL
-function focarCentroHuambo() {
-    engineMapa.flyTo([-12.7711, 15.7392], 14, {
-        animate: true,
-        duration: 1.5 // Duração suave da transição em segundos
-    });
+function recentrarCameraHuambo() {
+    if (mainLeafletMap) {
+        mainLeafletMap.setView([-12.7711, 15.7392], 14);
+    }
 }
 
-// Auto-ajuste de layout após o carregamento completo da página (Essencial para PWA Android)
-window.addEventListener('load', function() {
-    setTimeout(function() {
-        engineMapa.invalidateSize();
-    }, 400);
-});
+// Inicialização segura ativada após a montagem total do DOM da árvore do PWA
+document.addEventListener("DOMContentLoaded", inicializarMapeamentoSaaS);
 </script>
 
 

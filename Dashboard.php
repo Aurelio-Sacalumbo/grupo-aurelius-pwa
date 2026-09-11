@@ -101,6 +101,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $mysqli) {
     }
 }
 ?>
+
+
+<?php
+// =========================================================================
+// 🚀 MOTOR DE EXTRAÇÃO CRONOLÓGICA — FILTRO RIGOROSO CONTRA O PASSADO
+// =========================================================================
+$lista_pedidos = [];
+
+if (isset($pdo)) {
+    try {
+        // Captura a data atual de Angola no formato SQL (AAAA-MM-DD)
+        $data_hoje_angola = date('Y-m-d');
+
+        // ✨ BIOMESTRE SQL: Filtra estritamente para que a data do serviço seja MAIOR ou IGUAL a HOJE
+        $stmt_ativos = $pdo->prepare("
+            SELECT 
+                p.`id_pagamento`, 
+                p.`servico`, 
+                p.`valor`, 
+                p.`valor_liquido`,
+                p.`desconto`,
+                p.`data_servico`, 
+                p.`hora_servico`,
+                p.`status_trabalho`,
+                p.`status_atendimento`,
+                p.`cliente_telefone`,
+                f.`nome` AS nome_profissional_real,
+                p.`profissional` AS prof_bruto,
+                IFNULL(c.`saldo_acumulado`, 0.00) AS troco_carteira_acumulado
+            FROM `pagamentos` p
+            LEFT JOIN `funcionarios` f ON p.`profissional` = f.`id_funcionario`
+            LEFT JOIN `carteira_saldos_clientes` c ON p.`cliente_telefone` = c.`telefone_cliente`
+            WHERE p.`status_atendimento` != 'Cancelado'
+              AND p.`data_servico` >= ? 
+            ORDER BY p.`data_servico` ASC, p.`hora_servico` ASC
+        ");
+        $stmt_ativos->execute([$data_hoje_angola]);
+        $lista_pedidos = $stmt_ativos->fetchAll(PDO::FETCH_ASSOC);
+
+    } catch (PDOException $e) {
+        // Fallback de contingência caso o fuso horário ou estrutura sofra oscilações
+        try {
+            $stmt_fallback = $pdo->prepare("SELECT * FROM `pagamentos` WHERE `data_servico` >= ? ORDER BY id_pagamento DESC");
+            $stmt_fallback->execute([date('Y-m-d')]);
+            $lista_pedidos = $stmt_fallback->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $ex) {
+            $lista_pedidos = [];
+        }
+    }
+}
+?>
+
+
 <html lang="pt-PT">
 <head>
     <meta charset="UTF-8">
@@ -663,23 +716,50 @@ nav {
              <input type="text" id="inputNomeCliente" placeholder="Nome do Cliente" class="input-estilizado" style="width: 100%; background: rgba(7, 11, 18, 0.6); border: 1px solid #334155; border-radius: 8px; color: #fff; padding: 12px; font-weight: 500; outline: none; transition: 0.3s;" onfocus="this.style.borderColor='#00d2ff'; this.style.boxShadow='0 0 8px rgba(0,210,255,0.3)';" onblur="this.style.borderColor='#334155'; this.style.boxShadow='none';" required autocomplete="off">
          </div>
  
-         <!-- Campo 2: Alocação de Profissional Técnico -->
-         <div>
-             <label style="color: #38bdf8; font-size: 11.5px; display: block; margin-bottom: 6px; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px;">Profissional:</label>
-             <select id="inputFuncionario" class="input-estilizado" style="width: 100%; background: rgba(7, 11, 18, 0.6); border: 1px solid #334155; border-radius: 8px; color: #fff; padding: 12px; font-weight: 500; outline: none; cursor: pointer; color-scheme: dark; transition: 0.3s;" onfocus="this.style.borderColor='#00d2ff'; this.style.boxShadow='0 0 8px rgba(0,210,255,0.3)';" onblur="this.style.borderColor='#334155'; this.style.boxShadow='none';">
-                 <option value="" style="background:#0f172a;">Selecione um profissional...</option>
-                 <option value="Handanga" style="background:#0f172a;">1º Handanga (Barbeiro)</option>
-                 <option value="Albino" style="background:#0f172a;">2º Albino (Esteticista /Barbeiro/ Manicure)</option>
-                 <option value="Dalton" style="background:#0f172a;">3º Dalton (Manicure)</option>
-                 <option value="Fernandinho" style="background:#0f172a;">4º Fernandinho (Barbeiro)</option>
-                 <option value="Aurélio" style="background:#0f172a;">5º Aurélio (Cabelereiro)</option>
-                 <option value="Raimundo" style="background:#0f172a;">6º Raimundo (Pedicure)</option>
-                 <option value="Angelino" style="background:#0f172a;">7º Angelino (Cabelereiro)</option>
-                 <option value="Tuxa" style="background:#0f172a;">8º Tuxa (Cabelereira)</option>
-                 <option value="Edna" style="background:#0f172a;">9º Edna (Cabelereira)</option>
-                 <option value="Belma" style="background:#0f172a;">10º Belma (Cabelereira)</option>
-             </select>
-         </div>
+       <!-- Campo 2: Alocação de Profissional Técnico Dinâmico -->
+<div>
+<label style="color: #38bdf8; font-size: 11.5px; display: block; margin-bottom: 6px; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px;">
+    Profissional:
+</label>
+
+<select id="inputFuncionario" name="profissional_id" class="input-estilizado" style="width: 100%; background: rgba(7, 11, 18, 0.6); border: 1px solid #334155; border-radius: 8px; color: #fff; padding: 12px; font-weight: 500; outline: none; cursor: pointer; color-scheme: dark; transition: 0.3s;" onfocus="this.style.borderColor='#00d2ff'; this.style.boxShadow='0 0 8px rgba(0,210,255,0.3)';" onblur="this.style.borderColor='#334155'; this.style.boxShadow='none';">
+    <option value="" style="background:#0f172a;">Selecione um profissional...</option>
+    
+
+
+
+
+
+
+
+
+    <?php
+    // 🟢 EXTRACTOR DINÂMICO DE PROFISSIONAIS DO PHPMYADMIN
+    if (isset($pdo)) {
+        try {
+            // Procura todos os funcionários ativos cadastrados na base de dados
+            $stmt_prof = $pdo->query("SELECT `id_funcionario`, `nome`, `cargo` FROM `funcionarios` ORDER BY `nome` ASC");
+            $profissionais_banco = $stmt_prof->fetchAll(PDO::FETCH_ASSOC);
+            
+            $contador = 1;
+            foreach ($profissionais_banco as $prof):
+                // Define o ID ou o nome como valor, dependendo do que o seu motor de agendamentos espera
+                $valor_option = htmlspecialchars($prof['nome']); 
+                $cargo_formatado = !empty($prof['cargo']) ? " (" . htmlspecialchars($prof['cargo']) . ")" : "";
+            ?>
+                <option value="<?= $valor_option ?>" style="background:#0f172a;">
+                    <?= $contador ?>º <?= htmlspecialchars($prof['nome']) ?><?= $cargo_formatado ?>
+                </option>
+            <?php 
+                $contador++;
+            endforeach;
+        } catch (PDOException $e) {
+            echo "<option value='' style='background:#0f172a; color:#f87171;'>Erro ao carregar lista</option>";
+        }
+    }
+    ?>
+</select>
+</div>
  
          <!-- Campo 3: Calendário Operacional Dinâmico -->
          <div>
@@ -779,7 +859,7 @@ nav {
                     <span id="natSubtotal" style="color: #cbd5e1; font-weight: bold;">0 Kz</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; font-size: 13px; color: #ef4444; font-weight: bold;">
-                    <span>Desconto Membro VIP (-20%):</span>
+                    <span>Desconto Membro VIP (-2%):</span>
                     <span id="natDescontoValor">- 0 Kz</span>
                 </div>
             </div>
@@ -876,8 +956,6 @@ nav {
 
 
 
-
-
 <!-- =========================================================================
      📋 LISTA DE PROFISSIONAIS (SISTEMA COM PREÇO DINÂMICO E RECOLHIDO NO F5)
      ========================================================================= -->
@@ -892,29 +970,60 @@ nav {
          <?php else: ?>
              <?php foreach($lista_cards as $card): 
                  $nome_f = trim($card['nome']);
-                 $esta_ausente = (strpos($card['status'], 'Ausente') !== false || strpos($card['status'], 'Folga') !== false);
-                 $corCard = $esta_ausente ? '#ef4444' : '#22c55e';
                  
-                 // Busca o preço real e o serviço cadastrado na linha deste profissional
+                 // 🧠 1. ENGENHARIA DE RASTREAMENTO EM TEMPO REAL
+                 $data_hoje_angola = date('Y-m-d');
+                 $hora_agora_angola = date('H:i:s');
+                 $esta_ocupado_agora = false;
+ 
+                 if (isset($pdo)) {
+                     // Verifica se o mestre possui um agendamento CONFIRMADO a decorrer neste momento (janela de 1 hora)
+                     $stmt_check_status = $pdo->prepare("
+                         SELECT COUNT(*) FROM `pagamentos` 
+                         WHERE (`profissional` = ? OR `profissional` = ?)
+                           AND `data_servico` = ? 
+                           AND `status_atendimento` = 'Confirmado'
+                           AND ? BETWEEN `hora_servico` AND ADDTIME(`hora_servico`, '01:00:00')
+                     ");
+                     $stmt_check_status->execute([$nome_f, "Mestre " . $nome_f, $data_hoje_angola, $hora_agora_angola]);
+                     $esta_ocupado_agora = ($stmt_check_status->fetchColumn() > 0);
+                 }
+ 
+                 // 🧠 2. TRIAGEM DOS ESTADOS VISUAIS (BARRAGEM OPERACIONAL)
+                 $status_banco = trim($card['status']);
+                 $esta_ausente = (strpos($status_banco, 'Ausente') !== false || strpos($status_banco, 'Folga') !== false);
+                 
+                 if ($esta_ausente) {
+                     $status_exibir = $status_banco;
+                     $corCard = '#ef4444'; // Vermelho Ausente/Folga
+                 } elseif ($esta_ocupado_agora) {
+                     $status_exibir = 'Atendimento';
+                     $corCard = '#f87171'; // Vermelho Claro para Ocupado em Serviço
+                 } else {
+                     $status_exibir = 'Disponível';
+                     $corCard = '#22c55e'; // Verde Livre
+                 }
+                 
+                 // Configurações de Fallback dos Serviços
                  $preco_mestre = floatval(($card['preco'] ?? 0) > 0 ? $card['preco'] : 1500.00);
                  $servico_mestre = !empty($card['tipos_de_servico']) ? $card['tipos_de_servico'] : 'Design e Corte de Barba';
                  $foto_render_dashboard = !empty($card['foto_url']) ? 'uploads/' . $card['foto_url'] : 'https://flaticon.com';
              ?>
-                 <!-- CARD INDIVIDUAL COM PASSAGEM DINÂMICA DE VALORES DA BASE DE DADOS -->
-                 <div onclick="abrirPautaVisual('<?= htmlspecialchars($nome_f, ENT_QUOTES) ?>', '<?= $esta_ausente ? 'Ausente' : 'Disponivel' ?>', <?= $preco_mestre ?>, '<?= htmlspecialchars($servico_mestre, ENT_QUOTES) ?>')" 
+                 <!-- CARD INDIVIDUAL COM PASSAGEM DINÂMICA DA BASE DE DADOS -->
+                 <div onclick="abrirPautaVisual('<?= htmlspecialchars($nome_f, ENT_QUOTES) ?>', '<?= $esta_ausente ? 'Ausente' : ($esta_ocupado_agora ? 'Atendimento' : 'Disponivel') ?>', <?= $preco_mestre ?>, '<?= htmlspecialchars($servico_mestre, ENT_QUOTES) ?>')" 
                       style="background: #1e293b; border: 1px solid #334155; padding: 15px; border-radius: 8px; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 12px; box-sizing: border-box; width: 100%;"
                       onmouseover="this.style.borderColor='#eab308'" onmouseout="this.style.borderColor='#334155'">
                      
                      <img src="<?= $foto_render_dashboard ?>" style="width: 45px; height: 45px; object-fit: cover; border-radius: 50%; border: 2px solid <?= $corCard ?>; flex-shrink: 0;">
                      
                      <div style="flex: 1; text-align: left; overflow: hidden;">
-                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                             <span style="color: #cbd5e1; font-weight: bold; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?= htmlspecialchars($nome_f); ?></span>
-                         </div>
-                         <span style="font-weight: bold; color: <?= $corCard; ?>; font-size: 11px; display: block; margin-top: 2px;">
-                             ● <?= htmlspecialchars($card['status']); ?>
-                         </span>
-                         <div style="margin-top: 4px; font-size: 9px; color: #64748b; text-transform: uppercase;">Ver agenda →</div>
+                          <div style="display: flex; justify-content: space-between; align-items: center;">
+                              <span style="color: #cbd5e1; font-weight: bold; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?= htmlspecialchars($nome_f); ?></span>
+                          </div>
+                          <span style="font-weight: bold; color: <?= $corCard; ?>; font-size: 11px; display: block; margin-top: 2px;">
+                              ● <?= htmlspecialchars($status_exibir); ?>
+                          </span>
+                          <div style="margin-top: 4px; font-size: 9px; color: #64748b; text-transform: uppercase;">Ver agenda →</div>
                      </div>
                  </div>
              <?php endforeach; ?>
@@ -931,99 +1040,194 @@ nav {
      </div>
  </div>
  
+
+
+ <?php
+// =========================================================================
+// 📅 ALIMENTAÇÃO DA PAUTA VISUAL — LIMPEZA E UNIFICAÇÃO DE STRINGS MESTRE
+// =========================================================================
+$hoje_sql = date('Y-m-d');
+$pauta_ocupada = [];
+
+if (isset($pdo)) {
+    try {
+        // Puxa as marcações de hoje ordenadas por horário
+        $stmt_pauta = $pdo->prepare("
+            SELECT `profissional`, `hora_servico`, `servico`, `valor` 
+            FROM `pagamentos` 
+            WHERE `data_servico` = ? AND `status_atendimento` != 'Cancelado'
+        ");
+        $stmt_pauta->execute([$hoje_sql]);
+        $agendamentos_hoje = $stmt_pauta->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($agendamentos_hoje as $ag) {
+            // 🟢 1. NORMALIZAÇÃO DO NOME DO PROFISSIONAL:
+            // Remove quaisquer prefixos "Mestre", "Prof." para isolar o nome raiz (ex: "Magui", "Dalton")
+            $prof_bruto = trim($ag['profissional']);
+            $prof_raiz  = trim(str_replace(['Mestre Prof. ', 'Mestre ', 'Prof. ', 'Mestre', 'Prof.'], '', $prof_bruto));
+
+            // 🟢 2. NORMALIZAÇÃO DA HORA:
+            // Garante o formato '09:00' removendo segundos se o MySQL retornar '09:00:00'
+            $hora_limpa = date('H:i', strtotime($ag['hora_servico']));
+
+            // 🟢 3. NORMALIZAÇÃO DO SERVIÇO:
+            // Limpa o nome do serviço removendo o gateway "(MCX Express)" ou "(Unitel Money)"
+            $servico_bruto = $ag['servico'];
+            $servico_exibir = trim(preg_replace('/\s*\(.*?\)/', '', $servico_bruto));
+            
+            $preco_formatado = number_format(floatval($ag['valor']), 2, ',', '.') . " Kz";
+
+            // 🟢 4. ALIMENTAÇÃO DO DICIONÁRIO TRIDIMENSIONAL DO JAVASCRIPT:
+            // Guardamos o agendamento em todas as chaves possíveis para o JavaScript achar o match de qualquer forma
+            $dados_vaga = [
+                'servico' => $servico_exibir,
+                'preco'   => $preco_formatado
+            ];
+
+            $pauta_ocupada[$prof_bruto][$hora_limpa] = $dados_vaga;
+            $pauta_ocupada[$prof_raiz][$hora_limpa]  = $dados_vaga;
+            $pauta_ocupada["Prof. " . $prof_raiz][$hora_limpa] = $dados_vaga;
+            $pauta_ocupada["Mestre " . $prof_raiz][$hora_limpa] = $dados_vaga;
+            $pauta_ocupada["Mestre Prof. " . $prof_raiz][$hora_limpa] = $dados_vaga;
+        }
+    } catch (PDOException $e) {
+        $pauta_ocupada = [];
+    }
+}
+?>
+
+
+
  <!-- =========================================================================
       🟩 ENGINE JAVASCRIPT: FILTRAGEM DINÂMICA DE PREÇOS MUTÁVEIS E OCUPAÇÃO
       ========================================================================= -->
- <script>
- const pautaOcupadaDB = <?= json_encode($pauta_ocupada ?? []) ?>;
- const slotsHoras = <?= json_encode($grade_horaria ?? ['01:00', '08:00', '09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00', '18:00']) ?>;
- 
- function abrirPautaVisual(nome, status) {
+      <script>
+const pautaOcupadaDB = <?= json_encode($pauta_ocupada ?? []) ?>;
+
+function abrirPautaVisual(nome, status) {
     const container = document.getElementById('container_pauta_dinamica');
     const grade = document.getElementById('grade_vagas_real');
-    document.getElementById('titulo_pauta_nome').innerText = "⏳ Mapa de Disponibilidade: " + nome;
+    document.getElementById('titulo_pauta_nome').innerText = "📅 Agenda de Hoje: " + nome;
     
     grade.innerHTML = '';
     container.style.display = 'block';
 
     if (status === 'Ausente' || status === 'Folga') {
-        grade.innerHTML = '<p style="color:#ef4444; grid-column: 1/-1; padding:10px; font-weight:bold;">Profissional indisponível hoje.</p>';
+        grade.innerHTML = '<p style="color:#ef4444; grid-column: 1/-1; padding:20px; font-weight:bold; text-align:center;">Profissional indisponível hoje.</p>';
         return;
     }
 
-    // 🟢 1. HORÁRIO REAL DE ANGOLA: Captura o tempo para esconder o passado útil
+    // 🟢 1. HORÁRIO REAL DE ANGOLA
     const agora = new Date();
     const horaAtualStr = String(agora.getHours()).padStart(2, '0') + ":" + String(agora.getMinutes()).padStart(2, '0');
 
-    // 🟢 2. GRADE HORÁRIA COMPLETA DA BARBEARIA BRANCA
-    const slotsHorasGeral = ['01:00', '08:00', '09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00', '19:00', '20:00', '21:00', '22:00'];
+    // 🟢 2. TODAS AS HORAS DO TELEMÓVEL
+    const slotsHorasGeral = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00'];
 
     slotsHorasGeral.forEach(hora => {
-        const nomeChave = nome.trim();
         const horaLimpa = hora.trim();
+        const apenasHoraCard = horaLimpa.split(':')[0]; // ✨ AGORA É TEXTO: Extrai "14" de "14:00"
+
+        // Limpa variações de títulos no nome do profissional
+        const nomeLimpoRaiz = nome.replace(/Mestre\s+|Prof\.\s+|Mestre\s+Prof\.\s+/g, '').trim();
         
-        // 🟢 3. SINCRONISMO COM O PHPMYADMIN: Verifica se a hora consta no array vindo do banco
-        const ocupado = pautaOcupadaDB[nomeChave] && pautaOcupadaDB[nomeChave].includes(horaLimpa);
+        let infoOcupado = null;
+        let horaOcupadaReal = "";
+
+        const chavesPossiveis = [
+            nome.trim(), 
+            nomeLimpoRaiz, 
+            "Prof. " + nomeLimpoRaiz, 
+            "Mestre " + nomeLimpoRaiz, 
+            "Mestre Prof. " + nomeLimpoRaiz
+        ];
         
-        // 🟢 4. REGRA DE DESAPARECIMENTO: Se a hora for menor que a atual e estiver livre, ela some
+        // ✨ PROCURA POR VALIDAÇÃO DE TEXTO DA HORA CHEIA
+        for (let chave of chavesPossiveis) {
+            if (pautaOcupadaDB[chave]) {
+                for (let horaBanco in pautaOcupadaDB[chave]) {
+                    const apenasHoraBanco = horaBanco.trim().split(':')[0]; // ✨ AGORA É TEXTO: Extrai "14" de "14:20"
+                    
+                    // Comparação real de texto (Strings batem 100% de forma segura agora!)
+                    if (apenasHoraCard === apenasHoraBanco) {
+                        infoOcupado = pautaOcupadaDB[chave][horaBanco];
+                        horaOcupadaReal = horaBanco.trim().substring(0, 5); // Ex: "14:20"
+                        break;
+                    }
+                }
+            }
+            if (infoOcupado) break;
+        }
+        
+        const ocupado = infoOcupado !== null;
+        
+        // Regra visual: esconde slots passados que estejam livres
         if (horaLimpa < horaAtualStr && !ocupado) {
             return; 
         }
 
         const slot = document.createElement('div');
-        let corBorda = ocupado ? '#ef4444' : '#0284c7';
-        let bgFundo = ocupado ? 'rgba(239, 68, 68, 0.15)' : 'rgba(2, 132, 199, 0.08)';
-        let txtColor = ocupado ? '#f87171' : '#38bdf8';
-        let txtStatus = ocupado ? '🔴 OCUPADO' : '🟢 LIVRE';
         
-        slot.style.cssText = `padding:12px 10px; border-radius:8px; text-align:center; font-size:12px; border: 1px solid ${corBorda}; background: ${bgFundo}; cursor: pointer; transition: 0.2s; box-sizing: border-box; width: 100%;`;
-        
-        // 🟢 5. COMPORTAMENTO DO CLIQUE EXIGIDO NO ENUNCIADO
+        slot.style.cssText = `
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            margin-bottom: 8px;
+            border-radius: 10px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            box-sizing: border-box;
+            width: 100%;
+            border-left: 5px solid ${ocupado ? '#ef4444' : '#22c55e'};
+            background: ${ocupado ? 'rgba(239, 68, 68, 0.06)' : 'rgba(34, 197, 94, 0.04)'};
+            transition: 0.2s;
+        `;
+
         if (ocupado) {
-            // Se clicar na hora vermelha ocupada, mostra o relatório completo de pauta diária com sigilo
-            slot.innerHTML = `<strong style="display:block; color:#94a3b8; text-decoration: line-through; font-family: monospace; font-size:13px;">${horaLimpa}</strong><span style="font-size:9px; font-weight:bold; color:${txtColor}; display:block; margin-top:2px;">${txtStatus}</span>`;
-            
-            slot.onclick = () => {
-                const totalReservasMestre = pautaOcupadaDB[nomeChave] ? pautaOcupadaDB[nomeChave].length : 1;
-                
-                let relatorio = `📋 RELATÓRIO OPERACIONAL DE ATENDIMENTOS\n`;
-                relatorio += `-------------------------------------------\n`;
-                relatorio += `💈 Profissional: Mestre ${nomeChave}\n`;
-                relatorio += `⏱ Período Auditado: ${horaLimpa}\n`;
-                relatorio += `📊 Carga de Trabalho Hoje: ${totalReservasMestre} Cadeiras Ocupadas\n`;
-                relatorio += `-------------------------------------------\n`;
-                relatorio += `❌ ESTADO DA VAGA: BLOQUEADO\n\n`;
-                relatorio += `🔒 Informação: Este período já possui um agendamento. Por motivos de segurança comercial, a identidade do cliente é estritamente confidencial.`;
-                
-                alert(relatorio);
-            };
+            // 🔴 TRANCADO E BARRADO AUTOMÁTICO
+            slot.style.cursor = 'not-allowed';
+            slot.innerHTML = `
+                <div style="text-align: left;">
+                    <strong style="color: #94a3b8; font-size: 15px; font-family: monospace;">${horaOcupadaReal}</strong>
+                    <span style="color: #f87171; font-size: 12px; font-weight: bold; margin-left: 10px;">• Reservado</span>
+                </div>
+                <div style="text-align: right;">
+                    <span style="color: #cbd5e1; font-size: 12px; font-weight: bold; display: block; text-transform: uppercase;">${infoOcupado.servico}</span>
+                    <span style="color: #f472b6; font-size: 11px; font-weight: bold;">${infoOcupado.preco}</span>
+                </div>
+            `;
         } else {
-            // Se clicar na hora verde livre, avisa o sucesso e preenche o formulário superior automaticamente
-            slot.innerHTML = `<strong style="display:block; color:#fff; font-family: monospace; font-size: 13px;">${horaLimpa}</strong><span style="font-size:9px; font-weight:bold; color:${txtColor}; display:block; margin-top:2px;">${txtStatus}</span>`;
+            // 🟢 DISPONÍVEL
+            slot.style.cursor = 'pointer';
+            slot.innerHTML = `
+                <div>
+                    <strong style="color: #fff; font-size: 15px; font-family: monospace;">${horaLimpa}</strong>
+                    <span style="color: #22c55e; font-size: 12px; font-weight: bold; margin-left: 10px;">• Disponível</span>
+                </div>
+                <div style="background: #22c55e; color: #040209; font-size: 11px; font-weight: bold; padding: 6px 12px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px;">
+                    Reservar
+                </div>
+            `;
+
+            slot.onmouseover = () => { slot.style.background = 'rgba(34, 197, 94, 0.1)'; slot.style.transform = 'translateY(-1px)'; };
+            slot.onmouseout  = () => { slot.style.background = 'rgba(34, 197, 94, 0.04)'; slot.style.transform = 'translateY(0)'; };
             
             slot.onclick = () => {
-                alert(`🎯 Vaga Selecionada com Sucesso!\n\nProfissional: ${nomeChave}\nHorário de Atendimento: ${horaLimpa} hoje.`);
-                
-                // Injeta automaticamente e preenche o formulário superior na mesma tela
                 const inputHora = document.getElementById('inputHoraServico');
                 const inputFunc = document.getElementById('inputFuncionario');
                 
                 if (inputHora) inputHora.value = horaLimpa;
-                
                 if (inputFunc) {
-                    inputFunc.value = nomeChave;
-                    // Sincroniza o elemento select caso ele exista no topo
+                    inputFunc.value = nome.trim();
                     if (inputFunc.tagName === 'SELECT') {
                         for (let i = 0; i < inputFunc.options.length; i++) {
-                            if (inputFunc.options[i].value.trim() === nomeChave) {
+                            if (inputFunc.options[i].value.trim() === nome.trim()) {
                                 inputFunc.selectedIndex = i;
                                 break;
                             }
                         }
                     }
                 }
-                
-                // Rola a página suavemente para cima para o operador ver os inputs preenchidos
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             };
         }
@@ -1033,84 +1237,229 @@ nav {
     
     container.scrollIntoView({ behavior: 'smooth' });
 }
- </script>
+</script>
 
 
 
 
 
 
+<?php
+// Consulta focada nas próximas pautas baseando-se na tabela real 'pagamentos'
+try {
+    $data_filtro_sql = date('Y-m-d');
+    $stmt_ativos = $pdo->prepare("
+        SELECT 
+            p.`id_pagamento`, 
+            p.`servico`, 
+            p.`valor` AS preco_base, 
+            p.`desconto`,
+            p.`valor_liquido`,
+            p.`data_servico`, 
+            p.`hora_servico`,
+            p.`status_trabalho`,
+            p.`status_atendimento`,
+            p.`tipo_pagamento`,
+            p.`cliente_telefone`,
+            f.`nome` AS nome_profissional_real,
+            p.`profissional` AS prof_bruto,
+            IFNULL(c.`saldo_acumulado`, 0.00) AS troco_carteira_acumulado
+        FROM `pagamentos` p
+        LEFT JOIN `funcionarios` f ON p.`profissional` = f.`id_funcionario`
+        LEFT JOIN `carteira_saldos_clientes` c ON p.`cliente_telefone` = c.`telefone_cliente`
+        WHERE p.`data_servico` >= ? AND p.`status_atendimento` != 'Cancelado'
+        ORDER BY p.`data_servico` ASC, p.`hora_servico` ASC
+    ");
+    $stmt_ativos->execute([$data_filtro_sql]);
+    $lista_pedidos = $stmt_ativos->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $lista_pedidos = [];
+}
+?>
 
+<div style="background: #0d061a; padding: 25px; border-radius: 16px; border: 1px solid #3b0764; margin-top: 30px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px dashed rgba(168, 85, 247, 0.3); padding-bottom: 15px;">
+        <h3 style="margin: 0; color: #eab308; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;">
+            Marcações Recente:
+        </h3>
+        <span style="background: rgba(234, 179, 8, 0.1); color: #eab308; font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 20px;">
+            <?= count($lista_pedidos) ?> Agendados
+        </span>
+    </div>
+
+    <?php if (empty($lista_pedidos)): ?>
+        <p style="color: #94a3b8; text-align: center; font-size: 14px; padding: 30px 10px; margin: 0;">
+            📭 Nenhuma marcação agendada para hoje ou dias posteriores.
+        </p>
+    <?php else: ?>
+        
+        <!-- CONTAINER COESOR COM LIMITE DE ALTURA E ROLAGEM SLATE INTERNA -->
+        <div class="tabela-scroll-container" style="max-height: 450px; overflow-y: auto; width: 100%; padding-right: 5px;">
+            
+        <!-- 🖥️ VISUALIZAÇÃO DESKTOP: TABELA PARA COMPUTADORES -->
+        <table class="tabela-desktop-anonima" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; color: #cbd5e1;">
+            <thead style="position: sticky; top: 0; background: #0d061a; z-index: 10;">
+                <tr style="border-bottom: 2px solid #3b0764; color: #a855f7; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">
+                    <th style="padding: 12px 8px;">ID Vaga</th>
+                    <th style="padding: 12px 8px;">Profissional</th>
+                    <th style="padding: 12px 8px;">Serviço Requerido</th>
+                    <th style="padding: 12px 8px;">Valores Base</th>
+                    <th style="padding: 12px 8px; text-align: center;">Estado Liquidação</th>
+                    <th style="padding: 12px 8px; text-align: right;">Sobra em Carteira</th>
+                    <th style="padding: 12px 8px; text-align: right; padding-right: 15px;">Data / Hora</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php 
+                // Garante que o loop só roda se existirem registos extraídos do banco de dados
+                if (!empty($lista_pedidos) && is_array($lista_pedidos)):
+                    foreach ($lista_pedidos as $pedido): 
+                        
+                        // 1. EXTRAÇÃO E TRATAMENTO SEGURO DE VARIÁVEIS NA RAÍZ DO LOOP
+                        $id_exibir = $pedido['id_pagamento'] ?? $pedido['id'] ?? 0;
+                        
+                        // Captura e formatação do Profissional
+                        $prof_exibir = !empty($pedido['nome_profissional_real']) ? $pedido['nome_profissional_real'] : ($pedido['prof_bruto'] ?? 'Mestre Técnico');
+                        if (is_numeric($prof_exibir)) {
+                            $prof_exibir = "Mestre Técnico #" . $prof_exibir;
+                        }
+
+                        // Limpeza de parênteses no Nome do Serviço
+                        $servico_bruto = $pedido['servico'] ?? '';
+                        $servico_limpo = trim(preg_replace('/\s*\(.*?\)/', '', $servico_bruto));
+
+                        // Resgate dos fluxos de faturamento reais
+                        $preco_no_registo  = floatval($pedido['valor'] ?? 0);
+                        $valor_liquido     = floatval($pedido['valor_liquido'] ?? 0);
+                        $troco_carteira    = floatval($pedido['troco_carteira_acumulado'] ?? 0);
+
+                        // Definição matemática dinâmica do preço final
+                        if ($valor_liquido > 0) {
+                            $preco_final_atendimento = $valor_liquido;
+                        } elseif ($preco_no_registo > 0) {
+                            $preco_final_atendimento = $preco_no_registo;
+                        } else {
+                            $preco_final_atendimento = 1500.00; // Fallback mestre de segurança
+                        }
+
+                        // 🧠 TRACKING SÍNCRONO DE CAIXA (Sinaliza se passou ou não pelo unitel.php)
+                        $status_atendimento = trim($pedido['status_atendimento'] ?? 'Pendente');
+                        $status_trabalho    = strtolower(trim($pedido['status_trabalho'] ?? 'pendente'));
+
+                        if ($status_atendimento === 'Confirmado' && $status_trabalho === 'concluido') {
+                            if ($troco_carteira > 0) {
+                                $badge_estado_financeiro = "<span style='background:rgba(56, 189, 248, 0.12); color:#38bdf8; border:1px solid rgba(56,189,248,0.3); padding:4px 10px; border-radius:6px; font-weight:bold; font-size:11px;'>⚡ ADIANTADO</span>";
+                            } else {
+                                $badge_estado_financeiro = "<span style='background:rgba(34, 197, 94, 0.12); color:#4ade80; border:1px solid rgba(34,197,94,0.3); padding:4px 10px; border-radius:6px; font-weight:bold; font-size:11px;'>✓ PAGO</span>";
+                            }
+                        } else {
+                            $badge_estado_financeiro = "<span style='background:rgba(239, 68, 68, 0.12); color:#f87171; border:1px solid rgba(239,68,68,0.3); padding:4px 10px; border-radius:6px; font-weight:bold; font-size:11px;'>⏳ NÃO PAGO</span>";
+                        }
+
+                        // Alinhamento rigoroso de fuso horário, datas e horas
+                        $hora_bruta = $pedido['hora_servico'] ?? $pedido['horario'] ?? '00:00';
+                        $hora_exibir = date('H:i', strtotime($hora_bruta));
+
+                        $data_sessao = $pedido['data_servico'] ?? date('Y-m-d');
+                        $data_hoje = date('Y-m-d');
+                        $data_amanha = date('Y-m-d', strtotime('+1 day'));
+
+                        if ($data_sessao === $data_hoje) {
+                            $data_badge = "Hoje";
+                        } elseif ($data_sessao === $data_amanha) {
+                            $data_badge = "Amanhã";
+                        } else {
+                            $data_badge = date('d/m/Y', strtotime($data_sessao));
+                        }
+
+                        // Formatações finais em Kwanzas
+                        $preco_formatado = number_format($preco_final_atendimento, 2, ',', '.') . " Kz";
+                        $troco_formatado = number_format($troco_carteira, 2, ',', '.') . " Kz";
+                ?>
+                    
+                    <!-- 🖥️ RENDERIZAÇÃO DA LINHA DO COMPUTADOR -->
+                    <tr class="linha-pc-segura" style="border-bottom: 1px solid rgba(59, 7, 100, 0.4);">
+                        <td style="padding: 14px 8px; font-weight: bold; color: #64748b;">#<?= $id_exibir ?></td>
+                        <td style="padding: 14px 8px; font-weight: bold; color: #fff;">Mestre <?= htmlspecialchars($prof_exibir) ?></td>
+                        <td style="padding: 14px 8px; color: #cbd5e1; font-weight: 500;"><?= htmlspecialchars($pedido['servico']) ?></td>
+                        <td style="padding: 14px 8px; font-family: monospace; font-weight: bold; color: #fff;"><?= $preco_formatado ?></td>
+                        <td style="padding: 14px 8px; text-align: center;"><?= $badge_estado_financeiro ?></td>
+                        <td style="padding: 14px 8px; text-align: right; font-family: monospace; font-weight: bold; color: <?= $troco_carteira > 0 ? '#4ade80' : '#64748b' ?>;">
+                            <?= $troco_formatado ?>
+                        </td>
+                        <td style="padding: 14px 8px; text-align: right; padding-right: 15px; font-family: monospace; color: #38bdf8;">
+                            <?= $data_badge ?> às <?= $hora_exibir ?>
+                        </td>
+                    </tr>
+
+                    <!-- 📱 RENDERIZAÇÃO DO CARD DO TELEMÓVEL -->
+                    <div class="card-mobile-anonimo" style="display: none;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed rgba(168, 85, 247, 0.2); padding-bottom: 8px; margin-bottom: 10px;">
+                            <span style="color: #64748b; font-weight: bold; font-size: 13px;">Cadeira #<?= $id_exibir ?></span>
+                            <span style="color: #38bdf8; font-family: monospace; font-size: 12px; font-weight: bold;"><?= $data_badge ?> às <?= $hora_exibir ?></span>
+                        </div>
+                        <div style="text-align: left; font-size: 13px; line-height: 1.6;">
+                            <p style="margin: 3px 0; color: #cbd5e1;">💈 <b>Profissional:</b> Mestre <?= htmlspecialchars($prof_exibir) ?></p>
+                            <p style="margin: 3px 0; color: #a855f7;">💇 <b>Serviço:</b> <?= htmlspecialchars($pedido['servico']) ?></p>
+                            
+                            <div style="margin-top: 8px; display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed rgba(255,255,255,0.05); padding-top: 8px;">
+                                <div><?= $badge_estado_financeiro ?></div>
+                                <b style="color: #eab308; font-size: 15px; font-family: monospace;"><?= $preco_formatado ?></b>
+                            </div>
+                            
+                            <?php if ($troco_carteira > 0): ?>
+                            <div style="margin-top: 8px; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.2); padding: 6px 12px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #4ade80; font-size: 10px; font-weight: bold;">💳 CRÉDITO DISPONÍVEL:</span>
+                                <strong style="color: #4ade80; font-family: monospace;"><?= $troco_formatado ?></strong>
+                            </div>
+                        <?php else: ?>
+                            <p style="margin: 5px 0 0 0; color: #64748b; font-size: 11px; text-transform: uppercase; text-align: right;">Sem troco acumulado</p>
+                        <?php endif; ?>
+                    </div>
+                </div> <!-- 🟢 FECHA O CARD MOBILE SEGURO -->
+
+            <?php 
+                endforeach; // 🟢 FECHA O FOREACH DOS AGENDAMENTOS
+            endif; // 🟢 FECHA O IF (!EMPTY($LISTA_PEDIDOS))
+            ?>
+        </tbody>
+    </table>
+</div> <!-- 🟢 FECHA A TABELA SCROLL CONTAINER -->
+<?php 
+endif; // 🟢 FECHA O IF PRINCIPAL QUE VERIFICA SE A LISTA EXISTE
+?>
+</div> <!-- 🟢 FECHA O CARD MASTER DO MONITOR DE FLUXO -->
 
 <!-- =========================================================================
-     📋 CENTRAL DE MONITORIZAÇÃO: PEDIDOS PENDENTES E SERVIÇOS TRABALHADOS
-     ========================================================================= -->
-     <div style="width: 100%; max-width: 1200px; margin: 40px auto; padding: 0 15px; font-family: 'Segoe UI', sans-serif; box-sizing: border-box;">
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px;">
-        
-        <!-- PAINEL ESQUERDO: LISTA DE PENDENTES -->
-        <div style="background: #111827; border: 1px solid #334155; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-            <h4 style="color: #eab308; font-size: 13.5px; text-transform: uppercase; margin-bottom: 15px; border-left: 4px solid #eab308; padding-left: 10px; font-weight: bold; letter-spacing: 0.5px;">⏳ Agendamentos & Pedidos Pendentes</h4>
-            <div style="display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto; padding-right: 5px;">
-                <?php if(empty($lista_pendentes)): ?>
-                    <p style="color: #64748b; font-style: italic; font-size: 13px; text-align: center; padding: 20px;">Nenhuma marcação pendente no sistema.</p>
-                <?php else: foreach($lista_pendentes as $p): 
-                    $atraso = intval($p['dias_atraso']);
-                    $cor_borda = ($atraso > 0) ? '#ef4444' : '#38bdf8';
-                    $hora_item = date('H:i', strtotime($p['horario_vaga'] ?? ($p['hora_servico'] ?? $p['data'])));
-                ?>
-                    <div style="background: #0f172a; border: 1px solid #1e293b; border-left: 4px solid <?= $cor_borda ?>; padding: 14px; border-radius: 8px; text-align: left;">
-                        <div style="display: flex; justify-content: space-between; font-size: 13px; align-items: center;">
-                            <strong style="color: #fff; text-transform: uppercase; font-size: 13px;"><?= htmlspecialchars($p['cliente']) ?></strong>
-                            <b style="color: #22c55e; font-size: 14px;"><?= number_format($p['valor_liquido'] ?? 500, 2, ',', '.') ?> AOA</b>
-                        </div>
-                        <span style="font-size: 11px; color: #64748b; display: block; margin: 4px 0 2px 0;">💈 Profissional: <span style="color: #38bdf8; font-weight: bold;"><?= htmlspecialchars($p['profissional']) ?></span></span>
-                        <span style="font-size: 12px; color: #cbd5e1; display: block; font-weight: 600;">📅 Data: <?= date('d/m/Y', strtotime($p['data_servico'])) ?> às <?= $hora_item ?></span>
-                        
-                        <?php if($atraso > 0): ?>
-                            <span style="color: #ef4444; font-size: 10px; font-weight: bold; display: block; margin-top: 4px; text-transform: uppercase;">⚠️ CLIENTE FALTOU HÁ <?= $atraso ?> DIAS (Janela de Retenção)</span>
-                        <?php endif; ?>
+🎨 CSS DE ADAPTAÇÃO MOBILE-FIRST CRÍTICA DO PWA (COMPATIBILIDADE TOTAL)
+========================================================================= -->
+<style>
+.tabela-scroll-container::-webkit-scrollbar { width: 5px; }
+.tabela-scroll-container::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.1); }
+.tabela-scroll-container::-webkit-scrollbar-thumb { background: #3b0764; border-radius: 10px; }
 
-                        <!-- BOTÕES DE VALIDAÇÃO OPERACIONAL -->
-                        <div style="margin-top: 12px; display: flex; gap: 8px; border-top: 1px dashed #1f2937; padding-top: 10px;">
-                            <a href="unitelPagamentos.php?id_pagamento_obrigatorio=<?= $p['id_pagamento'] ?>&checkout_forced=1" style="flex: 1; background: #22c55e; color: #000; text-decoration: none; text-align: center; padding: 8px 0; font-size: 11px; font-weight: bold; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">📱 Pagar via Cache</a>
-                            <a href="Dashboard.php?acao_auditoria=fisico&id_pagamento=<?= $p['id_pagamento'] ?>" onclick="return confirm('Confirmar recebimento físico em dinheiro manual direto no balcão?')" style="flex: 1; background: #1f2937; color: #cbd5e1; text-decoration: none; text-align: center; padding: 7px 0; font-size: 11px; font-weight: bold; border-radius: 4px; text-transform: uppercase; border: 1px solid #374151;">💵 Caixa Físico</a>
-                        </div>
-                    </div>
-                <?php endforeach; endif; ?>
-            </div>
-        </div>
+@media (max-width: 768px) {
+.tabela-desktop-anonima thead { display: none !important; }
+.tabela-desktop-anonima tbody { display: block; width: 100%; }
+.linha-pc-segura { display: none !important; }
 
-        <!-- PAINEL DIREITO: SERVIÇOS JÁ TRABALHADOS -->
-        <div style="background: #111827; border: 1px solid #334155; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-            <h4 style="color: #22c55e; font-size: 13.5px; text-transform: uppercase; margin-bottom: 15px; border-left: 4px solid #22c55e; padding-left: 10px; font-weight: bold; letter-spacing: 0.5px;">✅ Serviços Já Trabalhados & Liquidados</h4>
-            <div style="display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto; padding-right: 5px;">
-                <?php if(empty($lista_concluidos)): ?>
-                    <p style="color: #64748b; font-style: italic; font-size: 13px; text-align: center; padding: 20px;">Nenhum serviço faturado ou trabalhado hoje.</p>
-                <?php else: foreach($lista_concluidos as $c): 
-                    $hora_c = date('H:i', strtotime($c['horario_vaga'] ?? ($c['hora_servico'] ?? $c['data'])));
-                ?>
-                    <div style="background: #0f172a; border: 1px solid #1e293b; border-left: 4px solid #22c55e; padding: 14px; border-radius: 8px; text-align: left;">
-                        <div style="display: flex; justify-content: space-between; font-size: 13px; align-items: center;">
-                            <strong style="color: #fff; text-transform: uppercase; font-size: 13px;"><?= htmlspecialchars($c['cliente']) ?></strong>
-                            <b style="color: #4ade80; font-size: 14px;"><?= number_format($c['valor_liquido'] ?? 500, 2, ',', '.') ?> AOA</b>
-                        </div>
-                        <span style="font-size: 11px; color: #64748b; display: block; margin: 4px 0 2px 0;">💈 Atendido por: <span style="color: #22c55e; font-weight: bold;"><?= htmlspecialchars($c['profissional']) ?></span></span>
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; font-size: 11px;">
-                            <span style="color: #94a3b8; font-weight: 500;">📅 Executado: <?= date('d/m/Y', strtotime($c['data_servico'])) ?> às <?= $hora_c ?></span>
-                            <span style="background: #111827; color: #22c55e; font-size: 9px; font-weight: bold; padding: 3px 6px; border-radius: 4px; border: 1px solid #1e293b; text-transform: uppercase;">⚡ Canal: <?= htmlspecialchars($c['tipo_pagamento'] ?? 'PWA') ?></span>
-                        </div>
-                    </div>
-                <?php endforeach; endif; ?>
-            </div>
-        </div>
-
-    </div>
-</div>
-
-
-
-
+.card-mobile-anonimo { 
+display: block !important; 
+background: #111827; 
+margin-bottom: 12px; 
+border-left: 4px solid #ca8a04; 
+border-top: 1px solid #1e293b;
+border-right: 1px solid #1e293b;
+border-bottom: 1px solid #1e293b;
+border-radius: 12px; 
+padding: 15px; 
+box-sizing: border-box; 
+width: 100%;
+box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+}
+</style>
 
 
 
@@ -1271,73 +1620,6 @@ nav {
          </div>
      </div>
  </div>
- <!-- =========================================================================
-     🟩 ENGINE JAVASCRIPT: CORRESPONDÊNCIA DE SINCRO E OCUPAÇÃO REAL
-     ========================================================================= -->
-<script>
-const pautaOcupadaDB = <?= json_encode($pauta_ocupada ?? []) ?>;
-const slotsHoras = <?= json_encode($grade_horaria ?? []) ?>;
-
-function abrirPautaVisual(nome, status) {
-    const container = document.getElementById('container_pauta_dinamica');
-    const grade = document.getElementById('grade_vagas_real');
-    document.getElementById('titulo_pauta_nome').innerText = "⏳ Mapa de Disponibilidade: " + nome;
-    
-    grade.innerHTML = '';
-    container.style.display = 'block';
-
-    if (status === 'Ausente' || status === 'Folga') {
-        grade.innerHTML = '<p style="color:#ef4444; grid-column: 1/-1; padding:15px; font-weight:bold; font-size:13px;">Profissional em dia de descanso ou ausente hoje.</p>';
-        return;
-    }
-
-    // Captura o horário real de Luanda para filtragem retroativa
-    const agora = new Date();
-    const horaAtualStr = String(agora.getHours()).padStart(2, '0') + ":" + String(agora.getMinutes()).padStart(2, '0');
-
-    slotsHoras.forEach(hora => {
-        // Normalização estrita de strings para evitar falhas de espaços em branco da BD
-        const nomeChave = nome.trim();
-        const horaLimpa = hora.trim();
-
-        // 🟢 REGRA DE SINCRO DO BANCO: Verifica se o profissional possui esta hora marcada hoje
-        const ocupado = pautaOcupadaDB[nomeChave] && pautaOcupadaDB[nomeChave].includes(horaLimpa);
-        
-        // 🟢 REGRA DE DESAPARECIMENTO: Se a hora já passou e está livre, ela some para otimizar o dia
-        if (horaLimpa < horaAtualStr && !ocupado) {
-            return; 
-        }
-
-        const slot = document.createElement('div');
-        let corBorda = ocupado ? '#ef4444' : '#22c55e';
-        let bgFundo = ocupado ? 'rgba(239, 68, 68, 0.15)' : 'rgba(34, 197, 94, 0.1)';
-        
-        slot.style.cssText = `padding:12px 10px; border-radius:8px; text-align:center; font-size:12px; border: 1px solid ${corBorda}; background: ${bgFundo}; cursor: pointer; transition: 0.2s; box-sizing: border-box;`;
-        
-        if (ocupado) {
-            // Força a exibição como Ocupada (Vermelha) bloqueando o duplo clique
-            slot.innerHTML = `<strong style="display:block; color:#94a3b8; text-decoration: line-through; font-family: monospace; font-size: 13px;">${horaLimpa}</strong><span style="font-size:9px; font-weight:bold; color:#f87171; display:block; margin-top:3px;">🔴 OCUPADO</span>`;
-            slot.onclick = () => alert(`🚨 Cadeira Reservada:\n\nO horário das ${horaLimpa} com o mestre ${nomeChave} já se encontra ocupado no balcão.`);
-        } else {
-            // Exibe como Livre (Verde) e permite selecionar
-            slot.innerHTML = `<strong style="display:block; color:#fff; font-family: monospace; font-size: 13px;">${horaLimpa}</strong><span style="font-size:9px; font-weight:bold; color:#4ade80; display:block; margin-top:3px;">🟢 LIVRE</span>`;
-            
-            slot.onmouseover = () => { slot.style.borderColor = '#eab308'; };
-            slot.onmouseout = () => { slot.style.borderColor = '#22c55e'; };
-            
-            slot.onclick = () => {
-                alert(`🎉 Horário Disponível!\n\nMestre: ${nomeChave}\nHorário selecionado: ${horaLimpa} hoje.`);
-                if(document.getElementById('inputHoraServico')) document.getElementById('inputHoraServico').value = horaLimpa;
-                if(document.getElementById('inputFuncionario')) document.getElementById('inputFuncionario').value = nomeChave;
-            };
-        }
-        grade.appendChild(slot);
-    });
-
-    container.scrollIntoView({ behavior: 'smooth' });
-}
-</script>
- 
  
  
  
@@ -1544,7 +1826,7 @@ try {
          <div class="passo-card-neon" style="animation-delay: 0.6s;">
              <div class="emoji-glow">📱</div>
              <h4>4. Desconto Unitel Money</h4>
-             <p>Introduza um terminal Unitel elegível (prefixos 925/935). O gateway calcula e aplica <b>20% de Desconto VIP</b> automáticos no caixa.</p>
+             <p>Introduza um terminal Unitel elegível (prefixos 925/935). O gateway calcula e aplica <b>2% de Desconto VIP</b> automáticos no caixa.</p>
          </div>
  
          <!-- Instrução 5: Plano Freemium -->
@@ -1859,7 +2141,7 @@ $query_produtos = $mysqli->query("SELECT * FROM `produtos_cosmeticos` WHERE `emp
                     <!-- Título e Blocos Síncronos de Preço -->
                     <h3 style="color: #38bdf8; font-size: 15px; font-weight: bold; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?= htmlspecialchars($produto['nome_produto']) ?></h3>
                     <p style="color: #a1a1aa; font-size: 11.5px; text-decoration: line-through; margin-bottom: 2px;">Preço Normal: <?= number_format($preco_original, 2, ',', '.') ?> Kz</p>
-                    <p style="color: #eab308; font-size: 19px; font-weight: 800; margin-bottom: 12px;"><?= number_format($preco_unitel, 2, ',', '.') ?> Kz <span style="font-size: 10px; color: #22c55e; font-weight: bold; display: block; margin-top: 2px;">(Desconto Especial -20%)</span></p>
+                    <p style="color: #eab308; font-size: 19px; font-weight: 800; margin-bottom: 12px;"><?= number_format($preco_unitel, 2, ',', '.') ?> Kz <span style="font-size: 10px; color: #22c55e; font-weight: bold; display: block; margin-top: 2px;">(Desconto Especial -2%)</span></p>
 
                     <!-- Painel Reativo de Engajamento Local -->
                     <div class="painel-reacoes-sociais">
@@ -2040,7 +2322,7 @@ Historial da Barbearia Branca
             <p style="margin: 0 0 15px 0;">Os dados recolhidos no formulário (Nome do Cliente, Telefone e especificações de atendimento) servem exclusivamente para a gestão interna das sessões e emissão de faturas. Garantimos a não partilha com entidades terceiras em conformidade com as boas práticas de governação de dados.</p>
 
             <h5 style="color: #fff; margin: 0 0 5px 0; font-size: 14px;">4. Assinatura VIP e Pagamentos Express</h5>
-            <p style="margin: 0 0 15px 0;">As ativações de planos promocionais via MultiCaixa Express são de caráter livre e público. O desconto de 20% é aplicado diretamente sobre a tabela de preços vigente no banco de dados para os utilizadores com estatuto PREMIUM ativo.</p>
+            <p style="margin: 0 0 15px 0;">As ativações de planos promocionais via MultiCaixa Express são de caráter livre e público. O desconto de 2% é aplicado diretamente sobre a tabela de preços vigente no banco de dados para os utilizadores com estatuto PREMIUM ativo.</p>
 
             <h5 style="color: #fff; margin: 0 0 5px 0; font-size: 14px;">5. Armazenamento Local e Cookies</h5>
             <p style="margin: 0 0 15px 0;">Este sistema utiliza persistência local (LocalStorage) para salvar o seu consentimento de navegação e otimizar o carregamento da cache offline (PWA), garantindo estabilidade técnica mesmo em cenários de conectividade reduzida.</p>
@@ -2122,7 +2404,7 @@ Historial da Barbearia Branca
          <div style="text-align: center; margin-bottom: 20px;">
              <h2 style="color: #ca8a04; margin: 0 0 5px 0; font-size: 22px; letter-spacing: 0.5px;">⭐ PLANO AURELIUS VIP</h2>
              <p style="color: #94a3b8; font-size: 13px; margin: 0; line-height: 1.4;">
-                 Ative o seu plano FREMIUM para obter <strong>20% de DESCONTO EM QUALQUER SERVIÇO QUE DESEJARES</strong> Dámos-te Prioridade máxima no atendimento e remoção total de anúncios!
+                 Ative o seu plano FREMIUM para obter <strong>2% de DESCONTO EM QUALQUER SERVIÇO QUE DESEJARES</strong> Dámos-te Prioridade máxima no atendimento e remoção total de anúncios!
              </p>
          </div>
  
@@ -2458,7 +2740,7 @@ function processarPagamentoExpressAberto() {
     .then(response => response.json())
     .then(dados => {
         if (dados.status === 'sucesso') {
-            alert(`🎉 Inscrição Concluída...!\n\nEstatuto PREMIUM ativado para o cliente ${nomeCliente}.\n\nDesconto de 20% já disponível no sistema!`);
+            alert(`🎉 Inscrição Concluída...!\n\nEstatuto PREMIUM ativado para o cliente ${nomeCliente}.\n\nDesconto de 2% já disponível no sistema!`);
             fecharModalPremium();
         } else {
             alert("❌ Erro ao ativar o plano: " + dados.mensagem);
