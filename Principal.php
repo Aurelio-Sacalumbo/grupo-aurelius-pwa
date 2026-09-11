@@ -340,10 +340,7 @@ if ('serviceWorker' in navigator) {
     <!-- Na barra de navegação e instalação do PWA -->
 <title>BarbeariasAngola — Rede de Distribuição & Estética</title>
 
-<!-- No cabeçalho principal do seu menu Slate -->
-<h4 style="color: #eab308; text-transform: uppercase; font-weight: bold; font-size: 14px; letter-spacing: 0.5px;">
-    🎯 BarbeariasAngola • Painel Operacional
-</h4>
+
     
     <style>
         /* =========================================================================
@@ -1207,9 +1204,6 @@ if (isset($mysqli) && !$mysqli->connect_error) {
 <title>BarbeariasAngola — Rede de Distribuição & Estética</title>
 
 <!-- No cabeçalho principal do seu menu Slate -->
-<h4 style="color: #eab308; text-transform: uppercase; font-weight: bold; font-size: 14px; letter-spacing: 0.5px;">
-    🎯 BarbeariasAngola • Painel Operacional
-</h4>
     <style>
         /* ESTILOS DE BASE (OTIMIZADO PARA IFRAME) */
         /* ESTILOS GERAIS DA PÁGINA (Para encaixar perfeitamente no iframe) */

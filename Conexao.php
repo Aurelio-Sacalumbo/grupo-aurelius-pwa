@@ -1,75 +1,65 @@
 <?php
 // =========================================================================
-// 🔮 ECOSSISTEMA MESTRE REATIVO - CONEXÃO INTEGRADA (AIVEN & XAMPP LOCAL)
+// 🔮 ECOSSISTEMA MESTRE - LIGAÇÃO UNIFICADA POSTGRESQL & MYSQL 
 // =========================================================================
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Configuração obrigatória do fuso horário de Angola
+// Configuração oficial do fuso horário de Angola
 date_default_timezone_set('Africa/Luanda');
 
-// 1. DETEÇÃO AUTOMÁTICA DE AMBIENTE (Computador Local vs Servidor Render)
-if (getenv('DB_HOST') || $_SERVER['HTTP_HOST'] !== 'localhost' && $_SERVER['REMOTE_ADDR'] !== '127.0.0.1') {
+// 🟢 1. REAPROVEITAMENTO INTELIGENTE DE VARIÁVEIS EXISTENTES
+$pdo = $pdo ?? null;
+
+// 🟢 2. DETEÇÃO AUTOMÁTICA DE AMBIENTE (LOCALHOST VS HOSPEDAGEM SEGURA)
+if ($_SERVER['HTTP_HOST'] === 'localhost' || $_SERVER['REMOTE_ADDR'] === '127.0.0.1') {
     
-    // ☁️ CREDENCIAIS REAIS EXTRAÍDAS DA TUA CONSOLA AIVEN (mysql-1a34c184)
-    $db_host = "mysql-1a34c184-aureliosacalumbo42-bf60.a.aivencloud.com"; // 👈 Corrigido para .a.
-    $db_port = 22002;                                                    // 👈 Porta Real da Aiven
-    $db_user = "avnadmin";                                                 // 👈 Utilizador Oficial
-    $db_pass = "AVNS_6AyaHMtSplThuvy6uGm";                                 // 👈 Senha Real de Produção
-    $db_name = "defaultdb";                                                // 👈 Nome do Banco Padrão
-
-    // Conexão PDO Nuvem para os motores modernos de faturas e listagens
-    try {
-        $pdo = new PDO("mysql:host=$db_host;port=$db_port;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-        $pdo->exec("SET SESSION sql_mode=''"); // Remove o modo rígido do MySQL 8.4
-    } catch (PDOException $e) {
-        die("🚨 Falha na infraestrutura PDO Aurélius na Nuvem: " . $e->getMessage());
-    }
-
-    // Conexão MySQLi Nuvem (Tratamento para a rota principal do salão)
-    $mysqli = @mysqli_connect($db_host, $db_user, $db_pass, $db_name, (int)$db_port);
+    // 💻 AMBIENTE LOCAL (Configuração para o seu XAMPP/MySQL)
+    $db_driver = "mysql";
+    $db_host   = "127.0.0.1";
+    $db_port   = "3306";
+    $db_user   = "root";
+    $db_pass   = "";
+    $db_name   = "aurelius_salao";
 
 } else {
     
-    // 💻 CREDENCIAIS PARA O TEU XAMPP LOCAL (COMPUTADOR)
-    $db_host = "127.0.0.1";
-    $db_user = "root";
-    $db_pass = "";
-    $db_name = "aurelius_salao";
+    // ☁️ AMBIENTE DE HOSPEDAGEM REAL (Puxa os dados injetados pelo painel do Render)
+    $db_driver = "pgsql";
+    $db_host   = getenv('DB_HOST') ?: "://supabase.com";
+    $db_port   = getenv('DB_PORT') ?: "5432";
+    $db_user   = getenv('DB_USER') ?: "postgres.jbuollwurahyrhxfldqz";
+    $db_pass   = getenv('DB_PASSWORD') ?: "Huambo@2026";
+    $db_name   = getenv('DB_NAME') ?: "postgres";
+}
 
-    // Conexão PDO Local
+// 🟢 3. MOTOR PDO UNIFICADO (Conecta dinamicamente ao MySQL ou Postgres)
+if (!$pdo) {
     try {
-        $pdo = new PDO("mysql:host=$db_host;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);
+        if ($db_driver === "pgsql") {
+            // String de conexão para o Supabase (PostgreSQL)
+            $dsn = "pgsql:host=$db_host;port=$db_port;dbname=$db_name";
+            $pdo = new PDO($dsn, $db_user, $db_pass);
+        } else {
+            // String de conexão para o XAMPP Local (MySQL)
+            $dsn = "mysql:host=$db_host;port=$db_port;dbname=$db_name;charset=utf8mb4";
+            $pdo = new PDO($dsn, $db_user, $db_pass);
+            $pdo->exec("SET SESSION sql_mode=''");
+        }
+        
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-        $pdo->exec("SET SESSION sql_mode=''");
+        
     } catch (PDOException $e) {
-        die("🚨 Falha na infraestrutura PDO Aurélius Local: " . $e->getMessage());
-    }
-
-    // Conexão MySQLi Local
-    $mysqli = @mysqli_connect($db_host, $db_user, $db_pass, $db_name);
-    
-    // Fallback de segurança se o XAMPP rejeitar o IP 127.0.0.1
-    if (!$mysqli) {
-        $mysqli = @mysqli_connect("localhost", "root", "", "aurelius_salao");
+        die("🚨 Falha na infraestrutura PDO Aurélius Central: " . $e->getMessage());
     }
 }
 
-// 2. REDE DE SEGURANÇA SE NENHUM MOTOR CONECTAR
-if (!$mysqli) {
-    die("🚨 Grupo Aurélius - Falha de ligação ao motor MySQLi: " . mysqli_connect_error());
-}
-
-// 3. PONTES DE COMPATIBILIDADE (Garante que nenhuma outra página do site quebre)
-$conexao_link = $mysqli;
-$conexao_aurelius = $mysqli;
-$conexao = $mysqli;
-$link = $mysqli;
-
-// Aplica as diretivas UTF-8 globais nas duas conexões
-mysqli_set_charset($mysqli, "utf8mb4");
-mysqli_query($mysqli, "SET SESSION sql_mode=''");
+// 🟢 4. PONTE DE ADAPTAÇÃO FAKE PARA CÓDIGOS ANTIGOS (Evita erros fatais de mysqli)
+// Como o PostgreSQL não suporta funções mysqli_*, injetamos o PDO nas variáveis globais
+$mysqli           = $pdo;
+$conexao_link     = $pdo;
+$conexao_aurelius = $pdo;
+$conexao          = $pdo;
+$link             = $pdo;

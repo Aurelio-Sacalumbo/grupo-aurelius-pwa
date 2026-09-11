@@ -1,9 +1,9 @@
 FROM php:8.2-apache
 
-# Instala as dependências e as extensões MySQLi e PDO automaticamente
+# Instala as dependências necessárias para o PostgreSQL
 RUN apt-get update && apt-get install -y \
-    libmariadb-dev \
-    && docker-php-ext-install mysqli pdo pdo_mysql \
+    libpq-dev \
+    && docker-php-ext-install pdo pdo_pgsql \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Ativa o módulo de reescrita do Apache para o .htaccess
