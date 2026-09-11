@@ -15,8 +15,7 @@ if ($is_localhost) {
     $username = "root";
     $password = "";
 } else {
-    // ✨ Link puro sem espaços ou quebras para o Linux do Render ler perfeitamente
-    $host     = "://aivencloud.com"; 
+    $host     = "mysql-1a34c184-aureliosacalumbo42-bf60.a.aivencloud.com"; 
     $port     = 22002; 
     $dbname   = "defaultdb";
     $username = "avnadmin";
