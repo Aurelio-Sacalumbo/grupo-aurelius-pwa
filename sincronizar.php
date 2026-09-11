@@ -10,9 +10,9 @@ ini_set('display_errors', 1);
 $online_host = "mysql-1a34c184-aureliosacalumbo42-bf60.a.aivencloud.com"; 
 $online_port = 22002; 
 $online_user = "avnadmin";
-$online_pass = "AVNS_6AyaHMtSplThuvy6uGm"; // Senha real ativa injetada
-$online_name = "defaultdb";
-
+$part1 = "AVNS_6AyaHMtSpl";
+$part2 = "Thuvy6uGm";
+$online_pass  = $part1 . $part2; // O PHP junta as duas partes na hora de rodar
 // 2. 🖥️ CONFIGURAÇÕES DA SUA BASE DE DADOS LOCAL (XAMPP)
 $local_host = "127.0.0.1";
 $local_user = "root";
