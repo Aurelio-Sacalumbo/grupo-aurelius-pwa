@@ -1,6 +1,55 @@
 <?php
 // =========================================================================
-// 🔒 TRANCA DE SEGURANÇA INTEGRADA (COLOQUE NO TOPO DO FICHEIRO QUE JÁ EXISTE)
+// 🔴 LINHA 1 SEGURO: ENGINE UNIFICADO CONTRA TRAVAMENTOS E SESSÕES COESAS
+// =========================================================================
+ob_start(); 
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+date_default_timezone_set('Africa/Luanda');
+
+// Ativação de depuração para ambiente de desenvolvimento local
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+// 🔑 1. IMPORTAÇÃO DOS CONECTORES DA BASE DE DADOS
+require_once __DIR__ . "/config/Banco.php";
+include_once __DIR__ . "/Conexao.php";
+
+// Fallback de variáveis globais para evitar warnings de sintaxe
+$cupao_desconto = $_SESSION['cupao_ativo'] ?? "";
+$total_barbearias_real = 0;
+
+// Reaproveita a instância PDO criada pelo Banco.php / Conexao.php de forma segura
+$conexao_link = $conexao_link ?? $conexao_aurelius ?? $conexao ?? $mysqli ?? null;
+
+// 🟢 2. CONFIGURAÇÃO DA PONTE MYSQLI DINÂMICA
+if (!$conexao_link || !($conexao_link instanceof mysqli)) {
+    $db_host = getenv('DB_HOST') ?: "127.0.0.1";
+    $db_port = getenv('DB_PORT') ?: "3306";
+    $db_user = getenv('DB_USER') ?: "root";
+    $db_pass = getenv('DB_PASSWORD') ?: "";
+    $db_name = getenv('DB_NAME') ?: "aurelius_salao";
+    
+    $conexao_link = @mysqli_connect($db_host, $db_user, $db_pass, $db_name, (int)$db_port);
+}
+
+if ($conexao_link && !mysqli_connect_errno()) {
+    mysqli_set_charset($conexao_link, "utf8mb4");
+    mysqli_query($conexao_link, "SET SESSION sql_mode=''");
+} else {
+    die("<div style='padding:20px; background:#0f172a; color:#ef4444; font-family:sans-serif; border:1px solid #ef4444; border-radius:12px; margin:20px;'>
+            <strong>Erro de Infraestrutura SaaS:</strong> A base de dados principal está temporariamente inacessível. Verifique o motor MySQL no XAMPP.
+         </div>");
+}
+
+$mysqli = $conexao_link;
+$conexao_aurelius = $conexao_link;
+
+// =========================================================================
+// 📅 3. PROCESSAMENTO DE MARCAÇÕES / RESERVAS VIA FORMULÁRIO (PWA)
 // =========================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirmar_reserva_pwa'])) {
     
@@ -12,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirmar_reserva_pwa
     $hora_reserva      = trim($_POST['hora_reserva'] ?? '');
 
     try {
-        // 1. Verifica se alguém reservou a vaga 1 milissegundo antes
+        // Verifica duplicidade para evitar colisões na mesma cadeira
         $stmt_trava = $pdo->prepare("
             SELECT COUNT(*) FROM `pagamentos` 
             WHERE `profissional` = ? AND `data_servico` = ? AND `hora_servico` = ? AND `status_atendimento` != 'Cancelado'
@@ -24,19 +73,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirmar_reserva_pwa
             exit();
         }
 
-        // 2. Busca o preço dinâmico na tabela de serviços
+        // Busca o preço real cadastrado
         $stmt_servico = $pdo->prepare("SELECT `preco` FROM `servicos` WHERE `nome` = ? LIMIT 1");
         $stmt_servico->execute([$servico_escolhido]);
         $preco_tabela = floatval($stmt_servico->fetchColumn() ?? 1500.00);
 
-        // 3. Faz o INSERT direto na tabela pagamentos
+        // Insere o registo pendente no fluxo de caixa
         $stmt_insert = $pdo->prepare("
             INSERT INTO `pagamentos` (`cliente`, `cliente_telefone`, `profissional`, `servico`, `valor`, `data_servico`, `hora_servico`, `status_atendimento`, `status_trabalho`, `visto_admin`) 
             VALUES (?, ?, ?, ?, ?, ?, ?, 'Pendente', 'Pendente', 0)
         ");
         $stmt_insert->execute([$cliente_nome, $cliente_telefone, $id_profissional, $servico_escolhido, $preco_tabela, $data_reserva, $hora_reserva]);
 
-        // Redireciona para o Dashboard para ver a vaga entrar em tempo real
         header("Location: Dashboard.php");
         exit();
 
@@ -44,69 +92,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirmar_reserva_pwa
         die("Erro no agendamento: " . $e->getMessage());
     }
 }
-?>
-<?php
-// 🔴 DEVE SER A PRIMEIRA LINHA ABSOLUTA DO FICHEIRO (LINHA 1):
-ob_start(); 
-
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-date_default_timezone_set('Africa/Luanda');
-
-// IMPORTAÇÃO DA CONEXÃO CENTRAL MESTRE
-require_once __DIR__ . "/config/Banco.php";
-include_once __DIR__ . "/Conexao.php";
-
-// Inicialização de segurança contra o Warning da linha 1430
-$cupao_desconto = isset($_SESSION['cupao_ativo']) ? $_SESSION['cupao_ativo'] : "";
-$total_barbearias_real = 0;
-// Importa o Conexao.php usando o caminho absoluto correto
-include_once(__DIR__ . "/Conexao.php");
-
-// Se o arquivo Conexao.php já criou a variável, nós reaproveitamos.
-$conexao_link = $conexao_link ?? $conexao_aurelius ?? $conexao ?? $mysqli ?? null;
-
-// 🟢 3. PONTE DE CONEXÃO SAAS COMPATÍVEL COM LOCALHOST E RENDER.COM
-if (!$conexao_link || !($conexao_link instanceof mysqli)) {
-    // Captura os dados de ambiente do Render/Railway. No Linux, separamos o Host da Porta.
-    $db_host = getenv('DB_HOST') ?: "altaria.proxy.rlwy.net";
-    $db_port = getenv('DB_PORT') ?: "52030";
-    $db_user = getenv('DB_USER') ?: "root";
-    $db_pass = getenv('DB_PASSWORD') ?: "tPzDwXGkyczyyYdcyvLmHLSMmfZmnMIZ";
-    $db_name = getenv('DB_NAME') ?: "railway";
-    
-    // Efetua a ligação dinâmica passando a porta de forma isolada para não travar
-    $conexao_link = @mysqli_connect($db_host, $db_user, $db_pass, $db_name, (int)$db_port);
-}
-
-// Garante a calibração do Charset e anula o modo rígido de agrupamento do MySQL
-if ($conexao_link && !mysqli_connect_errno()) {
-    mysqli_set_charset($conexao_link, "utf8mb4");
-    mysqli_query($conexao_link, "SET SESSION sql_mode=''");
-} else {
-    // Se mesmo assim falhar, para o código de forma limpa antes de estragar o HTML
-    die("<div style='padding:20px; background:#0f172a; color:#ef4444; font-family:sans-serif; border:1px solid #ef4444; border-radius:12px; margin:20px;'>
-            <strong>Erro de Infraestrutura SaaS:</strong> A base de dados principal está temporariamente inacessível online.
-         </div>");
-}
-
-// Revalida os clones de segurança para os feeds antigos continuarem a ler a variável
-$mysqli = $conexao_link;
-$conexao_aurelius = $conexao_link;
 
 // =========================================================================
-// 🛡️ MOTOR DE FILTRAGEM & CONTADOR DE PARCEIROS ATIVOS
+// 🛡️ 4. MOTOR DE FILTRAGEM & CONTADORES OPERACIONAIS
 // =========================================================================
 $lista_parceiros_ativos = [];
-$listaReels             = []; 
 $total_barbearias_real  = 0;
 
-// Puxa apenas parceiros legítimos sem repetições
 $query_barbearias = mysqli_query($conexao_link, "
     SELECT * FROM `usuario` 
     WHERE `nivel` = 'parceiro_hospedado' 
@@ -121,81 +113,49 @@ if ($query_barbearias) {
     }
 }
 
-// Conta apenas os nomes de barbearias únicos para bater com os dados reais
-$q_contagem = mysqli_query($conexao_link, "
-    SELECT COUNT(DISTINCT `nome`) as total 
-    FROM `usuario` 
-    WHERE `nivel` = 'parceiro_hospedado' 
-    AND `transacao_status` = 'Confirmado'
-");
-
+$q_contagem = mysqli_query($conexao_link, "SELECT COUNT(DISTINCT `nome`) as total FROM `usuario` WHERE `nivel` = 'parceiro_hospedado' AND `transacao_status` = 'Confirmado'");
 if ($q_contagem) {
-    $dados_cont = mysqli_fetch_assoc($q_contagem);
-    $total_barbearias_real = intval($dados_cont['total']); 
+    $total_barbearias_real = intval(mysqli_fetch_assoc($q_contagem)['total'] ?? 0); 
 }
 
 // =========================================================================
-// 🚀 MOTOR DE NOTIFICAÇÕES REATIVO (ESTILO FACEBOOK MOBILE)
+// 🚀 5. MOTOR DE NOTIFICAÇÕES E ALERTAS DE SINALIZAÇÃO NATIVA
 // =========================================================================
-
-// Intercepta o clique e ativa o trinco visual para esconder o número da aba selecionada
 if (isset($_GET['marcar_lido'])) {
     $seccao = trim($_GET['marcar_lido']);
-    
-    // Grava na sessão que o utilizador limpou os alertas desta secção
     $_SESSION['bloqueio_notif_' . $seccao] = true;
     
-    $rotas = [
-        'vagas'       => 'Vagas.php', 
-        'lojas'       => 'Lojas.php', 
-        'barbearias'  => 'Principal.php', 
-        'sino'        => 'Video.php'
-    ];
-    
+    $rotas = ['vagas' => 'Vagas.php', 'lojas' => 'Lojas.php', 'barbearias' => 'Principal.php', 'sino' => 'Video.php'];
     if (isset($rotas[$seccao])) { 
         header("Location: " . $rotas[$seccao]); 
         exit(); 
     }
 }
 
-// Camada de limpeza automática baseada na URL atual
-$url_atual = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
+$url_atual = $_SERVER['REQUEST_URI'] ?? '';
 if (strpos($url_atual, 'Principal.php') !== false) { $_SESSION['bloqueio_notif_barbearias'] = true; }
 if (strpos($url_atual, 'Lojas.php') !== false)     { $_SESSION['bloqueio_notif_lojas'] = true; }
 if (strpos($url_atual, 'Vagas.php') !== false)     { $_SESSION['bloqueio_notif_vagas'] = true; }
 if (strpos($url_atual, 'Video.php') !== false)     { $_SESSION['bloqueio_notif_sino'] = true; }
 
-// Inicializadores dos contadores de novos registos
-$novasVagas     = 0; 
-$novasLojas     = 0; 
-$novosProdutos  = 0; 
-$total_notificacoes = 0; 
-
-// Contagem Real - Vagas
+// Extração limpa dos contadores em tempo real para alimentar as bolhas visuais
 $q_vagas = mysqli_query($conexao_link, "SELECT COUNT(*) as total FROM `vagas_trabalho`");
 $novasVagas = (int)(mysqli_fetch_assoc($q_vagas)['total'] ?? 0);
 
-// Contagem Real - Lojas
 $q_lojas = mysqli_query($conexao_link, "SELECT COUNT(*) as total FROM `usuario` WHERE `nivel` = 'parceiro_hospedado' AND `transacao_status` = 'Confirmado'"); 
 $novasLojas = (int)(mysqli_fetch_assoc($q_lojas)['total'] ?? 0);
 
-// Contagem Real - Produtos
-$q_prod = @mysqli_query($conexao_link, "SELECT COUNT(*) as total FROM `produtos` WHERE 1=1");
-if ($q_prod) {
-    $novosProdutos = (int)(mysqli_fetch_assoc($q_prod)['total'] ?? 0);
-}
+$q_prod = @mysqli_query($conexao_link, "SELECT COUNT(*) as total FROM `produtos_cosmeticos` WHERE `stock_atual` > 0");
+$novosProdutos = $q_prod ? (int)(mysqli_fetch_assoc($q_prod)['total'] ?? 0) : 0;
 
-// Contagem Real - Sistema do Sino (Vídeos de anúncios + Candidaturas de Emprego)
 $q_vids = mysqli_query($conexao_link, "SELECT COUNT(*) as total FROM `anuncios` WHERE `tipo_media` = 'video'");
-$total_vids = (int)(mysqli_fetch_assoc($q_vids)['total'] ?? 0);
+$total_vids = $q_vids ? (int)(mysqli_fetch_assoc($q_vids)['total'] ?? 0) : 0;
 
 $q_ped = mysqli_query($conexao_link, "SELECT COUNT(*) as total FROM `pedidos_emprego`");
-$total_ped = (int)(mysqli_fetch_assoc($q_ped)['total'] ?? 0);
+$total_ped = $q_ped ? (int)(mysqli_fetch_assoc($q_ped)['total'] ?? 0) : 0;
 
-// O total de notificações unifica os alertas dinâmicos
 $total_notificacoes = $total_vids + $total_ped;
 ?>
-
 
 <?php
 // 🟢 REGRA DE OURO: A sessão só é iniciada se ainda não existir nenhuma ativa
