@@ -6,19 +6,22 @@ header('Content-Type: text/html; charset=utf-8');
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// 1. 🌐 CREDENCIAIS REAIS E EXATAS DA SUA CONSOLA AIVEN
-$online_host = "mysql-1a34c184-aureliosacalumbo42-bf60.a.aivencloud.com"; 
+// 1. 🌐 ENDEREÇO COMPLETO E EXATO EXTRAÍDO DA SUA CONSOLA AIVEN
+$raw_host = "mysql-1a34c184-aureliosacalumbo42-bf60.a.aivencloud.com"; 
+
+// Esta função limpa de forma estrita qualquer protocolo que tenha ficado gravado em cache
+$online_host = str_replace(['https://', 'http://', '://'], '', trim($raw_host));
+
 $online_port = 22002; 
 $online_user = "avnadmin";
 $online_pass = "AVNS_6AyaHMtSplThuvy6uGm"; 
-$online_name = "defaultdb"; // ✨ RESTAURADA: Evita o erro 'No database selected'
+$online_name = "defaultdb"; 
 
 // 2. 🖥️ CONFIGURAÇÕES DA SUA BASE DE DADOS LOCAL (XAMPP)
 $local_host = "127.0.0.1";
 $local_user = "root";
 $local_pass = "";
 $local_name = "aurelius_salao";
-
 echo "<h2 style='font-family:sans-serif; color:#0284c7;'>📤 Inicializando Migração de Dados Puros para a Nuvem Aiven...</h2>";
 
 // Conexão com o banco local do XAMPP
